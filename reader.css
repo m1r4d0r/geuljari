@@ -1,0 +1,214 @@
+/* 글결 읽기 틀
+   페이지마다 화면 한 장(.sheet). 장은 무대(.stage)에 겹쳐 있고 지금 장만 보인다.
+   장 안에는 바탕 캔버스(.ground) 위에 글 층(.scroll)이 있다. 글이 화면보다 길면 글 층 안에서 위아래로 스크롤한다.
+   글 기둥(.column)의 폭(--measure), 가로 자리(--x: 0 왼쪽 · 0.5 가운데 · 1 오른쪽), 세로 자리(--y: 0 위 · 1 아래)는
+   페이지마다 reader.js가 정한다.
+   조작(페이지 눈금·이전·다음)은 아래 막대, 보기(움직임·다시·가림판)는 위 오른쪽.
+   단추 글자는 차이 혼합(difference)으로 칠해 낮이든 밤이든 바탕의 반대 색으로 보인다.
+   장면 색은 장마다 붙어서 보는 사람의 밝기 설정과 상관없이 글이 정한 낮·밤을 따른다. */
+
+:root {
+  --backstage: #050607;
+  --f-display: 'Song Myung', 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Batang', serif;
+  --f-body: 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Nanum Myeongjo', 'Batang', serif;
+  --fs-body: clamp(1.02rem, .96rem + .3vw, 1.16rem);
+  --gutter: max(1.25rem, 7vw);
+  --para-gap: .9em;
+  color-scheme: dark;
+}
+
+/* 장면 색 */
+[data-scene="day"] {
+  --paper: #ECEFE9;
+  --ink: #1D2321;
+  --ink-soft: #5D6662;
+  --wet: #2C4C78;
+}
+[data-scene="night"] {
+  --paper: #0E1317;
+  --ink: #DCE1DA;
+  --ink-soft: #8D9792;
+  --wet: #93B3E2;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--backstage);
+  color: #fff;
+  font-family: var(--f-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- 무대와 장 ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--backstage);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.stage.is-dragging { cursor: grabbing; }
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  color: var(--ink);
+  transform-origin: 50% 100%;
+  visibility: hidden;
+}
+.sheet.is-current, .sheet.is-moving { visibility: visible; }
+.sheet.is-moving { will-change: transform, clip-path, opacity; }
+
+.ground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 글 층: 세로로 남는 자리를 --y 비율로 위아래에 나눠 글 기둥을 놓는다. 넘치면 위에서부터 스크롤 */
+.scroll {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  padding: calc(env(safe-area-inset-top, 0px) + 4.6rem) var(--gutter) calc(env(safe-area-inset-bottom, 0px) + 5.2rem);
+}
+.scroll::-webkit-scrollbar { display: none; }
+.scroll::before { content: ""; flex: var(--y, .4) 0 0; }
+.scroll::after { content: ""; flex: calc(1 - var(--y, .4)) 0 0; }
+.sheet.fits .scroll { touch-action: none; }
+
+.column {
+  flex: none;
+  width: min(var(--measure, 26em), 100%);
+  margin-left: calc((100% - min(var(--measure, 26em), 100%)) * var(--x, 0));
+  font-size: var(--fs-body);
+  line-height: 1.95;
+  font-weight: 380;
+  letter-spacing: -.005em;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-align: var(--align, left);
+}
+.para + .para { margin-top: var(--para-gap); }
+
+@media (max-width: 599px) {
+  .scroll { padding-inline: 1.25rem; }
+  .column {
+    width: auto;
+    margin-left: calc(var(--x, 0) * 2.4rem);
+    margin-right: calc((1 - var(--x, 0)) * 2.4rem);
+  }
+}
+
+/* ---------- 줄과 글자 ---------- */
+
+.ln {
+  white-space: pre-wrap;
+  padding-inline-start: min(calc(var(--indent, 0) * .5em), 45%);
+  padding-bottom: calc(var(--drip, 0) * .36em);
+}
+.tk { white-space: nowrap; }
+.tk[data-long] { white-space: normal; overflow-wrap: anywhere; }
+.tk[data-role="drip"] {
+  display: inline-block;
+  position: relative;
+  top: calc(var(--k, 0) * .36em);
+}
+.has-band .ln { transition: opacity .35s ease, filter .35s ease; }
+
+/* 머무르기: 길게 누른 줄만 남고 나머지는 가라앉는다 */
+.sheet .ln { transition: opacity .7s ease, filter .7s ease; }
+.sheet.lingering .ln:not(.is-held) { opacity: .16; filter: blur(1.5px); }
+.sheet.lingering .ln.is-held { opacity: 1; filter: none; }
+
+/* ---------- 조작 ---------- */
+
+.ui {
+  position: fixed;
+  z-index: 10;
+  color: #fff;
+  mix-blend-mode: difference;
+  font-size: .86rem;
+  letter-spacing: .03em;
+}
+.view {
+  top: calc(env(safe-area-inset-top, 0px) + .9rem);
+  right: 1.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  opacity: .7;
+  transition: opacity .3s ease;
+}
+.view:hover, .view:focus-within { opacity: 1; }
+.ops {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .8rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + .9rem);
+}
+.ops .hint { margin: 0; opacity: .55; min-width: 0; transition: opacity .8s ease; }
+.ops .hint.is-gone { opacity: 0; }
+.ops .turn { margin-left: auto; display: flex; gap: 1.1rem; }
+
+.dots { display: flex; gap: .3rem; }
+.dot {
+  width: 1.2rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
+  color: inherit;
+  opacity: .3;
+  cursor: pointer;
+}
+.dot[aria-current="true"] { opacity: 1; background-size: 100% 2px; }
+
+.tbtn {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: .3rem 0;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  opacity: .8;
+}
+.tbtn:hover { opacity: 1; }
+.tbtn:disabled { opacity: .25; cursor: default; }
+.tbtn:focus-visible, .dot:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+
+@media (max-width: 599px) {
+  .ops .hint { display: none; }
+  .dots { gap: .15rem; }
+  .dot { width: .9rem; }
+}

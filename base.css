@@ -1,0 +1,178 @@
+/* 글결 공통: 색·글꼴 토큰과 바탕 */
+
+
+/* 판짜기: 옅은 청자빛 종이에 먹으로 쓴 한 단 명조 본문, 막 쓴 글자만 잠시 쪽빛으로 젖어 있다 */
+:root {
+  --paper: #ECEFE9;
+  --paper-deep: #E2E6DF;
+  --ink: #1D2321;
+  --ink-soft: #5D6662;
+  --rule: #C8CFC6;
+  --wet: #2C4C78;
+  --seal: #B4412C;
+  --on-seal: #F4F1EE;
+
+  /* 움직임 종류별 색(가림판 표시용) */
+  --r-stream: #4C7360;
+  --r-plain: #7B827E;
+  --r-sigh: #2C4C78;
+  --r-drip: #B4412C;
+  --r-rest: #946B0F;
+  --r-rest-bg: rgba(148, 107, 15, .16);
+  --ind-bg: rgba(93, 102, 98, .12);
+  --r-scene: #5C468C;
+
+  /* 낮밤 전환으로 화면이 뒤집히는 순간 그 뒤로 보이는 무대의 어둠 */
+  --backstage: #050607;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: .26;
+
+  --f-display: 'Song Myung', 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Batang', serif;
+  --f-body: 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Nanum Myeongjo', 'Batang', serif;
+  --fs-body: clamp(1.02rem, .96rem + .3vw, 1.16rem);
+  --measure: 33em;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12171A;
+    --paper-deep: #182025;
+    --ink: #D8DDD5;
+    --ink-soft: #8D9792;
+    --rule: #2B3438;
+    --wet: #93B3E2;
+    --seal: #CF6C55;
+    --on-seal: #12171A;
+    --r-stream: #8DB39E;
+    --r-plain: #87908B;
+    --r-sigh: #93B3E2;
+    --r-drip: #DB7E66;
+    --r-rest: #D4AA4E;
+    --r-rest-bg: rgba(212, 170, 78, .18);
+    --ind-bg: rgba(141, 151, 146, .14);
+    --r-scene: #B3A0E0;
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --grain-opacity: .14;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #12171A;
+  --paper-deep: #182025;
+  --ink: #D8DDD5;
+  --ink-soft: #8D9792;
+  --rule: #2B3438;
+  --wet: #93B3E2;
+  --seal: #CF6C55;
+  --on-seal: #12171A;
+  --r-stream: #8DB39E;
+  --r-plain: #87908B;
+  --r-sigh: #93B3E2;
+  --r-drip: #DB7E66;
+  --r-rest: #D4AA4E;
+  --r-rest-bg: rgba(212, 170, 78, .18);
+  --ind-bg: rgba(141, 151, 146, .14);
+  --r-scene: #B3A0E0;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: .14;
+  color-scheme: dark;
+}
+
+/* 장면(낮밤): 글에 [[밤]]·[[낮]]이 있으면 보는 사람의 밝기 설정보다 장면이 앞선다 */
+:root[data-scene="day"] {
+  --paper: #ECEFE9;
+  --paper-deep: #E2E6DF;
+  --ink: #1D2321;
+  --ink-soft: #5D6662;
+  --rule: #C8CFC6;
+  --wet: #2C4C78;
+  --seal: #B4412C;
+  --on-seal: #F4F1EE;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: .26;
+  color-scheme: light;
+}
+:root[data-scene="night"] {
+  --paper: #12171A;
+  --paper-deep: #182025;
+  --ink: #D8DDD5;
+  --ink-soft: #8D9792;
+  --rule: #2B3438;
+  --wet: #93B3E2;
+  --seal: #CF6C55;
+  --on-seal: #12171A;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-opacity: .14;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 종이 결(바탕판 .sky 위, 글 아래) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: var(--grain-opacity);
+}
+
+[hidden] { display: none !important; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible { outline: 1px solid var(--wet); outline-offset: 3px; }
+
+/* 글자로만 된 단추 */
+.tbtn {
+  font: inherit;
+  font-size: .84rem;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  padding: .25rem 0;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tbtn:hover { color: var(--ink); border-bottom-color: var(--rule); }
+.tbtn.is-accent { color: var(--wet); }
+.tbtn[aria-pressed="true"] { color: var(--wet); border-bottom-color: currentColor; }
+
+/* .sky는 화면 전체를 덮는 바탕판 */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--paper);
+}

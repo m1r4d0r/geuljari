@@ -1,0 +1,146 @@
+/* 글결 반전 시험
+   한 화면 무대 위에 낮 장과 밤 장을 겹쳐 두고, 바닥 가운데를 축으로 쓸어 넘긴다. 글은 장 안에 있어서 바탕과 함께 쓸린다.
+   조작 단추는 아래 막대, 바탕 고르기는 위 오른쪽.
+   단추 글자는 차이 혼합(difference)으로 칠해서 낮이든 밤이든 바탕의 반대 색으로 보인다. */
+
+:root {
+  --backstage: #050607;
+  --f-display: 'Song Myung', 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Batang', serif;
+  --f-body: 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Nanum Myeongjo', 'Batang', serif;
+  --fs-body: clamp(1.02rem, .96rem + .3vw, 1.16rem);
+  color-scheme: dark;
+}
+
+/* 장면 색: 장마다 붙여서 두 장면이 한 화면에 함께 보일 수 있게 한다 */
+[data-scene="day"] {
+  --paper: #ECEFE9;
+  --ink: #1D2321;
+  --ink-soft: #5D6662;
+  --wet: #2C4C78;
+}
+[data-scene="night"] {
+  --paper: #0E1317;
+  --ink: #DCE1DA;
+  --ink-soft: #8D9792;
+  --wet: #93B3E2;
+  --au1: #4FE0C0;
+  --au2: #8F7BFF;
+  --au3: #7DFFB0;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--backstage);
+  color: #fff;
+  font-family: var(--f-body);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 무대와 장 ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--backstage);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stage.is-dragging { cursor: grabbing; }
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  color: var(--ink);
+  transform-origin: 50% 100%;
+  visibility: hidden;
+  will-change: transform, clip-path;
+}
+.sheet.is-current, .sheet.is-moving { visibility: visible; }
+
+.ground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.column {
+  position: absolute;
+  width: min(25em, calc(100% - 2.5rem));
+  font-size: var(--fs-body);
+  line-height: 1.95;
+  font-weight: 380;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.column p { margin: 0; }
+.column .ln { display: block; }
+.column .em { font-weight: 520; }
+
+.column[data-for="day"] { left: max(1.25rem, 12vw); top: 24vh; }
+.column[data-for="night"] { right: max(1.25rem, 12vw); top: 30vh; width: min(17em, calc(100% - 2.5rem)); text-align: right; }
+
+.sheet .column { color: var(--ink); }
+.sheet .column .em { color: var(--wet); }
+
+@media (max-width: 599px) {
+  .column[data-for="day"] { left: 1.25rem; right: 2.6rem; width: auto; top: 18vh; }
+  .column[data-for="night"] { right: 1.25rem; left: auto; top: 26vh; }
+}
+
+/* ---------- 조작 ---------- */
+
+.ui {
+  position: fixed;
+  z-index: 10;
+  color: #fff;
+  mix-blend-mode: difference;
+  font-size: .86rem;
+  letter-spacing: .03em;
+}
+.view {
+  top: calc(env(safe-area-inset-top, 0px) + .9rem);
+  right: 1.25rem;
+  display: grid;
+  justify-items: end;
+  gap: .15rem;
+}
+.view .pick { display: flex; align-items: baseline; gap: .9rem; }
+.view .label { opacity: .55; }
+.ops {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .8rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + .9rem);
+}
+.ops .hint { margin: 0 auto 0 0; opacity: .6; min-width: 0; }
+.tbtn {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: .3rem 0;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: .75;
+}
+.tbtn:hover { opacity: 1; }
+.tbtn[aria-pressed="true"] { opacity: 1; border-bottom-color: currentColor; }
+.tbtn:disabled { opacity: .25; cursor: default; }
+.tbtn:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+
+@media (max-width: 599px) {
+  .ops .hint { display: none; }
+  .ops { justify-content: space-between; }
+}

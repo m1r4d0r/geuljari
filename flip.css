@@ -1,0 +1,44 @@
+/* 글결 반전 그림 요소
+   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail).
+   무대 안에서 장(.sheet)보다 위에 놓인다. 읽기 틀과 반전 시험이 함께 쓴다. */
+
+.flip-hand, .flip-axis, .flip-glow, .flip-trail {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+}
+/* 바늘: 축에서 바깥으로 뻗는 빛줄 */
+.flip-hand {
+  left: 50%;
+  top: 100%;
+  width: var(--flip-r, 140vmax);
+  height: 2px;
+  margin-top: -1px;
+  transform-origin: 0 50%;
+  background: linear-gradient(to right, rgba(255, 248, 232, 1), rgba(255, 244, 222, .7) 55%, rgba(255, 244, 222, 0));
+  box-shadow: 0 0 12px 1px rgba(255, 236, 200, .55);
+}
+/* 축: 회전 무대의 바닥선(지름) */
+.flip-axis {
+  left: 50%;
+  top: 100%;
+  width: calc(var(--flip-r, 140vmax) * 2);
+  height: 2px;
+  margin: -1px 0 0 calc(var(--flip-r, 140vmax) * -1);
+  transform-origin: 50% 50%;
+  background: linear-gradient(to right, rgba(255, 244, 222, 0), rgba(255, 248, 232, .95) 35%, rgba(255, 248, 232, .95) 65%, rgba(255, 244, 222, 0));
+  box-shadow: 0 0 14px 1px rgba(255, 236, 200, .5);
+}
+/* 축에서 번지는 영사기 빛 */
+.flip-glow {
+  left: 50%;
+  top: 100%;
+  width: 140vmax;
+  height: 140vmax;
+  margin: -70vmax 0 0 -70vmax;
+  background: radial-gradient(circle, rgba(255, 238, 205, .28), rgba(255, 238, 205, .06) 32%, rgba(255, 238, 205, 0) 58%);
+  z-index: 4;
+}
+/* 바늘 뒤에 남는 잔광 */
+.flip-trail { inset: 0; z-index: 4; }

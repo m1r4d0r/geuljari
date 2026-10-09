@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글결 효과 견본</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="glyph.css">
+<link rel="stylesheet" href="effects.css">
+<script src="engine.js" defer></script>
+<script src="fx.js" defer></script>
+<script src="effects.js" defer></script>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<header class="bar" data-stage>
+  <h1>효과 견본</h1>
+  <nav class="view" aria-label="이동">
+    <a class="tbtn" href="index.html">글로그</a>
+    <a class="tbtn" href="mask.html">가림판</a>
+  </nav>
+  <p class="lede">읽기 틀에 들어 있는 효과를 실제로 움직여 봅니다. 저절로 붙는 효과는 글의 생김새를 보고 붙고, 블록 지정 효과는 가림판에서 글을 드래그한 뒤 효과 메뉴에서 고르면 그 부분에 붙습니다. 후보는 아직 읽기 틀에 없는 것입니다. 마음에 드는 것은 고르기로 표시해 아래에서 목록을 복사해 주세요.</p>
+</header>
+
+<main class="specimen" id="specimen" data-stage></main>
+
+<footer class="ops">
+  <p id="picked" class="picked">고른 효과 없음</p>
+  <button class="obtn is-primary" type="button" id="copy-picks">목록 복사</button>
+</footer>
+</body>
+</html>

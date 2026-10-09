@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>글결 편집실 시안 · 교정쇄</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&family=Nanum+Gothic+Coding:wght@400;700&family=Song+Myung&display=swap">
+<style>
+body{margin:0;background:#E8E5DE}
+*,*::before,*::after{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+a{color:#1B1A18}a:hover{color:#A63C33}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:#1B1A18;margin:0;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:9px;height:9px;background:#1B1A18;border:0;border-radius:0}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;background:#1B1A18;border:0;border-radius:0}
+.c-k{font-family:'Nanum Gothic Coding',monospace;font-size:11px;letter-spacing:.04em}
+.c-q{display:flex;flex-wrap:wrap;gap:3px}
+.c-q i{display:block;width:8px;height:8px;border:1px solid #B9B4A9;background:transparent}
+.c-q i.f{background:#1B1A18;border-color:#1B1A18}
+.c-q i.r{border-color:#A63C33}
+.c-q b{display:block;width:5px;height:8px}
+.c-opt{display:flex;align-items:center;gap:8px;height:24px;padding:0;background:none;border:0;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;color:#625E58;white-space:nowrap}
+.c-opt i{display:block;width:8px;height:8px;border:1px solid #1B1A18;background:transparent;flex:none}
+.c-opt.on{color:#1B1A18}
+.c-opt.on i{background:#1B1A18}
+.c-crop{position:absolute;width:14px;height:14px;border-color:#1B1A18;border-style:solid;border-width:0}
+.c-bar{display:flex;align-items:flex-end;gap:2px}
+.c-bar i{display:block;width:3px;background:#1B1A18}
+.c-bar b{display:block;width:4px}
+</style>
+</head>
+<body>
+
+<div style="width:1440px;height:1260px;overflow:hidden;display:flex;flex-direction:column;background:#E8E5DE;color:#1B1A18;font-family:'Noto Sans KR',sans-serif;font-size:13px;line-height:1.5">
+
+<div style="height:900px;display:flex;flex-direction:column">
+
+  <header style="display:flex;align-items:center;gap:14px;height:52px;padding:0 40px">
+    <a href="#" aria-label="글결" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#1B1A18">
+      <span aria-hidden="true" class="c-q" style="gap:2px"><i class="f" style="width:10px;height:10px"></i><i style="width:10px;height:10px;border-color:#1B1A18"></i></span>
+      <span style="font-family:'Song Myung',serif;font-size:21px;letter-spacing:.04em">글결</span>
+    </a>
+    <span style="font-size:12px;color:#625E58">편집</span>
+    <nav aria-label="메뉴" style="margin-left:auto;display:flex;gap:20px">
+      <button type="button" style="height:36px;padding:0;background:none;border:0;cursor:pointer;font-size:13px;color:#1B1A18">불러오기</button>
+      <button type="button" style="height:36px;padding:0;background:none;border:0;cursor:pointer;font-size:13px;color:#1B1A18">문의</button>
+    </nav>
+  </header>
+
+  <div style="flex:1 1 auto;min-height:0;display:flex">
+
+    <aside aria-label="교정 부호와 조판 지정" style="flex:none;width:250px;display:flex;flex-direction:column;gap:18px;padding:18px 20px 16px 40px;overflow:hidden">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="c-k" style="color:#625E58">교정 부호</div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span aria-hidden="true" class="c-q" style="margin-top:5px"><i class="r"></i><i class="r"></i></span><div><div style="font-size:14px">띄어쓰기 두 번</div><div style="font-size:12px;color:#625E58">한 호흡 쉼 · 세 번이면 더 길게</div></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span aria-hidden="true" style="width:16px;margin-top:6px;border-top:3px double #1B1A18"></span><div><div style="font-size:14px">빈 줄 둘</div><div style="font-size:12px;color:#625E58">새 페이지 · 빈 줄 하나는 문단 사이</div></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start"><span aria-hidden="true" style="width:16px;margin-top:4px;font-family:'Song Myung',serif;font-size:12px;line-height:1;text-decoration:underline wavy #A63C33;color:transparent">글글</span><div><div style="font-size:14px">끌어서 고르기</div><div style="font-size:12px;color:#625E58">고른 자리에 강조</div></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9C5BC;padding-top:14px">
+        <div class="c-k" style="color:#625E58;margin-bottom:2px">조판 지정</div>
+        <div style="display:flex;gap:18px">
+          <div><div class="c-k" style="color:#625E58;margin-bottom:2px">흐름</div><button type="button" class="c-opt on"><i></i>이어 쓰기</button><button type="button" class="c-opt"><i></i>번짐</button><button type="button" class="c-opt"><i></i>떠오름</button><button type="button" class="c-opt"><i></i>타자</button></div>
+          <div><div class="c-k" style="color:#625E58;margin-bottom:2px">장면</div><button type="button" class="c-opt on"><i></i>낮</button><button type="button" class="c-opt"><i></i>밤</button><div class="c-k" style="color:#625E58;margin:6px 0 2px">바탕</div><button type="button" class="c-opt on"><i></i>창빛</button><button type="button" class="c-opt"><i></i>한지</button></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-top:6px">
+          <label for="c-speed" style="display:flex;justify-content:space-between;font-size:12px"><span>쓰는 속도</span><span class="c-k" style="color:#625E58">1.0×</span></label><input id="c-speed" type="range" min="50" max="200" value="100">
+          <label for="c-rest" style="display:flex;justify-content:space-between;font-size:12px"><span>쉼 길이</span><span class="c-k" style="color:#625E58">0.3초</span></label><input id="c-rest" type="range" min="10" max="100" value="32">
+          <label for="c-gap" style="display:flex;justify-content:space-between;font-size:12px"><span>줄 간격</span><span class="c-k" style="color:#625E58">2.05</span></label><input id="c-gap" type="range" min="150" max="240" value="205">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+          <span class="c-k" style="color:#625E58;width:28px">먹</span>
+          <button type="button" aria-pressed="true" aria-label="검정" style="width:14px;height:14px;border:0;background:#1B1A18;outline:1px solid #1B1A18;outline-offset:2px;cursor:pointer"></button>
+          <button type="button" aria-pressed="false" aria-label="쪽먹" style="width:14px;height:14px;border:0;background:#2B3A55;cursor:pointer"></button>
+          <button type="button" aria-pressed="false" aria-label="갈먹" style="width:14px;height:14px;border:0;background:#4A3A32;cursor:pointer"></button>
+          <button type="button" aria-pressed="false" aria-label="회먹" style="width:14px;height:14px;border:0;background:#625E58;cursor:pointer"></button>
+          <button type="button" aria-pressed="false" aria-label="직접" style="width:14px;height:14px;border:1px solid #1B1A18;background:transparent;cursor:pointer"></button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span class="c-k" style="color:#625E58;width:28px">소리</span>
+          <button type="button" style="display:flex;align-items:center;gap:8px;height:24px;padding:0 8px;border:1px solid #1B1A18;background:transparent;cursor:pointer;font-size:12px">빗소리<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 L5 6.5 L8 3.5" fill="none" stroke="#1B1A18" stroke-width="1.3"></path></svg></button>
+          <button type="button" class="c-opt on" style="height:24px"><i></i>종이 소리</button>
+        </div>
+      </div>
+    </aside>
+
+    <section aria-label="편집" style="flex:1 1 auto;min-width:0;display:flex;justify-content:center;padding:18px 24px 0">
+      <div style="position:relative;width:100%;max-width:700px;padding:22px 26px 0">
+        <span aria-hidden="true" class="c-crop" style="left:0;top:0;border-left-width:1px;border-top-width:1px"></span>
+        <span aria-hidden="true" class="c-crop" style="right:0;top:0;border-right-width:1px;border-top-width:1px"></span>
+        <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px">
+          <span class="c-k" style="color:#A63C33">제목</span>
+          <input id="c-title" type="text" aria-label="제목" value="마르기 전에" style="flex:1 1 auto;min-width:0;border:0;border-bottom:1px solid #1B1A18;background:transparent;padding:4px 0;font-family:'Song Myung',serif;font-size:24px;outline:none">
+          <span class="c-k" style="color:#625E58">공개 · 카드에 실림</span>
+        </div>
+        <div aria-label="본문" style="overflow:hidden;max-height:640px;font-family:'Song Myung',serif;font-size:17px;line-height:2.05;word-break:keep-all">
+          <p style="margin:0">밤이 깊어지면 책상 위의 소리가 하나씩 지워진다. 냉장고가 숨을 고르고, 창밖의 오토바이가 골목 끝으로 사라지고, 마지막으로 남는 것은 펜촉이 종이를 긁는 소리뿐이다. 나는 그 소리를 좋아해서 일부러 연필 대신 만년필을 꺼낸다. 잉크가 마르기 전의 글자는 아직 젖어 있어서, 손바닥 옆면으로 스치기만 해도 번진다. 그래서 천천히 써야 한다. <span style="text-decoration:underline wavy #A63C33;text-underline-offset:5px">나는 늘 급하다.</span><span class="c-k" style="color:#A63C33;margin-left:8px;vertical-align:middle">떠오름</span></p>
+          <p style="margin:0">쓰고 싶은 말이 손보다 먼저 도착하기 때문이다. 문장은 앞 문장의 꼬리를 물고 이어지고, 나는 그 꼬리를 놓칠까 봐 줄을 바꾸는 것도 잊은 채 종이의 오른쪽 끝까지 밀려간다. <span style="background:#D3CFC5">그러다 펜이 선다.</span> 거기서.</p>
+          <div style="display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px 16px;margin:4px 0 8px;padding:8px 14px;background:#F1EFE9;border:1px solid #1B1A18;font-family:'Noto Sans KR',sans-serif;line-height:1.3;max-width:620px">
+            <span class="c-k" style="color:#A63C33;margin-right:4px">강조</span>
+            <button type="button" class="c-opt on"><i></i>떠오름</button><button type="button" class="c-opt"><i></i>번짐</button><button type="button" class="c-opt"><i></i>조명</button><button type="button" class="c-opt"><i></i>크게</button><button type="button" class="c-opt"><i></i>타자</button><button type="button" class="c-opt"><i></i>흘러내림</button><button type="button" class="c-opt"><i></i>떨림</button><button type="button" class="c-opt"><i></i>숨가쁨</button><button type="button" class="c-opt"><i></i>벌어짐</button><button type="button" class="c-opt"><i></i>어긋남</button><button type="button" class="c-opt"><i></i>고쳐 씀</button><button type="button" class="c-opt"><i></i>초점</button><button type="button" class="c-opt"><i></i>모여듦</button>
+          </div>
+          <p style="margin:0;height:34px"></p>
+          <p style="margin:0">그날도 그랬다.</p>
+          <p style="margin:0">편지를 쓰는 일은 오랜만이었다. 마지막으로 누군가에게 손으로 쓴 글을 보낸 게 언제였는지 기억나지 않는다. 메시지는 쓰는 즉시 도착하고, 도착하는 즉시 읽히고, 읽히는 즉시 답을 기다리게 만든다. <span style="text-decoration:underline wavy #A63C33;text-underline-offset:5px">종이는 그렇지 않다.</span><span class="c-k" style="color:#A63C33;margin-left:8px;vertical-align:middle">떠오름</span> 그 느린 온도가 좋았다.</p>
+          <div style="display:flex;align-items:center;gap:14px;height:36px;margin:14px 0;font-family:'Noto Sans KR',sans-serif;line-height:1.3">
+            <span class="c-k" style="color:#A63C33;font-weight:700;font-size:13px">2</span>
+            <span aria-hidden="true" style="flex:1 1 auto;border-top:3px double #1B1A18"></span>
+            <span class="c-k" style="color:#625E58">쓸기 → 밤 · 영사광</span>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:2px 16px;margin:-8px 0 8px;padding:8px 14px;background:#F1EFE9;border:1px solid #1B1A18;font-family:'Noto Sans KR',sans-serif;line-height:1.3">
+            <span class="c-k" style="color:#A63C33">넘김</span><button type="button" class="c-opt"><i></i>스밈</button><button type="button" class="c-opt on"><i></i>쓸기</button>
+            <span class="c-k" style="color:#A63C33;margin-left:6px">장면</span><button type="button" class="c-opt"><i></i>낮</button><button type="button" class="c-opt on"><i></i>밤</button>
+            <span class="c-k" style="color:#A63C33;margin-left:6px">바탕</span><button type="button" class="c-opt on"><i></i>영사광</button><button type="button" class="c-opt"><i></i>오로라</button><button type="button" class="c-opt"><i></i>물빛</button>
+          </div>
+          <p style="margin:0">그리고 잉크 한 방울이</p>
+          <p style="margin:0">떨 어 졌 다.<span class="c-k" style="margin-left:12px;color:#625E58;vertical-align:middle">흘러내림 · 저절로</span></p>
+          <p style="margin:0">지우려고 손을 뻗었다가<span aria-label="쉼 네 칸" class="c-q" style="display:inline-flex;margin:0 8px;vertical-align:middle"><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i></span><span style="text-decoration:underline wavy #A63C33;text-underline-offset:5px">그만두었다</span>.<span class="c-k" style="color:#A63C33;margin-left:8px;vertical-align:middle">떠오름</span></p>
+        </div>
+      </div>
+    </section>
+
+    <aside aria-label="교정쇄" style="flex:none;width:430px;display:flex;flex-direction:column;gap:12px;padding:18px 40px 16px 10px">
+      <div style="display:flex;align-items:center;gap:12px"><span class="c-k" style="color:#625E58">교정쇄 · 지금 보이는 대로</span><span aria-hidden="true" class="c-q" style="margin-left:auto"><i class="f"></i><i></i><i></i><i></i><i></i></span><span class="c-k" style="color:#625E58">1 / 5</span></div>
+      <div style="position:relative;height:440px;overflow:hidden;background:#F1EFE9">
+        <div aria-hidden="true" style="position:absolute;left:52%;top:-30%;width:38%;height:160%;transform:rotate(-12deg);background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.8) 24%,rgba(255,255,255,.8) 76%,rgba(255,255,255,0) 100%);filter:blur(9px)"></div>
+        <span aria-hidden="true" class="c-crop" style="left:10px;top:10px;border-left-width:1px;border-top-width:1px"></span>
+        <span aria-hidden="true" class="c-crop" style="right:10px;top:10px;border-right-width:1px;border-top-width:1px"></span>
+        <span aria-hidden="true" class="c-crop" style="left:10px;bottom:10px;border-left-width:1px;border-bottom-width:1px"></span>
+        <span aria-hidden="true" class="c-crop" style="right:10px;bottom:10px;border-right-width:1px;border-bottom-width:1px"></span>
+        <div style="position:absolute;left:44px;right:40px;top:88px;font-family:'Song Myung',serif;font-size:15px;line-height:1.95;word-break:keep-all">
+          <p style="margin:0">밤이 깊어지면 책상 위의 소리가 하나씩 지워진다. 냉장고가 숨을 고르고, 창밖의 오토바이가 골목 끝으로 사라지고, 마지막으로 남는 것은 <span style="color:#7A756D">펜촉이 종이를</span> <span aria-hidden="true" class="c-q" style="display:inline-flex;vertical-align:-1px"><i></i><i></i><b></b><i></i><i></i><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i><b></b><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i></span></p>
+          <p style="margin:0" aria-hidden="true"><span class="c-q" style="display:inline-flex;vertical-align:-1px"><i></i><i></i><i></i><b></b><i></i><i></i><i></i><i></i><i></i><b></b><i></i><i></i><b></b><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i><b></b><i></i><i></i><i></i><i></i></span></p>
+        </div>
+        <div style="position:absolute;left:24px;right:24px;bottom:18px;display:flex;justify-content:space-between;gap:14px" class="c-k"><span style="color:#625E58">젖은 글자는 옅다가 마르며 진해지고, 안 놓인 활자는 빈 네모예요</span><span style="color:#625E58;white-space:nowrap">낮 · 창빛</span></div>
+      </div>
+      <div style="flex:1 1 auto;display:flex;flex-direction:column;gap:6px;padding-top:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between"><span class="c-k" style="color:#625E58">견본 · 이어 쓰기 · 낮 창빛 · 강조에 올리면 여기서</span><button type="button" style="height:26px;padding:0;background:none;border:0;border-bottom:1px solid #1B1A18;cursor:pointer;font-size:12px">다시</button></div>
+        <p style="margin:auto 0 0;font-family:'Song Myung',serif;font-size:18px;line-height:1.8">나는 늘 급하다. <span style="color:#7A756D">종이는 그렇지</span> <span aria-hidden="true" class="c-q" style="display:inline-flex;vertical-align:-1px"><i></i><i></i><i></i></span></p>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:18px;height:56px;padding:0 40px;border-top:1px solid #1B1A18">
+    <span class="c-k" style="color:#625E58">결</span>
+    <span aria-hidden="true" class="c-bar" style="height:18px"><i style="height:14px"></i><i style="height:14px"></i><b></b><i style="height:10px"></i><i style="height:10px"></i><i style="height:10px"></i><b></b><i style="height:16px"></i><i style="height:16px"></i><i style="height:16px"></i><i style="height:16px"></i><b></b><i style="height:9px"></i><i style="height:9px"></i><b></b><i style="height:14px"></i><i style="height:14px"></i><i style="height:14px"></i><b></b><i style="height:12px"></i><i style="height:12px"></i><b></b><i style="height:18px"></i><i style="height:18px"></i><i style="height:18px"></i><i style="height:18px"></i><i style="height:18px"></i><b></b><i style="height:10px"></i><i style="height:10px"></i><b></b><i style="height:14px"></i><i style="height:14px"></i><i style="height:14px"></i><b></b><i style="height:12px"></i><b></b><i style="height:16px"></i><i style="height:16px"></i><i style="height:16px"></i><b></b><i style="height:9px"></i><i style="height:9px"></i><i style="height:9px"></i><i style="height:9px"></i><b></b><i style="height:14px"></i><i style="height:14px"></i><b></b><i style="height:12px"></i><i style="height:12px"></i><i style="height:12px"></i><b></b><i style="height:18px"></i><i style="height:18px"></i><b></b><i style="height:10px"></i><i style="height:10px"></i><i style="height:10px"></i><i style="height:10px"></i></span>
+    <span class="c-k" style="color:#625E58">966자 · 공백 빼고 704자 · 5페이지 · 약 43초</span>
+    <button type="button" style="margin-left:auto;height:36px;padding:0;background:none;border:0;cursor:pointer;font-size:13px">가린 글 복사</button>
+    <button type="button" style="height:36px;padding:0 18px;background:transparent;border:1px solid #1B1A18;cursor:pointer;font-size:13px">미리보기</button>
+    <button type="button" style="height:36px;padding:0 24px;background:#1B1A18;color:#F1EFE9;border:0;cursor:pointer;font-size:13px;letter-spacing:.08em">발행</button>
+  </footer>
+</div>
+
+<section aria-label="방향 C 요약" style="height:360px;display:grid;grid-template-columns:1.1fr 1fr 1fr 1.2fr;background:#DEDAD1;border-top:1px solid #1B1A18">
+  <div style="display:flex;flex-direction:column;justify-content:space-between;padding:26px 40px;border-right:1px solid #C9C5BC">
+    <div>
+      <div class="c-k" style="color:#625E58">방향 C</div>
+      <div style="font-family:'Song Myung',serif;font-size:34px;line-height:1.1;margin-top:6px">교정쇄</div>
+      <p style="margin:10px 0 0;font-size:13px;color:#625E58;line-height:1.6">회색 종이에 넓은 여백, 연필 교정 표시. 아직 안 놓인 활자는 빈 네모(공목)로 서 있어요</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span aria-hidden="true" class="c-q" style="gap:3px"><i class="f" style="width:18px;height:18px"></i><i style="width:18px;height:18px;border-color:#1B1A18"></i></span>
+      <span style="font-family:'Song Myung',serif;font-size:36px;letter-spacing:.04em">글결</span>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:26px 24px;border-right:1px solid #C9C5BC">
+    <div class="c-k" style="color:#625E58">색 · 회색 종이와 먹, 연필 한 색</div>
+    <div style="display:flex;flex-direction:column;gap:4px;font-size:12px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:26px;background:#E8E5DE;border:1px solid #1B1A18"></span>종이 <span class="c-k" style="color:#625E58">E8E5DE</span></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:26px;background:#F1EFE9;border:1px solid #C9C5BC"></span>교정쇄 <span class="c-k" style="color:#625E58">F1EFE9</span></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:26px;background:#1B1A18"></span>먹 <span class="c-k" style="color:#625E58">1B1A18</span></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:26px;background:#625E58"></span>납 <span class="c-k" style="color:#625E58">625E58</span></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:44px;height:26px;background:#A63C33"></span>연필 · 표시에만 <span class="c-k" style="color:#625E58">A63C33</span></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:26px 24px;border-right:1px solid #C9C5BC">
+    <div class="c-k" style="color:#625E58">글꼴</div>
+    <div style="font-family:'Song Myung',serif;font-size:20px;line-height:1.3">송명 Song Myung<br><span style="font-family:'Noto Sans KR',sans-serif;font-size:13px;color:#625E58">본문과 제목에만</span></div>
+    <div style="font-size:20px;line-height:1.3;font-weight:500">노토 산스 Noto Sans KR<br><span style="font-size:13px;color:#625E58;font-weight:400">조작, 안내, 단추</span></div>
+    <div style="font-family:'Nanum Gothic Coding',monospace;font-size:17px;line-height:1.3">나눔고딕코딩 2 · 966<br><span style="font-family:'Noto Sans KR',sans-serif;font-size:13px;color:#625E58">쪽 번호, 집계, 교정 부호</span></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;padding:26px 40px 26px 28px">
+    <div class="c-k" style="color:#625E58">무늬 · 재단선, 공목, 겹줄, 연필 물결, 결 막대</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:12px">
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:60px;color:#625E58">재단선</span><span aria-hidden="true" style="position:relative;width:120px;height:28px"><span class="c-crop" style="left:0;top:0;border-left-width:1px;border-top-width:1px"></span><span class="c-crop" style="right:0;top:0;border-right-width:1px;border-top-width:1px"></span><span class="c-crop" style="left:0;bottom:0;border-left-width:1px;border-bottom-width:1px"></span><span class="c-crop" style="right:0;bottom:0;border-right-width:1px;border-bottom-width:1px"></span></span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:60px;color:#625E58">공목</span><span aria-hidden="true" class="c-q"><i class="f"></i><i class="f"></i><i class="f"></i><b></b><i class="f"></i><i class="f"></i><b></b><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i></span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:60px;color:#625E58">겹줄</span><span aria-hidden="true" style="width:120px;border-top:3px double #1B1A18"></span><span class="c-k" style="color:#A63C33;font-weight:700">2</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:60px;color:#625E58">연필</span><span style="font-family:'Song Myung',serif;font-size:15px;text-decoration:underline wavy #A63C33;text-underline-offset:4px">강조할 자리</span><span class="c-k" style="color:#A63C33">떠오름</span></div>
+      <div style="display:flex;align-items:center;gap:12px"><span style="width:60px;color:#625E58">결</span><span aria-hidden="true" class="c-bar" style="height:18px"><i style="height:14px"></i><i style="height:14px"></i><b></b><i style="height:10px"></i><i style="height:10px"></i><i style="height:10px"></i><b></b><i style="height:16px"></i><i style="height:16px"></i><i style="height:16px"></i><i style="height:16px"></i><b></b><i style="height:9px"></i><i style="height:9px"></i><b></b><i style="height:14px"></i><i style="height:14px"></i><i style="height:14px"></i><b></b><i style="height:12px"></i><i style="height:12px"></i><b></b><i style="height:18px"></i><i style="height:18px"></i><i style="height:18px"></i></span></div>
+    </div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

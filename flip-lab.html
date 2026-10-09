@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글결 반전 시험</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="flip.css">
+<link rel="stylesheet" href="flip-lab.css">
+<script src="motion.js" defer></script>
+<script src="flip.js" defer></script>
+<script src="backdrop.js" defer></script>
+<script src="flip-lab.js" defer></script>
+</head>
+<body>
+<main class="stage" id="stage" aria-label="반전 시험 무대">
+  <section class="sheet is-current" data-scene="day" data-ground="window" aria-label="낮 장">
+    <div class="column" data-for="day">
+      <p class="ln">번진 자국은 생각보다 예뻤다. 동그랗게 퍼져 나간 가장자리가 마치 누군가 그 자리에서 오래 머뭇거린 흔적처럼 보였고, 나는 그게 지금의 내 마음과 꽤 닮았다고 생각했다. 결국 나는 아무것도 고치지 않은 채 그 아래에 한 줄을 더 적었다.</p>
+    </div>
+  </section>
+  <section class="sheet" data-scene="night" data-ground="projector" aria-label="밤 장">
+    <div class="column" data-for="night">
+      <span class="ln">그리고 잉크 한 방울이</span>
+      <span class="ln">떨 어 졌 다.</span>
+      <span class="ln"><span class="em">쓰다 만 이름 위로.</span></span>
+    </div>
+  </section>
+</main>
+
+<nav class="ui view" aria-label="바탕 고르기">
+  <div class="pick" data-for="day">
+    <span class="label">낮</span>
+    <button class="tbtn" type="button" data-ground="window" aria-pressed="true">창빛</button>
+    <button class="tbtn" type="button" data-ground="hanji" aria-pressed="false">한지</button>
+  </div>
+  <div class="pick" data-for="night">
+    <span class="label">밤</span>
+    <button class="tbtn" type="button" data-ground="projector" aria-pressed="true">영사광</button>
+    <button class="tbtn" type="button" data-ground="aurora" aria-pressed="false">오로라</button>
+    <button class="tbtn" type="button" data-ground="caustic" aria-pressed="false">물빛</button>
+  </div>
+</nav>
+
+<footer class="ui ops">
+  <p class="hint">화면을 옆이나 위로 끌기, 휠 굴리기, ←→ 키로도 넘어가요</p>
+  <button class="tbtn" type="button" id="back">되돌리기</button>
+  <button class="tbtn" type="button" id="next">넘기기</button>
+</footer>
+</body>
+</html>

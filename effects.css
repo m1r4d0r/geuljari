@@ -1,0 +1,180 @@
+/* 글결 효과 견본
+   왼쪽에 이름과 설명, 오른쪽에 실제로 움직이는 글. 좁은 화면에서는 위아래로 쌓는다.
+   묶음 제목은 송명체, 견본 글은 본문과 같은 함렛. 조작(목록 복사)은 아래 막대. */
+
+body > * { position: relative; z-index: 1; }
+
+/* ---------- 머리 ---------- */
+
+.bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: .5rem 1.4rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 1.6rem) 1.25rem 1rem;
+}
+.bar h1 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 1.4rem + 2.4vw, 3rem);
+  letter-spacing: .08em;
+  line-height: 1.15;
+}
+.bar .view { display: flex; gap: 1.1rem; }
+.lede {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: 40rem;
+  font-size: .95rem;
+  line-height: 1.8;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
+/* ---------- 견본 ---------- */
+
+.specimen {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 6rem;
+}
+
+.group { margin-top: 3.2rem; }
+.group h2 {
+  margin: 0 0 .4rem;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: .06em;
+}
+
+.fx {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: 1rem 2.4rem;
+  padding-block: 1.9rem;
+  border-top: 1px solid var(--rule);
+}
+
+.meta { min-width: 0; }
+.name {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .2rem .7rem;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 1.3rem;
+  letter-spacing: .05em;
+}
+.status {
+  font-family: var(--f-body);
+  font-size: .76rem;
+  letter-spacing: .04em;
+}
+.status[data-status="now"] { color: var(--r-stream); }
+.status[data-status="block"] { color: var(--wet); }
+.status[data-status="idea"] { color: var(--ink-soft); }
+
+.syntax {
+  margin: .35rem 0 0;
+  font-size: .84rem;
+  letter-spacing: .02em;
+  color: var(--wet);
+}
+
+.desc {
+  margin: .45rem 0 .6rem;
+  font-size: .86rem;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+.acts { margin: 0; display: flex; gap: 1rem; }
+.pick[aria-pressed="true"] { color: var(--seal); border-bottom-color: currentColor; }
+
+.stage {
+  min-width: 0;
+  min-height: 4rem;
+  align-self: center;
+  font-size: clamp(1.05rem, .98rem + .35vw, 1.22rem);
+  line-height: 1.95;
+  font-weight: 380;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  cursor: default;
+}
+.stage .ln { white-space: pre-wrap; padding-inline-start: min(calc(var(--indent, 0) * .5em), 45%); padding-bottom: calc(var(--drip, 0) * .36em); }
+.stage .tk { white-space: nowrap; }
+.stage .ch { display: inline-block; white-space: pre; }
+.stage .tk[data-role="drip"] { display: inline-block; position: relative; top: calc(var(--k, 0) * .36em); }
+.stage .ln.whole { display: inline-block; }
+.stage .hint { margin: 0; font-size: .86rem; color: var(--ink-soft); }
+
+/* 한 낱말씩 */
+.flash-slot {
+  min-height: 2.2em;
+  font-family: var(--f-display);
+  font-size: 1.6em;
+  line-height: 1.4;
+  letter-spacing: .06em;
+}
+
+/* 조명 */
+.stage .spot { opacity: .12; transition: opacity .9s ease; }
+.stage .spot.past { opacity: .32; }
+.stage .spot.lit { opacity: 1; }
+
+/* 크게 */
+.big {
+  font-family: var(--f-display);
+  font-size: clamp(3.2rem, 2rem + 8vw, 7rem);
+  line-height: 1.1;
+  letter-spacing: .08em;
+}
+
+/* ---------- 조작 막대 ---------- */
+
+.ops {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .7rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + .7rem);
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+.picked {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: .86rem;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.obtn {
+  font: 400 .92rem/1 var(--f-body);
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: .62rem .95rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.obtn.is-primary { color: var(--paper); background: var(--wet); border-color: var(--wet); }
+.obtn:disabled { opacity: .45; cursor: default; }
+
+@media (max-width: 719px) {
+  .fx { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+}

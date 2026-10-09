@@ -1,0 +1,27 @@
+/* 글결 글자 모양
+   글자 하나하나의 상태와 블록 효과의 생김새. 움직임 자체는 fx.js가 건다.
+   읽기 틀(index.html)과 효과 견본(effects.html)이 함께 쓴다. 색은 --wet·--f-display를 쓰는 쪽에서 정한다. */
+
+/* 글자 상태(읽기 틀·효과 견본 공통): 아직 안 나온 글자, 막 써서 젖은 글자, 마르는 중인 글자 */
+.pending { opacity: 0; }
+.wet { color: var(--wet); }
+.drying { transition: color 1.8s ease-in-out; }
+
+/* 블록 효과의 모양(읽기 틀·효과 견본 공통). 움직임 자체는 fx.js가 건다. */
+.ch[data-a="rise"], .ch[data-a="focus"], .ch[data-a="gather"], .ch[data-a="tremble"], .ch[data-a="fall"] { display: inline-block; }
+.ch.em { font-weight: 520; letter-spacing: .02em; }
+.ch.fx-big { font-family: var(--f-display); font-weight: 400; font-size: 1.9em; line-height: 1.25; letter-spacing: .04em; }
+.ch.struck { text-decoration: line-through; text-decoration-thickness: 1px; opacity: .4; transition: opacity .8s ease; }
+.ch.after-strike { margin-left: .3em; }
+.spot-ready .ch { transition: opacity .9s ease; }
+.spotlight .ch:not(.lit) { opacity: .2; }
+.caret {
+  display: inline-block;
+  width: 1px;
+  height: 1.05em;
+  margin-inline: 1px;
+  vertical-align: -.15em;
+  background: currentColor;
+  animation: caret-blink 1s steps(1) infinite;
+}
+@keyframes caret-blink { 50% { opacity: 0; } }

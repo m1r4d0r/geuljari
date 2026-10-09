@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글결 가림판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="mask.css">
+<script src="engine.js" defer></script>
+<script src="sample.js" defer></script>
+<script src="mask.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <h1>가림판</h1>
+  <p class="count" id="count"></p>
+  <nav class="view" aria-label="보기">
+    <button class="tbtn" type="button" id="toggle-color" aria-pressed="true" title="어절마다 움직임 종류를 색으로 표시">결 색</button>
+    <a class="tbtn" href="effects.html">효과 견본</a>
+    <a class="tbtn" href="index.html">글로그</a>
+  </nav>
+</header>
+
+<div class="gauge" id="gauge" aria-hidden="true"><i class="fill"></i><i class="over"></i><b></b></div>
+
+<details class="rules" id="rules">
+  <summary>움직임 규칙</summary>
+  <dl id="rules-list"></dl>
+</details>
+
+<main class="desk">
+  <section class="src" aria-label="원문">
+    <textarea id="src-in" spellcheck="false" aria-label="원문" placeholder="여기에 글을 붙여 넣으세요"></textarea>
+  </section>
+  <section class="out" aria-label="가린 글">
+    <div class="masked is-color" id="masked"></div>
+  </section>
+</main>
+
+<footer class="ops">
+  <label class="chk" title="마침표·쉼표·말줄임표 같은 문장부호는 가리지 않음">
+    <input type="checkbox" id="keep-punct">
+    <span>부호 남기기</span>
+  </label>
+  <label class="fxpick" title="드래그한 부분에 효과를 붙이거나, 이미 붙은 효과를 바꾸거나 풂 (Ctrl/⌘+B는 마지막에 고른 효과)">
+    <select id="fx-select" aria-label="효과">
+      <option value="">효과</option>
+    </select>
+  </label>
+  <button class="obtn" type="button" id="copy">복사</button>
+  <button class="obtn is-primary" type="button" id="preview">미리 보기</button>
+</footer>
+</body>
+</html>

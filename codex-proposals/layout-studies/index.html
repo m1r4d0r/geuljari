@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>글결 — 레이아웃 제안</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="proposal.css">
+  <script src="proposal.js" defer></script>
+</head>
+<body data-layout="stage">
+  <nav class="comparison" aria-label="디자인 방향">
+    <span class="comparison-label">글결 / 편집실 제안</span>
+    <div class="directions">
+      <button data-layout="book" aria-pressed="false">01 &nbsp; 펼친 책</button>
+      <button data-layout="stage" aria-pressed="true">02 &nbsp; 원고와 무대 <small>추천</small></button>
+      <button data-layout="score" aria-pressed="false">03 &nbsp; 글의 악보</button>
+    </div>
+    <a class="proposal-label" href="../">최신 시안으로 ↗</a>
+  </nav>
+  <div class="app">
+    <header class="app-header">
+      <a class="brand" href="#" aria-label="글결"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>글결</a>
+      <span class="edition">쓰는 자리</span>
+      <span class="header-end">내 글의 속도와 숨</span>
+    </header>
+    <main class="workbench">
+      <section class="manuscript" aria-label="원고">
+        <div class="section-label"><span>원고</span><span class="page-number">01 / 05</span></div>
+        <input class="title" aria-label="글 제목" value="마르기 전에">
+        <div class="rules"><span><b>□□</b> 두 칸은 쉼</span><span><b>＝</b> 빈 줄 둘은 새 쪽</span><span><b>﹏</b> 드래그로 강조</span></div>
+        <div class="writing-area">
+          <textarea id="manuscript" aria-label="예시 원고 편집" spellcheck="false"></textarea>
+          <div class="margin-note" aria-hidden="true"><span>01</span><i></i><span>글을 고치면<br>곁에서도 바뀌어요.</span></div>
+        </div>
+        <div class="manuscript-bottom"><span id="count"></span><button id="copy">가린 글 복사</button></div>
+      </section>
+      <section class="preview-pane" aria-label="움직이는 미리보기" data-scene="night">
+        <div class="preview-top"><span>읽히는 모습</span><div class="scene-control" aria-label="장면"><button data-scene="day" aria-pressed="false">낮</button><button data-scene="night" aria-pressed="true">밤</button></div></div>
+        <div class="stage-surface"><div class="stage-light" aria-hidden="true"></div><div id="preview" class="preview-text"></div></div>
+        <div class="preview-bottom"><div class="page-dots" aria-label="예시 페이지"></div><button id="replay">처음부터 읽기 ↗</button></div>
+      </section>
+      <section class="rhythm" aria-label="글의 흐름">
+        <div class="rhythm-title"><span>글의 흐름</span><span>쪽을 눌러 이동해요.</span></div>
+        <div class="timeline"></div>
+      </section>
+    </main>
+    <div class="settings" id="settings" hidden>
+      <label>쓰는 속도 <input id="speed" type="range" min="0.5" max="2" value="1" step="0.1"><output id="speed-value">1.0×</output></label>
+      <p>선택한 쪽을 다시 읽으며 속도를 확인해요.</p>
+    </div>
+    <footer class="app-footer">
+      <div class="mini-rhythm" aria-hidden="true"></div>
+      <button id="settings-toggle" aria-expanded="false" aria-controls="settings">속도 조절 ＋</button>
+      <span class="footer-note">이어 쓰기 <span>·</span> <span id="scene-name">밤</span></span>
+      <div class="footer-actions"><button id="full-preview">전체 읽기</button><button class="publish" disabled title="디자인 비교용 시안">발행</button></div>
+    </footer>
+  </div>
+  <aside class="rationale"><span id="concept-number">02</span><div><strong id="concept-title">원고와 무대</strong><p id="concept-description"></p></div><span class="try-note">원고 수정 · 낮밤 · 페이지 · 속도 조절을 시험할 수 있어요.</span></aside>
+  <dialog id="full-reader"><button id="close-reader" autofocus>닫기</button><div id="full-reader-text"></div></dialog>
+  <div id="notice" role="status" aria-live="polite"></div>
+</body>
+</html>

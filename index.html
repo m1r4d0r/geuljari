@@ -9,8 +9,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Noto+Serif+KR:wght@400&family=Song+Myung&display=swap">
+<!-- 테마의 글꼴 이름을 그 글꼴로 보이려고 이름 글자만 불러온다(무게 범위는 tune.js FONTS와 같게) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@300..600&family=Gowun+Batang&family=Nanum+Myeongjo&text=%ED%95%A8%EB%A0%9B%EA%B3%A0%EC%9A%B4%EB%B0%94%ED%83%95%EB%82%98%EB%88%94%EB%AA%85%EC%A1%B0&display=swap">
 <link rel="stylesheet" href="marks.css">
 <link rel="stylesheet" href="index.css">
+<link rel="stylesheet" href="look.css">
 <script src="engine.js" defer></script>
 <script src="sample.js" defer></script>
 <script src="tune.js" defer></script>
@@ -18,6 +21,7 @@
 <script src="editor.js" defer></script>
 <script src="compose.js" defer></script>
 <script src="panels.js" defer></script>
+<script src="look.js" defer></script>
 <script src="index.js" defer></script>
 </head>
 <body data-step="write">
@@ -40,7 +44,7 @@
 
 <main class="steps-body">
 
-  <!-- 글: 입력창 하나에서 쓰고, 쪽을 나누고, 반전·강조·분위기를 고른다 -->
+  <!-- 글: 입력창 하나에서 쓰고, 쪽을 나누고, 반전·강조를 하고, 옆 칸에서 분위기와 테마를 고른다 -->
   <section class="step write" id="s-write" aria-label="글">
     <div class="write-body">
       <div class="write-col">
@@ -48,15 +52,25 @@
         <div class="ed" id="write-ed">
           <div class="ed-mirror" id="write-mirror" aria-hidden="true"></div>
           <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
-            placeholder="여기에 글을 놓아 주세요.&#10;&#10;줄 사이를 누르면 쪽이 나뉘고, 끌어 고르면 강조할 수 있어요.&#10;빈 줄 둘은 새 쪽, 띄어쓰기 두 번은 쉼이 돼요."></textarea>
+            placeholder="여기에 글을 놓아 주세요.&#10;&#10;빈 줄 둘은 새 쪽이 돼요."></textarea>
         </div>
       </div>
-      <aside class="rail" aria-label="분위기">
-        <h2>어떤 분위기예요</h2>
-        <div class="moods" id="moods"></div>
-        <p class="mix" id="mix"></p>
-        <div class="rail-row"><span class="rail-name">주색</span><span class="themes" id="themes" role="group" aria-label="주색"></span></div>
-        <a class="link small" href="simsang.html">낱말 하나씩 살펴보기</a>
+      <aside class="rail" aria-label="설정">
+        <section class="rail-sec" aria-labelledby="h-mood">
+          <div class="rail-head"><h2 id="h-mood">분위기</h2><button type="button" class="link" id="mood-look">살펴보기</button></div>
+          <div class="moods" id="moods"></div>
+        </section>
+        <section class="rail-sec" aria-labelledby="h-theme">
+          <div class="rail-head"><h2 id="h-theme">테마</h2></div>
+          <div class="set-row r-theme"><span class="set-name">주색</span><span class="themes" id="themes" aria-label="주색"></span></div>
+          <div class="set-row r-font"><span class="set-name">글꼴</span><div class="set-box" id="fonts"></div></div>
+          <div class="set-row r-scene"><span class="set-name">시작</span><div class="set-box" id="start-scene"></div></div>
+        </section>
+        <div class="rail-help">
+          <p>줄 사이를 누르면 쪽을 나눠요.</p>
+          <p>두 번 띄어 쓰면 잠시 쉬고 읽어요.</p>
+          <p>드래그해서 원하는 부분을 강조해요.</p>
+        </div>
       </aside>
     </div>
     <footer class="bar">
@@ -88,7 +102,7 @@
       </nav>
 
       <section class="panel" id="panel-mood" aria-label="분위기" hidden>
-        <header class="panel-head"><b>분위기</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-x">닫기</button></header>
+        <header class="panel-head"><b>분위기</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-look">살펴보기</button><button type="button" class="link panel-x">닫기</button></header>
         <div class="panel-body"></div>
       </section>
       <section class="panel" id="panel-type" aria-label="글씨" hidden>

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="backdrop.css">
 <link rel="stylesheet" href="flip.css">
 <link rel="stylesheet" href="flip-lab.css">
 <script src="motion.js" defer></script>
@@ -32,15 +33,21 @@
 
 <nav class="ui view" aria-label="바탕 고르기">
   <div class="pick" data-for="day">
-    <span class="label">낮</span>
+    <span class="label">라이트</span>
     <button class="tbtn" type="button" data-ground="window" aria-pressed="true">창빛</button>
     <button class="tbtn" type="button" data-ground="hanji" aria-pressed="false">한지</button>
+    <button class="tbtn" type="button" data-ground="leaf" aria-pressed="false">잎그늘</button>
+    <button class="tbtn" type="button" data-ground="dawn" aria-pressed="false">새벽</button>
+    <button class="tbtn" type="button" data-ground="letter" aria-pressed="false">편지지</button>
+    <button class="tbtn" type="button" data-ground="aurora" aria-pressed="false">오로라</button>
   </div>
   <div class="pick" data-for="night">
-    <span class="label">밤</span>
+    <span class="label">다크</span>
     <button class="tbtn" type="button" data-ground="projector" aria-pressed="true">영사광</button>
-    <button class="tbtn" type="button" data-ground="aurora" aria-pressed="false">오로라</button>
+    <button class="tbtn" type="button" data-ground="drape" aria-pressed="false">빛커튼</button>
     <button class="tbtn" type="button" data-ground="caustic" aria-pressed="false">물빛</button>
+    <button class="tbtn" type="button" data-ground="letter" aria-pressed="false">편지지</button>
+    <button class="tbtn" type="button" data-ground="aurora" aria-pressed="false">오로라</button>
   </div>
 </nav>
 

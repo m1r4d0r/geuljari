@@ -231,3 +231,36 @@ body {
   .dots { gap: .15rem; }
   .dot { width: .9rem; }
 }
+
+/* ---------- 편지지 쪽 ---------- */
+/* 바탕이 편지지인 쪽(.sheet[data-ground="letter"]). 종이와 줄의 모양은 backdrop.css, 여기는 읽기 틀에 맞춘 자리.
+   종이 여백은 옆 여백(--gutter) 안에 들게 줄이고, 좁은 화면에서는 글 기둥을 양옆으로 펴서 종이가 화면 폭을 거의 채운다.
+   줄이 글줄 아래에 계속 맞도록 문단 사이는 한 줄, 흘러내림 아래 여백은 줄 높이의 배수로 올린다. */
+.sheet[data-ground="letter"] {
+  --lp-lh: 1.95em;
+  --lp-r: 1.72em;
+}
+.sheet[data-ground="letter"] .column {
+  position: relative;
+  --lp-x: min(2.4em, calc(var(--gutter) - .75rem));
+  --lp-t: 2.1em;
+  --lp-b: 2.6em;
+}
+.sheet[data-ground="letter"] .para + .para { margin-top: var(--lp-lh); }
+@supports (padding-bottom: round(up, 1px, 2px)) {
+  .sheet[data-ground="letter"] .ln { padding-bottom: round(up, calc(var(--drip, 0) * .36em), var(--lp-lh)); }
+}
+/* 그 자리에서 고치는 동안(글 기둥이 숨음)에도 종이와 줄은 남긴다 */
+.sheet[data-ground="letter"] .column.ip-hidden::before,
+.sheet[data-ground="letter"] .column.ip-hidden::after { visibility: visible; }
+.sheet[data-ground="letter"] .scroll { overflow-x: hidden; }
+
+@media (max-width: 599px) {
+  .sheet[data-ground="letter"] .scroll { padding-inline: 2.1rem; }
+  .sheet[data-ground="letter"] .column {
+    margin-inline: 0;
+    --lp-x: 1.35rem;
+    --lp-t: 1.7em;
+    --lp-b: 2.3em;
+  }
+}

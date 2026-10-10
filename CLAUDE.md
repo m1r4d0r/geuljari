@@ -28,29 +28,31 @@
 ## 글 문법 (engine.js가 읽는 것)
 - 빈 줄 하나 = 문단 사이. 빈 줄 둘 이상 = 페이지 나눔. 줄 앞 공백은 들여쓰기.
 - 띄어쓰기 두 칸부터 쉼(한 칸마다 `TIME.restPerSpace`). 화면에는 한 칸으로 보인다.
-- `{{…}}` 기본 효과(떠오름, 편집실에서는 '남기고 싶은 곳'). `{{효과이름:…}}`로 지정. 효과 목록은 `engine.js`의 `BLOCKS`, 갈래(등장·머묾·고침·퇴장)는 `BLOCK_GROUPS`.
+- `{{…}}` 강조(편집실에서는 '남기고 싶은 곳'). 한 글에 여럿이면 `DEFAULT_CYCLE`(떠오름·번짐·초점·떠오름·모여듦)을 차례로. `{{효과이름:…}}`로 지정. 효과 목록은 `engine.js`의 `BLOCKS`, 갈래(등장·머묾·퇴장)는 `BLOCK_GROUPS`. 등장·머묾은 '강조', 퇴장은 따로 고른다.
+- 꾸밈은 블록 머리에 `+`로 잇는다: `{{굵게:…}}`, `{{떨림+밑줄:…}}`, `{{강조+빨강:…}}`(`STYLES` 굵게·기울임·밑줄·취소선, `COLORS` 빨강·주황·초록·파랑·보라·회색, `강조`는 이름 없는 강조). 꾸밈만 적은 블록은 강조가 아니다. 머리 읽기는 `parseHead`·`headText`, 정규식은 `HEAD_SRC`.
 - `[[…]]`만 적은 줄은 쪽 표시이고 그 자리에서 새 페이지가 시작된다. 장면(라이트·다크, 예전 낮·밤)·바탕·넘김·글 자리를 `:`로 이어 적는다: `[[다크]]`, `[[다크:오로라]]`, `[[다크:영사광:조리개]]`, `[[가운데]]`(`SCENES`·`GROUNDS`·`TURNS`·`PLACES`). 장면·바탕은 빠지면 앞 쪽을 따르고, 넘김·자리는 그 쪽에만.
-- `{{고쳐 씀:앞말|뒷말}}`의 `|`는 고쳐 쓰기 경계.
 
 ## 파일별 역할
 - `engine.js` — 글 분석. 글자 단위 셀, 어절 역할(flow·short·drip), 시간표(`schedule`, 다음 글은 앞 효과가 끝난 뒤, 퇴장 블록은 사라진 뒤), 문단·페이지 나누기(`parse`, `pages`: 쪽마다 장면·바탕·넘김), 쪽 표시 읽기(`readMark`, 쪽마다 장면·바탕·넘김·자리), 집계(`stats`), 가리기(`mask`). 전역 `Geulgyeol`.
-- `fx.js` — 효과 실행. `FX`(fade·soft·rise·bleed·focus·gather·tremble·fall·type·strike·spread·drift·spot·vanish·scatter), `timeline`(rAF 시간표, `gate`로 멈춤·`from`부터 재생), `setPace`(속도), `buildParagraph`(문단을 .ln/.tk/.ch로 그림), `focusBand`, `touchable`. 전역 `GeulFx`.
+- `fx.js` — 효과 실행. `FX`(fade·soft·rise·bleed·focus·gather·tremble·fall·type·spot / 퇴장 vanish·scatter·erase·dim·fold·sink, 끝 모습은 `EXIT_END`), 꾸밈 클래스(`decorate`: s-b·s-i·s-u·s-s·c-색), `timeline`(rAF 시간표, `gate`로 멈춤·`from`부터 재생), `setPace`(속도), `buildParagraph`(문단을 .ln/.tk/.ch로 그림), `focusBand`, `touchable`. 전역 `GeulFx`.
 - `motion.js` — `spring`, `spring2`, `tween`, `bezier`, `ease`. 전역 `GeulMotion`.
 - `flip.js` — 두 장 사이 넘김 그리기. `drift`(스밈)·`sweep`(쓸기)·`iris`(조리개)·`blinds`(셔터)·`curtain`(막)·`sunrise`(해돋이)·`sunset`(해넘이)·`flash`(섬광)·`disc`(회전). 전역 `GeulFlip`.
-- `backdrop.js` — 바탕 그리기. `window`(창빛)·`hanji`(한지)·`projector`(영사광)·`aurora`(오로라)·`caustic`(물빛). WebGL1 셰이더와 Canvas2D, 캔버스는 쓰는 장만 만든다. 전역 `GeulBackdrop`.
-- `reader.js` + `reader.css` + `reader.html` — 읽기 틀 2판. 페이지마다 장(.sheet), 끌기·휠·키·단추 넘김, 길게 누르기, 페이지별 폭·자리. 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 기다림. 휠은 한 번 걸리면 한 장을 휙 넘김. 쪽에 적힌 넘김을 따르고, 없으면 장면이 바뀔 때 `window.GeulReaderOpts.turn`, 같으면 스밈. 글 자리는 쪽 표시대로, 없으면 강조 있는 쪽은 가운데(0.2~0.8). 쓰는 중 한 번 넘기면 알림만, 곧이어 한 번 더면 다 씀. '이 쪽 다시'(`#again`). 시작 자리의 `next`가 있으면 그 장을 다 쓰고 저절로 넘김. 미리 보기에서는 `sessionStorage`의 `geulgyeol.start`({page, needle}) 자리부터 씀. 예시 글은 `reader.html`의 `#glog-text`. 편집실 iframe 안에서는 쪽에 닿을 때마다 부모에 `geulgyeol:page`({page, pages})를 알리고, `geulgyeol:goto`({page})·`geulgyeol:again`을 받는다.
-- `glyph.css` — 글자 상태(.pending·.wet·.drying)와 효과 모양. 읽기 틀과 효과 견본이 같이 쓴다.
+- `backdrop.js` — 바탕 그리기. 라이트 `window`(창빛)·`hanji`(한지)·`leaf`(잎그늘)·`dawn`(새벽), 다크 `projector`(영사광)·`aurora`(오로라)·`caustic`(물빛). WebGL1 셰이더와 Canvas2D, 캔버스는 쓰는 장만 만든다. 전역 `GeulBackdrop`.
+- `reader.js` + `reader.css` + `reader.html` — 읽기 틀 2판. 페이지마다 장(.sheet), 끌기·휠·키·단추 넘김, 길게 누르기, 페이지별 폭·자리. 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 기다림. 휠은 한 번 걸리면 한 장을 휙 넘김. 쪽에 적힌 넘김을 따르고, 없으면 장면이 바뀔 때 `window.GeulReaderOpts.turn`, 같으면 스밈. 글 자리는 쪽 표시대로, 없으면 강조 있는 쪽은 가운데(0.2~0.8). 쓰는 중 한 번 넘기면 알림만, 곧이어 한 번 더면 다 씀. '이 쪽 다시'(`#again`). 시작 자리의 `next`가 있으면 그 장을 다 쓰고 저절로 넘김. 미리 보기에서는 `sessionStorage`의 `geulgyeol.start`({page, needle}) 자리부터 씀. 예시 글은 `reader.html`의 `#glog-text`. 시작 자리는 주소의 `start`(JSON)가 먼저, `done`이면 그 쪽을 다 쓴 모습으로 바로 놓고 `next`와 함께면 곧바로 넘겨 넘김만 보인다. 편집실 iframe 안에서는 쪽에 닿을 때마다 부모에 `geulgyeol:page`({page, pages})를 알리고, `geulgyeol:goto`({page})·`geulgyeol:again`·`geulgyeol:finish`를 받는다.
+- `glyph.css` — 글자 상태(.pending·.wet·.drying), 퇴장 끝 모습(.gone·.dimmed·.folded), 꾸밈(굵게·기울임·밑줄·취소선·색). 읽기 틀과 효과 견본이 같이 쓴다.
+- `marks.css` — 편집창 표시층 모양(강조 물결 밑줄, 쉼 호박색 면, 꾸밈은 글자 폭이 바뀌지 않는 모양). 편집실 글 화면과 미리보기 안 고치기가 같이 쓴다.
 - `flip.css` — 넘김 오버레이(바늘·축·빛·자취).
 - `mask.html/js/css` + `sample.js` — 가림판. 원문을 ■로 가리고 효과·장면·페이지 표시만 남긴다. 드래그 뒤 효과 메뉴로 블록 지정.
 - `effects.html/js/css` — 효과 견본. `base.css`는 가림판과 견본이 쓰는 1판 토큰(편집실을 만들 때 교정쇄 토큰으로 바꾼다).
 - `flip-lab.html/js/css` — 반전·바탕 시험 페이지.
 - `design/교정쇄-편집실.html` — 편집실 시안(정적). 구현의 기준.
-- `index.html` + `index.css` + `index.js` — 편집실(루트에서 바로 열림). 글 → 미리보기 두 단계. 상태는 localStorage `geul.studio`, 미리보기 글·조판값은 sessionStorage로 `view.html`에 넘김. 반전·쪽 넘김·자리·강조·효과는 모두 본문 안 표시로 들어가 언제든 되돌아가 바꿀 수 있음. 스모크는 `tests/smoke_studio.py`.
-  - 글: 입력창 하나(언제든 고침). 그 위에 쪽 짜임 층(`compose.js`, `GeulCompose`): 쪽마다 면(다크 쪽은 어두운 면, 글자도 밝게), 줄 사이에 마우스를 올리면 '여기서 나누기'(누르면 빈 줄 둘로 쪽 나눔, 손가락 화면은 문단 사이에 '나누기'), 쪽 사이마다 쪽 번호·[반전](글이 바뀌는 자리로 짐작되면 점선)·[잇기], 끌어 고르면 [강조]·[강조 빼기]. 오른쪽(폰은 위)에 분위기 세 축, 직접 고르기 전에는 글을 읽어 짐작.
-  - 미리보기: 머리 막대를 감추고 읽기 틀이 화면을 채움. 보는 기기와 같은 틀이면 실제 크기, 다른 틀(PC에서 폰 390×844, 폰에서 PC 1280×800)이면 맞춰 줄임. 왼쪽 가장자리 세로 책갈피(글로·분위기·글씨·배경·강조·PC/폰·숨기기, 손이 멈추면 흐려짐), 폰에서는 왼쪽 위 '다듬기'를 눌러 펼침. 판(`panels.js`, `GeulPanels`)은 한 번에 하나: 분위기(심상), 글씨(글꼴·나타나는 결·쓰는 빠르기·띄어 쓴 쉼·마르는 빠르기), 배경(지금 쪽의 장면·반전·바탕·넘어오는 결·글 자리), 강조(지금 쪽 글 편집창, 끌어 고르면 강조·효과 막대). 폰에서는 아래 판, 미리보기는 판 위 빈자리로 줄어듦. 확대: 손가락 벌리기·Ctrl+휠(1~4배, '맞춤'으로 되돌림), 확대된 동안 끌기·휠은 틀을 옮김. 넓은 틀에서는 글 상자를 끌면 왼쪽·가운데·오른쪽에 붙고 그 쪽의 자리로 적힘.
-- `editor.js` — 투명한 입력창 뒤에 같은 글을 그려 표시만 보이는 편집창(`GeulEditor.attach`, `nights`·`onDraw`·`onScroll`로 쪽 짜임 층을 얹음). 글 화면과 강조 판이 같이 씀.
-- `tune.js` — 조판값·심상 세 축(온도·물기·숨)·속도·글꼴을 엔진에 거는 법(`GeulTune`). `sense.js` — 원문을 브라우저 안에서 읽어 심상 짐작·반전 후보·표시 넣고 빼기(`GeulSense`).
-- `view.html` + `view.css` + `view.js` — 편집실 미리보기용 읽기 틀(조판값을 건 뒤 `reader.js`를 띄움). iframe 안에서는 손짓을 편집실에 알림: `geulgyeol:place`(글 상자 끌어 붙이기), `geulgyeol:zoom`(Ctrl+휠), `geulgyeol:pinch`·`geulgyeol:pan`(문서 좌표, 편집실이 화면 좌표로 바꿈), `geulgyeol:scroll`(확대 중 휠). 편집실은 `geulgyeol:zoomed`로 확대 중인지 알림. `simsang.*` — 심상 낱말 하나씩 견주기.
+- `index.html` + `index.css` + `index.js` — 편집실(루트에서 바로 열림). 글 → 미리보기 두 단계. 상태는 localStorage `geul.studio`, 미리보기 글·조판값은 storage로, 시작 자리는 주소로 `view.html`에 넘김. 반전·쪽 넘김·자리·강조·효과·꾸밈은 모두 본문 안 표시로 들어가 언제든 되돌아가 바꿀 수 있음. 스모크는 `tests/smoke_studio.py`.
+  - 글: 처음 들어오면 편집창을 흐리게 가린 안내창. 입력창 하나(언제든 고침) 위에 쪽 짜임 층(`compose.js`, `GeulCompose`): 쪽마다 면(다크 쪽은 어두운 면), 줄 사이 띠(올리면 점선과 마우스 옆 '여기서 나누기', 띠 어디를 눌러도 빈 줄 둘로 쪽 나눔, 손가락 화면은 문단 사이에 '나누기'), 쪽 사이마다 쪽 번호·[반전](반전된 자리는 넘김 고르기)·[잇기], 끌어 고르면 [강조]·[강조 빼기]. 쪽 사이 자리가 본문과 어긋나면 손대지 않고 다시 그림. 오른쪽(폰은 위)에 분위기 세 축과 주색 테마(`GeulTune.THEMES`).
+  - 미리보기: 머리 막대를 감추고 읽기 틀이 화면을 채움. 같은 기기 틀이면 실제 크기, 다른 틀(PC 16:9 1280×720, 폰 390×844)이면 맞춰 줄임, 병렬은 PC와 폰을 같은 배율로 나란히(폰 폭에서는 숨김). 틀마다 iframe 두 장을 번갈아 써서 새 장이 첫 쪽에 닿으면 바꿔 끼움(깜빡임 없음). 오른쪽 가장자리 세로 책갈피(글로·분위기·글씨·움직임·배경·다시 보기·PC/폰/병렬·숨기기), 폰에서는 왼쪽 위 '다듬기'. 판(`panels.js`, `GeulPanels`) 하나씩: 분위기, 글씨(글꼴·글자 크기·정렬·글 상자 폭(PC)) — 다시 쓰지 않고 `geulgyeol:style`로 바로, 움직임(나타나는 결·쓰는 빠르기·쉼·마름) — '다시 보기'를 눌러야, 배경(지금 쪽의 장면·반전·바탕·넘어오는 결·글 자리) — 그 쪽을 다 쓴 모습으로, 넘김은 넘김만. 글 상자를 누르면 그 자리에서 고치기(`inplace.js`). 확대: 손가락 벌리기·Ctrl+휠(1~4배, '맞춤'). PC 틀에서는 글 상자를 끌면 왼쪽·가운데·오른쪽에 붙음.
+- `editor.js` — 투명한 입력창 뒤에 같은 글을 그려 표시만 보이는 편집창(`GeulEditor.attach`, `nights`·`onDraw`·`onScroll`로 쪽 짜임 층을 얹음, 본문을 받은 뒤에 다시 그림). 글 화면과 미리보기 안 고치기가 같이 씀.
+- `inplace.js` — 미리보기(view.html) 안에서 글 상자 자리에 같은 폭·글꼴의 편집창. 편집실과 `geulgyeol:edit-req`·`edit-slice`·`edit`·`edit-done`으로 그 쪽 글을 주고받음. 고르면 막대: 강조·효과·퇴장·굵게·기울임·밑줄·취소선·색·빼기. 효과·퇴장은 닫으면서 그 자리부터 다시 써 보이고, 나머지는 닫을 때 다 쓴 모습으로. '다 고쳤어요'는 화면 아래 가운데에 떠 있음.
+- `tune.js` — 조판값·심상 세 축(온도·물기·숨)·속도·글꼴·글자 크기·글 상자 폭·정렬·주색을 엔진과 화면에 거는 법(`GeulTune`, `themeVars`·`useTheme`). `sense.js` — 원문을 브라우저 안에서 읽어 심상 짐작·반전 후보·표시 넣고 빼기(`GeulSense`).
+- `view.html` + `view.css` + `view.js` — 편집실 미리보기용 읽기 틀(조판값을 건 뒤 `reader.js`를 띄움). 모양 조판값은 CSS 변수(`--fs-k`·`--m-user`·`--a-user`·`--theme-*`)로 걸어 `geulgyeol:style`이면 바로 바꿈. iframe 안에서는 손짓을 편집실에 알림: `geulgyeol:place`(글 상자 끌어 붙이기), `geulgyeol:zoom`(Ctrl+휠), `geulgyeol:pinch`·`geulgyeol:pan`(문서 좌표, 편집실이 화면 좌표로 바꿈), `geulgyeol:scroll`(확대 중 휠). 편집실은 `geulgyeol:zoomed`로 확대 중인지 알림. `simsang.*` — 심상 낱말 하나씩 견주기.
 - `codex-proposals/` — Codex 시안(비교용, 손대지 않음).
 - `meokji/` — 먹지판(편집실 재구성 시험판). 쓰기 → 세 가지 묻기(심상 낱말·반전 자리·한 문장) → 1차 안 → 다듬기. 루트의 `engine.js`·`fx.js`·`reader.js` 등을 그대로 불러 쓰고, 색은 복사지 바탕에 남보라 `#2C2F6B` 한 색. `tune.js`(조판값→엔진), `sense.js`(원문을 브라우저 안에서 읽어 짐작·제안·표시 넣기), `index.*`(편집실), `read.*`(읽기 틀 덮개). 스모크는 `tests/smoke_meokji.py`.
 - `tests/smoke.py` — 읽기 틀 스모크(PC·폰 크기, 쓰기→넘김→쓸기→끌기→휠→길게 누르기→처음부터).

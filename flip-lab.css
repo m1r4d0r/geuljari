@@ -23,9 +23,6 @@
   --ink: #DCE1DA;
   --ink-soft: #8D9792;
   --wet: #93B3E2;
-  --au1: #4FE0C0;
-  --au2: #8F7BFF;
-  --au3: #7DFFB0;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -112,7 +109,7 @@ body {
   justify-items: end;
   gap: .15rem;
 }
-.view .pick { display: flex; align-items: baseline; gap: .9rem; }
+.view .pick { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; column-gap: .9rem; }
 .view .label { opacity: .55; }
 .ops {
   left: 0;
@@ -141,6 +138,9 @@ body {
 .tbtn:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
 
 @media (max-width: 599px) {
+  .view { left: 1.25rem; }
+  .view .pick { column-gap: .7rem; }
+  .sheet[data-ground="letter"] .column { --lp-x: .9rem; }
   .ops .hint { display: none; }
   .ops { justify-content: space-between; }
 }

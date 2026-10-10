@@ -1,9 +1,9 @@
 /*
  * 글결 반전 시험
- * 진행값 pos(0=낮, 1=밤) 하나가 쓸기 그림 전체를 정한다.
+ * 진행값 pos(0=낮, 1=밤) 하나가 아래 막대에서 고른 넘김(쓸기·조리개·피어남…)의 그림 전체를 정한다. 넘김을 고르면 반대쪽 장까지 한 번 넘겨 보인다.
  * - 끌기: 손가락·마우스를 옆(또는 위)으로 끄는 만큼 pos가 따라오고, 놓으면 빠르기를 지닌 채 스프링으로 마저 가거나 돌아간다.
  * - 휠: 굴리는 만큼 pos가 움직이고, 멈추면 넘던 쪽으로 마저 간다.
- * - 단추·방향키: 바닥선에 불이 먼저 들어온 뒤(스위치) 휙 넘어간다.
+ * - 단추·방향키: 넘김마다 정한 시간과 빠르기(GeulFlip.timing)로 넘어간다. 바닥 빛을 쓰는 넘김은 불이 먼저 들어온 뒤(스위치) 움직인다.
  * 글은 장 안에 있어서 바탕과 함께 쓸린다. 위 오른쪽에서 낮·밤 바탕을 골라 바꿔 볼 수 있다.
  */
 (function () {
@@ -26,6 +26,8 @@
 
   let pos = 0;
   let tw = null;
+  let turn = 'sweep';
+  const turnBtns = document.querySelectorAll('.turns [data-turn]');
 
   const spring = M.spring({
     value: 0,
@@ -47,7 +49,7 @@
       }
       B.setActive([p >= 0.5 ? night : day], [day, night]);
     } else {
-      flip.begin(day, night, 'sweep', 1);
+      flip.begin(day, night, turn, 1);
       flip.render(p, light);
       B.setActive([day, night]);
     }
@@ -62,15 +64,20 @@
     if (tw) { tw.cancel(); tw = null; }
   }
 
-  /* 단추·키로 넘기기: 불 켜기 → 휙 → 불 끄기 */
+  /* 단추·키로 넘기기: 불 켜기 → 넘김마다의 곡선으로 움직이기 → 불 끄기. 시간이 0인 단계는 건너뛴다 */
   function go(target) {
     if (Math.abs(pos - target) < 0.001 && !flip.active) return;
     stopAll();
     if (reduce.matches) { spring.set(target); return; }
     const from = pos;
-    tw = M.tween(0, 1, 170, M.ease.out, (l) => draw(from, l), () => {
-      tw = M.tween(from, target, 640, M.ease.swing, (x) => draw(x, 1), () => {
-        tw = M.tween(1, 0, 260, M.ease.out, (l) => draw(target, l), () => {
+    const T = F.timing(turn);
+    const phase = (ms, a, b, ease, paint, done) => {
+      if (ms > 0) tw = M.tween(a, b, ms, ease, paint, done);
+      else { paint(b); done(); }
+    };
+    phase(T.lead, 0, 1, M.ease.out, (l) => draw(from, l), () => {
+      phase(T.run, from, target, T.ease, (x) => draw(x, 1), () => {
+        phase(T.tail, 1, 0, M.ease.out, (l) => draw(target, l), () => {
           tw = null;
           spring.set(target);
         });
@@ -150,6 +157,11 @@
 
   nextBtn.addEventListener('click', () => go(1));
   backBtn.addEventListener('click', () => go(0));
+  turnBtns.forEach((b) => b.addEventListener('click', () => {
+    turn = b.dataset.turn;
+    turnBtns.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    go(pos >= 0.5 ? 0 : 1);
+  }));
   document.addEventListener('keydown', (e) => {
     if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(1); }
     else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(0); }

@@ -1,6 +1,6 @@
 /* 글결 반전 시험
    한 화면 무대 위에 낮 장과 밤 장을 겹쳐 두고, 바닥 가운데를 축으로 쓸어 넘긴다. 글은 장 안에 있어서 바탕과 함께 쓸린다.
-   조작 단추는 아래 막대, 바탕 고르기는 위 오른쪽.
+   조작 단추와 넘김 고르기는 아래 막대, 바탕 고르기는 위 오른쪽.
    단추 글자는 차이 혼합(difference)으로 칠해서 낮이든 밤이든 바탕의 반대 색으로 보인다. */
 
 :root {
@@ -123,7 +123,8 @@ body {
   gap: 1rem;
   padding: .8rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + .9rem);
 }
-.ops .hint { margin: 0 auto 0 0; opacity: .6; min-width: 0; }
+.ops .turns { display: flex; flex-wrap: wrap; gap: 0 .9rem; margin-right: auto; }
+.ops .hint { margin: 0; opacity: .6; min-width: 0; }
 .tbtn {
   font: inherit;
   color: inherit;
@@ -140,7 +141,10 @@ body {
 .tbtn:disabled { opacity: .25; cursor: default; }
 .tbtn:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
 
-@media (max-width: 599px) {
+@media (max-width: 1099px) {
   .ops .hint { display: none; }
-  .ops { justify-content: space-between; }
+}
+@media (max-width: 599px) {
+  .ops { flex-wrap: wrap; justify-content: space-between; row-gap: .2rem; }
+  .ops .turns { flex: 1 1 100%; margin: 0; gap: 0 .8rem; }
 }

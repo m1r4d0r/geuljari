@@ -16,96 +16,92 @@
 <script src="sense.js" defer></script>
 <script src="editor.js" defer></script>
 <script src="compose.js" defer></script>
-<script src="slips.js" defer></script>
+<script src="panels.js" defer></script>
 <script src="index.js" defer></script>
 </head>
-<body data-step="write" data-device="pc">
+<body data-step="write">
 
 <header class="top">
-  <button type="button" class="logo" id="home" aria-label="글결, 쓰기로">
+  <button type="button" class="logo" id="home" aria-label="글결, 글로">
     <span class="logo-mark" aria-hidden="true"><i></i><i></i></span>
     <span class="logo-name">글결</span>
   </button>
   <nav class="steps" aria-label="단계">
-    <button type="button" data-go="write">쓰기</button>
-    <button type="button" data-go="compose">짜기</button>
-    <button type="button" data-go="tune">다듬기</button>
+    <button type="button" data-go="write">글</button>
+    <button type="button" data-go="tune">미리보기</button>
   </nav>
-  <div class="seg device" role="group" aria-label="미리보기 화면" id="device">
-    <button type="button" data-device="pc">PC</button><button type="button" data-device="mobile">모바일</button>
-  </div>
+  <span class="top-links">
+    <button type="button" class="link" id="sample">예시 글</button>
+    <button type="button" class="link" id="clear">새로 쓰기</button>
+  </span>
 </header>
 
 <main class="steps-body">
 
-  <!-- 쓰기: 입력창 하나 -->
-  <section class="step write" id="s-write" aria-label="쓰기">
+  <!-- 글: 입력창 하나에서 쓰고, 쪽을 나누고, 반전·강조·분위기를 고른다 -->
+  <section class="step write" id="s-write" aria-label="글">
     <div class="write-body">
-      <div class="intro">
-        <div>
-          <p class="eyebrow">글 한 편으로 시작해요.</p>
-          <h1>어떻게 읽히면 좋을까요.</h1>
-        </div>
-        <div class="intro-links">
-          <button type="button" class="link" id="sample">예시 글 넣기</button>
-          <button type="button" class="link" id="clear">새로 쓰기</button>
+      <div class="write-col">
+        <input id="title" class="title" type="text" placeholder="제목 (선택)" aria-label="제목" autocomplete="off">
+        <div class="ed" id="write-ed">
+          <div class="ed-mirror" id="write-mirror" aria-hidden="true"></div>
+          <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
+            placeholder="여기에 글을 놓아 주세요.&#10;&#10;줄 사이를 누르면 쪽이 나뉘고, 끌어 고르면 강조할 수 있어요.&#10;빈 줄 둘은 새 쪽, 띄어쓰기 두 번은 쉼이 돼요."></textarea>
         </div>
       </div>
-      <input id="title" class="title" type="text" placeholder="제목 (선택)" aria-label="제목" autocomplete="off">
-      <div class="ed" id="write-ed">
-        <div class="ed-mirror" id="write-mirror" aria-hidden="true"></div>
-        <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
-          placeholder="여기에 글을 놓아 주세요.&#10;&#10;빈 줄 둘은 새 쪽, 띄어쓰기 두 번은 쉼, 빈 줄 하나는 문단 사이가 돼요."></textarea>
-      </div>
-    </div>
-    <footer class="bar">
-      <span class="k" id="count-w"></span>
-      <button type="button" class="btn fill push" id="go-compose">쪽 짜기</button>
-    </footer>
-  </section>
-
-  <!-- 짜기: 쪽 나누기 · 반전 · 심상 · 남길 곳 -->
-  <section class="step compose" id="s-compose" aria-label="짜기" hidden>
-    <div class="compose-body">
-      <div class="cp-col">
-        <p class="cp-guide k">줄 사이를 누르면 쪽이 나뉘어요 · 끌어서 고르면 남길 곳이 돼요</p>
-        <div class="cp-paper" id="cp-paper"></div>
-      </div>
-      <aside class="cp-rail" aria-label="심상">
-        <h2>어떤 결이에요</h2>
-        <div class="moods" id="cp-moods"></div>
-        <p class="mix" id="cp-mix"></p>
+      <aside class="rail" aria-label="분위기">
+        <h2>어떤 분위기예요</h2>
+        <div class="moods" id="moods"></div>
+        <p class="mix" id="mix"></p>
         <a class="link small" href="simsang.html">낱말 하나씩 살펴보기</a>
       </aside>
-      <div class="cp-pop" id="cp-pop" role="group" aria-label="고른 자리" hidden></div>
     </div>
     <footer class="bar">
-      <span class="k" id="count-c"></span>
-      <button type="button" class="link push" id="back-write">글 고치기</button>
-      <button type="button" class="btn fill" id="go-tune">미리보기</button>
+      <span class="k" id="count"></span>
+      <button type="button" class="btn fill push" id="go-tune">미리보기</button>
     </footer>
   </section>
 
-  <!-- 다듬기: 미리보기 무대와 쪽지 -->
-  <section class="step tune" id="s-tune" aria-label="다듬기" hidden>
+  <!-- 미리보기: 화면을 채운 읽기 틀과, 왼쪽 가장자리 책갈피로 여는 판 -->
+  <section class="step tune" id="s-tune" aria-label="미리보기" hidden>
     <div class="stage" id="stage">
       <div class="frame-box" id="frame-box"><iframe class="frame" id="pv" title="미리보기"></iframe></div>
 
-      <section class="slip" id="slip-page" aria-label="이 쪽" hidden>
-        <header class="slip-head"><span class="stamp">1</span><b>이 쪽</b><span class="slip-title k"></span><button type="button" class="link slip-x">접기</button></header>
-        <div class="slip-body"></div>
+      <nav class="tabs" id="tabs" aria-label="다듬기">
+        <button type="button" class="tab-toggle" id="tab-toggle" aria-expanded="false">다듬기</button>
+        <div class="tab-list">
+          <button type="button" class="tab back" id="back">글로</button>
+          <button type="button" class="tab" data-panel="mood">분위기</button>
+          <button type="button" class="tab" data-panel="type">글씨</button>
+          <button type="button" class="tab" data-panel="ground">배경</button>
+          <button type="button" class="tab" data-panel="mark">강조</button>
+          <span class="tab-dev" role="group" aria-label="미리보기 화면" id="device">
+            <button type="button" data-device="pc">PC</button><button type="button" data-device="mobile">폰</button>
+          </span>
+          <button type="button" class="tab" id="hide-all">숨기기</button>
+        </div>
+      </nav>
+
+      <section class="panel" id="panel-mood" aria-label="분위기" hidden>
+        <header class="panel-head"><b>분위기</b><span class="panel-sub k"></span><button type="button" class="link panel-x">닫기</button></header>
+        <div class="panel-body"></div>
       </section>
-      <section class="slip" id="slip-all" aria-label="전체" hidden>
-        <header class="slip-head"><span class="stamp all">전</span><b>전체</b><span class="slip-title k"></span><button type="button" class="link slip-x">접기</button></header>
-        <div class="slip-body"></div>
+      <section class="panel" id="panel-type" aria-label="글씨" hidden>
+        <header class="panel-head"><b>글씨</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-x">닫기</button></header>
+        <div class="panel-body"></div>
       </section>
-      <section class="slip wide" id="slip-text" aria-label="이 쪽 글" hidden>
-        <header class="slip-head"><span class="stamp">1</span><b>글</b><span class="slip-title k">끌어 고르면 효과를 걸어요</span><button type="button" class="link slip-x">접기</button></header>
-        <div class="slip-body">
+      <section class="panel" id="panel-ground" aria-label="배경" hidden>
+        <header class="panel-head"><b>배경</b><span class="panel-sub k"></span><button type="button" class="link panel-x">닫기</button></header>
+        <div class="panel-body"></div>
+      </section>
+      <section class="panel wide" id="panel-mark" aria-label="강조" hidden>
+        <header class="panel-head"><b>강조</b><span class="panel-sub k"></span><button type="button" class="link panel-x">닫기</button></header>
+        <p class="panel-note">끌어 고르면 강조와 효과를 걸 수 있어요. 글도 여기서 고쳐요.</p>
+        <div class="panel-body">
           <div class="ed small">
             <div class="ed-mirror" aria-hidden="true"></div>
             <textarea class="ed-input" spellcheck="false" aria-label="이 쪽 글"></textarea>
-            <div class="fxbar" role="group" aria-label="효과" hidden>
+            <div class="fxbar" role="group" aria-label="강조와 효과" hidden>
               <span class="fx-list"></span>
               <button type="button" class="link fx-off">빼기</button>
             </div>
@@ -113,17 +109,8 @@
         </div>
       </section>
 
-      <nav class="ruler" id="ruler" aria-label="쪽과 쪽지">
-        <span class="ticks" id="ticks"></span>
-        <span class="ruler-act">
-          <button type="button" data-slip="page">이 쪽</button>
-          <button type="button" data-slip="all">전체</button>
-          <button type="button" data-slip="text">글 고치기</button>
-          <button type="button" id="hide-all" aria-pressed="false">숨기기</button>
-          <button type="button" class="pub" disabled title="발행은 3단계에서 붙여요.">발행</button>
-        </span>
-      </nav>
-      <button type="button" class="peek" id="peek" hidden>■□ 꺼내기</button>
+      <div class="zoom" id="zoom" hidden><span class="k" id="zoom-k"></span><button type="button" class="link" id="zoom-fit">맞춤</button></div>
+      <button type="button" class="peek" id="peek" aria-label="다듬기 꺼내기" hidden>■□</button>
     </div>
   </section>
 </main>

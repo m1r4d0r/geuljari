@@ -3,8 +3,8 @@
  * 투명한 입력창(textarea) 뒤에 같은 글을 같은 글꼴·폭으로 그려 표시만 보이게 한다. 두 층은 글자 자리가 같아야 하므로
  * 표시층은 글자를 한 자도 더하거나 빼지 않고 감싸기만 한다.
  *   블록 표시 글자는 옅게, 블록 안 글은 물결 밑줄과 번진 면(이름 없는 블록 '남길 곳'은 더 진한 면),
- *   쪽 표시 줄은 면, 어절 사이 두 번째 칸부터는 빈 네모, 쪽이 바뀌는 자리에는 겹줄과 쪽 번호.
- * 쓰기 화면과 다듬기의 '글' 쪽지가 함께 쓴다. 전역 GeulEditor.
+ *   쪽 표시 줄은 면, 어절 사이 두 번째 칸부터는 빈 네모, 쪽이 바뀌는 자리에는 겹줄과 쪽 번호, 다크 쪽 글줄은 밝은 글자.
+ * 글 화면과 미리보기의 '강조' 판이 함께 쓴다. 전역 GeulEditor.
  */
 (function (global) {
   'use strict';
@@ -18,8 +18,8 @@
     return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
-  /* 표시층 html. firstPage는 이 글의 첫 쪽 번호(쪽 하나만 고칠 때 쓴다) */
-  function markup(text, firstPage) {
+  /* 표시층 html. firstPage는 이 글의 첫 쪽 번호(쪽 하나만 고칠 때 쓴다), nights는 다크 쪽 번호 모음(없으면 칠하지 않음) */
+  function markup(text, firstPage, nights) {
     const ls = S.lines(text);
     const base = firstPage || 0;
     const out = [];
@@ -46,6 +46,7 @@
         out.push(mark + `<span class="m-scene">${esc(ln.text)}</span>`);
         return;
       }
+      const night = nights && nights.has(ln.page);
       const line = ln.text;
       const emOpen = () => `<span class="m-em${open && !open.named ? ' focus' : ''}">`;
       let html = open ? emOpen() : '';
@@ -69,13 +70,15 @@
       }
       html += textPart(i, line.length);
       if (open) html += '</span>';
-      out.push(html);
+      out.push(night ? `<span class="m-night">${html}</span>` : html);
     });
     return out.join('\n') + (text.endsWith('\n') ? ' ' : '');
   }
 
   /*
    * ta(입력창)·mirror(표시층)를 묶는다. opts.onInput(value)는 사람이 고칠 때만 부른다.
+   * opts.nights()는 다크 쪽 번호 모음, opts.onDraw()는 표시층을 다시 그린 뒤마다, opts.onScroll()은 굴릴 때마다 부른다
+   * (쪽 면·구분선을 얹을 때).
    * 돌려주는 것: draw, set(text, sel) 실행 취소가 남도록 한 번에 갈아 끼움, rectAt(offset), reveal(offset), firstPage
    */
   function attach(ta, mirror, opts) {
@@ -84,8 +87,9 @@
     const api = { firstPage: 0 };
 
     api.draw = () => {
-      mirror.innerHTML = markup(ta.value, api.firstPage);
+      mirror.innerHTML = markup(ta.value, api.firstPage, o.nights ? o.nights() : null);
       mirror.scrollTop = ta.scrollTop;
+      if (o.onDraw) o.onDraw();
     };
 
     api.set = (text, sel) => {
@@ -140,7 +144,7 @@
       api.draw();
       if (!quiet && o.onInput) o.onInput(ta.value);
     });
-    ta.addEventListener('scroll', () => { mirror.scrollTop = ta.scrollTop; });
+    ta.addEventListener('scroll', () => { mirror.scrollTop = ta.scrollTop; if (o.onScroll) o.onScroll(); });
     new ResizeObserver(() => api.draw()).observe(ta);
     return api;
   }

@@ -30,3 +30,12 @@
 .embed .view { top: .5rem; right: .75rem; font-size: .78rem; }
 .embed .ops { padding: .5rem .75rem .6rem; font-size: .78rem; }
 .embed .scroll { padding-top: 3rem; padding-bottom: 3.6rem; }
+
+/* 편집실 미리보기: 넓은 화면에서는 글 상자를 끌어 왼쪽·가운데·오른쪽에 붙인다 */
+@media (min-width: 600px) and (hover: hover) {
+  .in-studio .sheet.is-current .column { cursor: grab; outline: 1px dashed transparent; outline-offset: 10px; transition: outline-color .2s ease; }
+  .in-studio .sheet.is-current .column:hover { outline-color: color-mix(in srgb, currentColor 22%, transparent); }
+}
+.in-studio .column.is-moving { cursor: grabbing; outline: 1px dashed color-mix(in srgb, currentColor 45%, transparent); outline-offset: 10px; }
+.place-guide { position: fixed; z-index: 20; width: 0; border-left: 1px dashed #fff; mix-blend-mode: difference; opacity: .25; pointer-events: none; transition: opacity .15s ease; }
+.place-guide.on { opacity: .7; }

@@ -180,9 +180,9 @@ R-0. 글결은 천 자 안팎의 한국어 글을 "써지는 속도와 숨"으�
 
 ## 6. 저장소 안내
 
-- 지금 올라간 코드: 읽기 틀 2판(`index.html` + `reader.js` 등), 가림판(`mask.html`), 효과 견본(`effects.html`), 반전 시험(`flip-lab.html`). 편집실·발행·관리실은 아직 없고 시안만 있다.
+- 루트(`index.html`)가 편집실이다. 쓰기(입력창 하나) → 짜기(글을 읽는 모양으로 펼쳐 줄 사이를 눌러 쪽 나누기, 쪽 사이마다 반전·잇기, 끌어서 남길 곳, 심상 세 축) → 다듬기(미리보기를 무대 가득, PC·모바일 틀 전환, 세부 설정은 필요할 때만 꺼내는 쪽지 세 장(이 쪽·전체·글), 아래 쪽 눈금 띠, 숨기기).
+- 그 밖의 화면: 읽기 틀 2판(`reader.html` + `reader.js`, 예시 글이 들어 있다), 편집실 미리보기(`view.html`), 심상 낱말 살펴보기(`simsang.html`), 가림판(`mask.html`), 효과 견본(`effects.html`), 반전 시험(`flip-lab.html`). 발행·관리실은 아직 없다.
 - 작업 규칙과 파일 구조: `CLAUDE.md`. 디자인 명세: `docs/디자인-교정쇄.md`. 단계 계획: `docs/단계-계획.md`. 교정쇄 시안을 브라우저로 열어 보기: `design/교정쇄-편집실.html`.
-- 합본(지금 이어 가는 편집실): `hapbon/index.html`. 먹지판의 색·흐름과 Codex 판의 짜임을 합치고, 2026-10-10 검토 의견(묻기 오버레이, 드래그 강조, 되돌아가 바꾸기, 바뀐 자리부터 미리보기, 결 보기, 긴 쪽 나누기, 넘김 세 가지, 휠·스크롤 손보기)을 반영했다.
-- 먹지판(편집실 재구성 시험판): `meokji/index.html`. 원안(루트의 읽기 틀·가림판·시안)은 그대로 두고 따로 만들었다.
-- 열어 보기: 폴더에서 `python3 -m http.server 8000` 뒤 `http://localhost:8000/index.html`.
-- 점검: `python3 tests/smoke.py` (Playwright Chromium 필요).
+- 먹지판(편집실 재구성 시험판): `meokji/index.html`. 비교용으로 남겨 둔다.
+- 열어 보기: 폴더에서 `python3 -m http.server 8000` 뒤 `http://localhost:8000/`.
+- 점검: `python3 tests/smoke.py`(읽기 틀), `python3 tests/smoke_studio.py`(편집실), `python3 tests/smoke_meokji.py`(먹지판). Playwright Chromium 필요.

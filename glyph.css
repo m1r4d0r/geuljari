@@ -1,6 +1,6 @@
 /* 글결 글자 모양
    글자 하나하나의 상태와 블록 효과의 생김새. 움직임 자체는 fx.js가 건다.
-   읽기 틀(index.html)과 효과 견본(effects.html)이 함께 쓴다. 색은 --wet·--f-display를 쓰는 쪽에서 정한다. */
+   읽기 틀(reader.html)과 효과 견본(effects.html)이 함께 쓴다. 색은 --wet·--f-display를 쓰는 쪽에서 정한다. */
 
 /* 글자 상태(읽기 틀·효과 견본 공통): 아직 안 나온 글자, 막 써서 젖은 글자, 마르는 중인 글자 */
 .pending { opacity: 0; }

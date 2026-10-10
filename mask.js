@@ -399,6 +399,6 @@
     store.set('sessionStorage', 'geulgyeol.preview', data);
     store.set('localStorage', 'geulgyeol.preview', data);
     store.set('sessionStorage', 'geulgyeol.go', '1');
-    location.href = 'index.html#preview';
+    location.href = 'reader.html#preview';
   });
 })();

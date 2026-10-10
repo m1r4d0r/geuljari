@@ -15,7 +15,7 @@
 
   function sampleText() {
     let src = '';
-    try { src = (JSON.parse(localStorage.getItem('hapbon.state') || 'null') || {}).source || ''; } catch (e) { src = ''; }
+    try { src = (JSON.parse(localStorage.getItem('geul.studio') || 'null') || {}).source || ''; } catch (e) { src = ''; }
     if (!src.trim() && window.GeulgyeolSample) src = window.GeulgyeolSample.text;
     const focus = S.focusText(src);
     const pick = focus || S.sentences(src).slice(0, 2).map((x) => x.text).join(' ');

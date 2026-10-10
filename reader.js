@@ -13,6 +13,8 @@
  *   next가 있으면 그 장을 다 쓴 뒤 다음 장으로 저절로 넘겨 넘김을 보여 준다.
  * 쓰는 중에 넘기려 하면 처음 한 번은 '아직 쓰는 중'이라고 알리기만 하고, 곧이어 한 번 더 하면 그 장을 다 쓴다.
  *   아래 눈금의 지금 장은 써 나간 만큼 찬다. '이 쪽 다시'(#again)는 지금 장만 처음부터 다시 쓴다.
+ * 편집실 안(iframe)에 있으면 장에 멈출 때마다 몇째 장인지 알리고(geulgyeol:page),
+ *   편집실이 부르면 그 장으로 가거나(geulgyeol:goto) 지금 장을 다시 쓴다(geulgyeol:again).
  * 길게 누르면 그 줄에 머물러 나머지가 가라앉고 바탕도 느려진다. 다 쓴 어절에 손을 대면 잠깐 다시 젖는다.
  */
 (function () {
@@ -331,6 +333,7 @@
     cue.classList.toggle('is-on', !!pages[S.cur].held);
     const P = pages[S.cur];
     play(P, firstWait(), from);
+    tellPage();
     band();
     syncPager();
   }
@@ -612,12 +615,27 @@
   });
 
   /* 이 쪽 다시: 지금 장만 처음부터 다시 쓴다 */
-  const againBtn = document.getElementById('again');
-  if (againBtn) againBtn.addEventListener('click', () => {
+  function again() {
     if (!S.on) setMotion(true, true);
     const P = pages[S.cur];
     reset(P);
     play(P, LAND_WAIT);
+  }
+  const againBtn = document.getElementById('again');
+  if (againBtn) againBtn.addEventListener('click', again);
+
+  /* ---------- 편집실과 주고받기 ---------- */
+
+  const embedded = window.parent !== window;
+  function tellPage() {
+    if (embedded) window.parent.postMessage({ type: 'geulgyeol:page', page: S.cur, pages: pages.length }, location.origin);
+  }
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data || !pages.length) return;
+    if (e.data.type === 'geulgyeol:goto') {
+      const k = clamp(Number(e.data.page) || 0, 0, pages.length - 1);
+      if (k !== S.cur) goTo(k);
+    } else if (e.data.type === 'geulgyeol:again') again();
   });
 
   G.touchable(stage);

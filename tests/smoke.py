@@ -27,7 +27,7 @@ try:
             pg = ctx.new_page()
             pg.on('pageerror', lambda e: errors.append(f'{tag} pageerror: {e}'))
             pg.on('console', lambda m: m.type == 'error' and 'ERR_' not in m.text and errors.append(f'{tag} {m.text}'))
-            pg.goto(f'http://127.0.0.1:{PORT}/index.html'); pg.wait_for_timeout(2500)
+            pg.goto(f'http://127.0.0.1:{PORT}/reader.html'); pg.wait_for_timeout(2500)
             print(tag, '0 writing', pg.evaluate(state))
             pg.screenshot(path=str(OUT / f'{tag}-p0.png'))
             pg.wait_for_timeout(9000)

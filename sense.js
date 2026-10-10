@@ -1,5 +1,5 @@
 /*
- * 글결 합본 글 읽기
+ * 글결 글 읽기
  * 가리지 않은 원문을 이 브라우저 안에서만 읽어 1차 안의 재료를 만든다. 글은 어디로도 보내지 않는다.
  * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김·자리), 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
  * 반전은 장면이 적힌 첫 쪽 표시 줄이다. 장면 이름은 라이트·다크로 쓴다.
@@ -398,6 +398,6 @@
 
   global.GeulSense = {
     SCENE_RE, lines, sentences, blocks, guessMoods, emphasisCandidates, turnCandidate, suggestions,
-    unwrap, wrap, setFocus, focusText, readMarkLine, turnLine, setTurn, setPageMark, pageMark, autoBreaks, letters
+    unwrap, wrap, setFocus, focusText, readMarkLine, markLine, turnLine, setTurn, setPageMark, pageMark, autoBreaks, letters
   };
 })(typeof window !== 'undefined' ? window : globalThis);

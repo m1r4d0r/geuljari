@@ -5,6 +5,8 @@
 /* 글자 상태(읽기 틀·효과 견본 공통): 아직 안 나온 글자, 막 써서 젖은 글자, 마르는 중인 글자 */
 .pending { opacity: 0; }
 .wet { color: var(--wet); }
+/* 손끝으로 다시 적실 때는 먹이 천천히 배어들고, 마를 때처럼 천천히 돌아온다 */
+.wet.soak { transition: color .7s ease-out; }
 .drying { transition: color 1.8s ease-in-out; }
 
 /* 블록 효과의 모양(읽기 틀·효과 견본 공통). 움직임 자체는 fx.js가 건다. */
@@ -19,7 +21,7 @@
 .ch.folded { display: none; }
 
 /* 글자 꾸밈: 굵게·기울임·밑줄·취소선, 색(장면마다 읽히는 밝기로) */
-.ch.s-b { font-weight: 700; }
+.ch.s-b, .ch.em.s-b { font-weight: 700; }
 .ch.s-i { font-style: italic; }
 .s-u { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .22em; }
 .s-s { text-decoration: line-through; text-decoration-thickness: 1px; }

@@ -94,6 +94,9 @@ input[type=range]::-moz-range-thumb { width: 11px; height: 11px; background: var
 .rail-name { font-size: 11px; color: var(--lead); }
 .themes { display: flex; gap: 6px; }
 .swatch { width: 18px; height: 18px; padding: 0; border: 1px solid var(--paper); background: var(--sw); box-shadow: 0 0 0 1px transparent; }
+.swatch.picker { position: relative; display: inline-block; background: conic-gradient(from 45deg, #B03A2E, #C06A1C, #3F7A4A, #2F5DA8, #6A4BA0, #B03A2E); cursor: pointer; }
+.swatch.picker[aria-pressed="true"] { background: var(--sw); }
+.swatch.picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 1px var(--sw); border-color: var(--paper); outline: 1px solid var(--sw); outline-offset: 2px; }
 
 /* 처음 안내: 편집창을 흐리게 가리고, 다섯 장을 한 장씩. 왼쪽 무대에서 그 기능이 움직이고 오른쪽에 한 줄 설명 */

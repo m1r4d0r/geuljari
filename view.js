@@ -36,6 +36,10 @@
     root.setProperty('--theme-ink', tv['--ink']);
     root.setProperty('--theme-lead', tv['--lead']);
     root.setProperty('--theme-wet', tv['--wet-ink']);
+    root.setProperty('--theme-night-paper', tv['--night-paper']);
+    root.setProperty('--theme-night-ink', tv['--night-ink']);
+    root.setProperty('--theme-night-soft', tv['--night-soft']);
+    root.setProperty('--theme-night-wet', tv['--night-wet']);
   }
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:style') return;

@@ -138,6 +138,7 @@
         srBox.append(sr);
       });
 
+      G.deferExits(items);
       scroll.append(column);
       sheet.append(scroll);
       stage.append(sheet);

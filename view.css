@@ -15,7 +15,10 @@
   --wet: var(--theme-wet, #9A9CC2);
 }
 [data-scene="night"] {
-  --wet: #6E7099;
+  --paper: var(--theme-night-paper, #0E1317);
+  --ink: var(--theme-night-ink, #DCE1DA);
+  --ink-soft: var(--theme-night-soft, #8D9792);
+  --wet: var(--theme-night-wet, #6E7099);
 }
 
 .column { font-weight: 400; letter-spacing: 0; }

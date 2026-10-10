@@ -337,15 +337,10 @@
     let flowEnd = 0;        // 보통 글자가 다 나타나는 가장 늦은 시각
     /*
      * 블록에서 빠져나올 때: 블록의 뒤 뜸만큼 쉬되, 블록 글자가 다 나타나기 전에는 다음 글을 시작하지 않는다.
-     * 퇴장 블록은 다 나타난 뒤 hold만큼 머물고 사라진다. 다음 글은 다 사라진 뒤에 온다.
+     * 퇴장 블록도 여기서는 보통 블록처럼 지나가고, 물러나는 시각은 그 쪽 글을 끝까지 쓴 뒤로 미룬다(fx.buildParagraph·읽기 틀).
      */
     const leave = (pc) => {
       const cfg = BLOCKS[pc.fx];
-      const B = blocks[pc.block];
-      if (cfg.exit && B && B.exitAt == null) {
-        B.exitAt = emEnd + cfg.hold;
-        emEnd = B.exitAt + B.cells.length * TIME.exitStagger + ENTER[cfg.exit];
-      }
       t = Math.max(t + cfg.after, emEnd + AFTER_GAP);
     };
 
@@ -433,10 +428,7 @@
         para.events.push({ type: 'spot', t: Math.round(B.start), end: Math.round(B.end + 2600) });
         end = Math.max(end, B.end + 3600);
       }
-      if (B.cfg.exit && B.exitAt != null) {
-        para.events.push({ type: 'exit', fx: B.cfg.exit, t: Math.round(B.exitAt), cells: B.cells });
-        end = Math.max(end, B.exitAt + B.cells.length * TIME.exitStagger + ENTER[B.cfg.exit]);
-      }
+      if (B.cfg.exit) para.events.push({ type: 'exit', fx: B.cfg.exit, hold: B.cfg.hold, cells: B.cells });
     });
     para.lead = Math.round(t);
     para.span = Math.round(end);

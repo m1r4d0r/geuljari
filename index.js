@@ -157,9 +157,28 @@
   $('go-tune').addEventListener('click', () => { st.page = 0; setStep('tune'); });
 
   /* 주색: 편집실과 라이트 장면의 글자색 */
+  function setTheme(theme) {
+    st.settings = T.normalize(Object.assign({}, st.settings, { theme }));
+    T.useTheme(document, st.settings);
+    save();
+  }
+  /* 주색: 이름 있는 다섯 가지와 마지막 칸의 색 고르기 */
   function drawThemes() {
     const box = $('themes');
     box.replaceChildren();
+    const custom = T.HEX_RE.test(st.settings.theme);
+    const pick = document.createElement('label');
+    pick.className = 'swatch picker';
+    pick.title = '직접 고르기';
+    pick.setAttribute('aria-pressed', String(custom));
+    if (custom) pick.style.setProperty('--sw', st.settings.theme);
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = custom ? st.settings.theme : T.themeInk(st.settings.theme);
+    input.setAttribute('aria-label', '주색 직접 고르기');
+    input.addEventListener('input', () => { setTheme(input.value); pick.style.setProperty('--sw', input.value); });
+    input.addEventListener('change', () => drawThemes());
+    pick.append(input);
     T.THEME_NAMES.forEach((name) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -168,14 +187,10 @@
       b.title = name;
       b.setAttribute('aria-label', '주색 ' + name);
       b.setAttribute('aria-pressed', String(st.settings.theme === name));
-      b.addEventListener('click', () => {
-        st.settings = T.normalize(Object.assign({}, st.settings, { theme: name }));
-        T.useTheme(document, st.settings);
-        drawThemes();
-        save();
-      });
+      b.addEventListener('click', () => { setTheme(name); drawThemes(); });
       box.append(b);
     });
+    box.append(pick);
   }
 
   /*

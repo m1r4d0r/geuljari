@@ -52,8 +52,12 @@
   const FONT_NAMES = Object.keys(FONTS);
   const ALIGNS = { '저절로': null, '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right', '양쪽': 'justify' };
   const ALIGN_NAMES = Object.keys(ALIGNS);
-  /* 주색: 편집실의 먹과 라이트 장면 글자색. 나머지 색(흐린 글씨·선·고름 면)은 종이색과 섞어 만든다 */
-  const THEMES = { '남보라': '#2C2F6B', '먹': '#24221F', '쪽': '#1E4A66', '솔': '#2E5640', '벽돌': '#7E3328', '자두': '#5A2A4F' };
+  /*
+   * 주색: 이름 있는 다섯 가지 또는 직접 고른 색(#rrggbb). 편집실의 먹과 라이트 장면 글자색이 되고,
+   * 나머지 색(흐린 글씨·선·고름 면)은 종이색과 섞어 만든다. 다크 장면의 바탕·글자·젖은 먹에도 주색을 조금 섞어 결을 맞춘다.
+   */
+  const THEMES = { '남보라': '#2C2F6B', '먹': '#24221F', '쪽': '#1E4A66', '솔': '#2E5640', '벽돌': '#7E3328' };
+  const HEX_RE = /^#[0-9a-fA-F]{6}$/;
   const THEME_NAMES = Object.keys(THEMES);
   const PAPER = '#ECEDF0';
   /* 속도에 따라 줄이고 늘리는 시간표 항목 */
@@ -85,7 +89,7 @@
     o.size = clamp(Number(o.size) || 1, 0.8, 1.5);
     o.measure = Number(o.measure) >= 14 ? clamp(Math.round(Number(o.measure)), 14, 44) : 0;
     if (!(o.align in ALIGNS)) o.align = '저절로';
-    if (!(o.theme in THEMES)) o.theme = '남보라';
+    if (!(o.theme in THEMES) && !HEX_RE.test(String(o.theme))) o.theme = '남보라';
     return o;
   }
 
@@ -181,14 +185,29 @@
     const [x, y] = [p(a), p(b)];
     return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
   }
-  /* 주색에서 만든 색 변수들 */
-  function themeVars(name) {
-    const ink = THEMES[name] || THEMES['남보라'];
+  /* 밝기(0~1) */
+  function light(hex) {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  /* 주색 이름·색 → 글자로 쓸 수 있는 먹색(너무 밝게 고른 색은 종이 위에서 읽히도록 어둡게 누른다) */
+  function themeInk(theme) {
+    let ink = THEMES[theme] || (HEX_RE.test(String(theme)) ? String(theme).toUpperCase() : THEMES['남보라']);
+    for (let k = 0; k < 6 && light(ink) > 0.42; k++) ink = mix(ink, '#000000', 0.25);
+    return ink;
+  }
+  /* 주색에서 만든 색 변수들(편집실·미리보기 공통). 다크 쪽 색은 --dark·--dark-ink, 미리보기에서는 --theme-night-* */
+  function themeVars(theme) {
+    const ink = themeInk(theme);
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16));
+    const night = mix(ink, '#090A0D', 0.8);
+    const nightInk = mix(ink, '#F1F2F5', 0.86);
     return {
       '--ink': ink, '--lead': mix(ink, PAPER, 0.22), '--faint': mix(ink, PAPER, 0.48), '--line': mix(ink, PAPER, 0.74),
       '--empty': mix(ink, PAPER, 0.6), '--pick': mix(ink, PAPER, 0.84), '--smudge': `rgba(${r}, ${g}, ${b}, .10)`,
-      '--carbon': `.6px .45px 0 rgba(${r}, ${g}, ${b}, .24)`, '--wet-ink': mix(ink, PAPER, 0.45)
+      '--carbon': `.6px .45px 0 rgba(${r}, ${g}, ${b}, .24)`, '--wet-ink': mix(ink, PAPER, 0.45),
+      '--dark': mix(ink, '#0F1016', 0.72), '--dark-ink': nightInk,
+      '--night-paper': night, '--night-ink': nightInk, '--night-soft': mix(nightInk, night, 0.42), '--night-wet': mix(ink, '#FFFFFF', 0.55)
     };
   }
   function useTheme(doc, s) {
@@ -213,7 +232,7 @@
 
   global.GeulTune = {
     AXES, WORDS, MOOD, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
-    ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES,
-    defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeVars, useTheme
+    ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
+    defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
   };
 })(typeof window !== 'undefined' ? window : globalThis);

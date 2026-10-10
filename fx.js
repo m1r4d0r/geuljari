@@ -31,13 +31,15 @@
     try { return el.animate(frames, o); } catch (e) { return null; }
   }
 
-  function wet(el, hold) {
+  /* soak: 이미 쓴 글자를 다시 적실 때. 색이 한 번에 바뀌지 않고 천천히 배어든다 */
+  function wet(el, hold, soak) {
     el.classList.remove('drying');
+    el.classList.toggle('soak', !!soak);
     el.classList.add('wet');
     clearTimeout(el._dry);
     el._dry = setTimeout(() => {
       el.classList.add('drying');
-      el.classList.remove('wet');
+      el.classList.remove('wet', 'soak');
       el._dry = setTimeout(() => el.classList.remove('drying'), 2000);
     }, (hold || 1400) / pace);
   }
@@ -344,14 +346,27 @@
       if (ev.type === 'exit') {
         ev.cells.forEach((c, k) => {
           const el = cellEls.get(c);
-          if (el) items.push({ el, t: ev.t + k * (window.Geulgyeol ? window.Geulgyeol.TIME.exitStagger : 45), fx: ev.fx, keep: true });
+          if (el) items.push({ el, t: 0, fx: ev.fx, keep: true, exit: true, hold: ev.hold, k });
         });
       } else if (ev.type === 'spot') {
         items.push({ el: inner, t: ev.t, fx: 'spot', keep: true });
         items.push({ el: inner, t: ev.end, fx: 'unspot', keep: true });
       }
     });
+    deferExits(items);
     return { items, lineEls };
+  }
+
+  /* 퇴장은 글을 끝까지 쓴 뒤에: 마지막 글자가 자리 잡고 hold만큼 머문 다음 글자마다 조금씩 어긋나 물러난다.
+     읽기 틀은 쪽의 문단을 다 모은 뒤 한 번 더 불러 쪽 끝으로 맞춘다. */
+  const EXIT_AFTER = 900;
+  function deferExits(items) {
+    const exits = items.filter((it) => it.exit);
+    if (!exits.length) return;
+    const last = items.reduce((m, it) => (it.keep ? m : Math.max(m, it.t)), 0);
+    const hold = Math.max(...exits.map((it) => it.hold || 1400));
+    const step = window.Geulgyeol ? window.Geulgyeol.TIME.exitStagger : 45;
+    exits.forEach((it) => { it.t = last + EXIT_AFTER + hold + it.k * step; });
   }
 
   /* ---------- 초점 띠 ---------- */
@@ -385,11 +400,13 @@
     const wetToken = (e) => {
       const tk = e.target.closest && e.target.closest('.tk');
       if (!tk || !root.contains(tk)) return;
-      tk.querySelectorAll('.ch:not(.pending):not(.gone):not(.dimmed)').forEach((c) => wet(c, 900));
+      tk.querySelectorAll('.ch:not(.pending):not(.gone):not(.dimmed)').forEach((c) => {
+        if (!c.classList.contains('wet')) wet(c, 1300, true);
+      });
     };
     root.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') wetToken(e); });
     root.addEventListener('pointerdown', wetToken);
   }
 
-  global.GeulFx = { FX, EXIT_END, animate, wet, timeline, show, hide, buildParagraph, decorate, focusBand, touchable, rnd, setPace };
+  global.GeulFx = { FX, EXIT_END, animate, wet, timeline, show, hide, buildParagraph, deferExits, decorate, focusBand, touchable, rnd, setPace };
 })(typeof window !== 'undefined' ? window : globalThis);

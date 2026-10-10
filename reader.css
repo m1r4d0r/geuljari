@@ -1,8 +1,8 @@
 /* 글결 읽기 틀
    페이지마다 화면 한 장(.sheet). 장은 무대(.stage)에 겹쳐 있고 지금 장만 보인다.
    장 안에는 바탕 캔버스(.ground) 위에 글 층(.scroll)이 있다. 글이 화면보다 길면 글 층 안에서 위아래로 스크롤한다.
-   글 기둥(.column)의 폭(--measure), 가로 자리(--x: 0 왼쪽 · 0.5 가운데 · 1 오른쪽), 세로 자리(--y: 0 위 · 1 아래)는
-   페이지마다 reader.js가 정한다.
+   글 기둥(.column)의 폭(--measure)과 가로 자리(--x: 0 왼쪽 · 0.5 가운데 · 1 오른쪽)는 페이지마다 reader.js가 정한다.
+   세로로는 화면 안에 들면 가운데, 넘치면 위에서부터 스크롤한다.
    조작(페이지 눈금·이전·다음)은 아래 막대, 보기(움직임·다시·가림판)는 위 오른쪽.
    단추 글자는 차이 혼합(difference)으로 칠해 낮이든 밤이든 바탕의 반대 색으로 보인다.
    장면 색은 장마다 붙어서 보는 사람의 밝기 설정과 상관없이 글이 정한 낮·밤을 따른다. */
@@ -84,7 +84,7 @@ body {
   pointer-events: none;
 }
 
-/* 글 층: 세로로 남는 자리를 --y 비율로 위아래에 나눠 글 기둥을 놓는다. 넘치면 위에서부터 스크롤 */
+/* 글 층: 세로로 남는 자리를 위아래에 똑같이 나눠 글 기둥을 가운데 놓는다. 넘치면 위에서부터 스크롤 */
 .scroll {
   position: absolute;
   inset: 0;
@@ -97,8 +97,7 @@ body {
   padding: calc(env(safe-area-inset-top, 0px) + 4.6rem) var(--gutter) calc(env(safe-area-inset-bottom, 0px) + 5.2rem);
 }
 .scroll::-webkit-scrollbar { display: none; }
-.scroll::before { content: ""; flex: var(--y, .4) 0 0; }
-.scroll::after { content: ""; flex: calc(1 - var(--y, .4)) 0 0; }
+.scroll::before, .scroll::after { content: ""; flex: 1 0 0; }
 .sheet.fits .scroll { touch-action: none; }
 
 .column {

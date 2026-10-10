@@ -75,7 +75,7 @@
   /* ---------- 페이지 자리 ---------- */
 
   /*
-   * 페이지마다 글 기둥의 폭·가로 자리·세로 자리를 정한다. 글이 짧을수록 좁고 한쪽으로 치우치며,
+   * 페이지마다 글 기둥의 폭·가로 자리를 정한다. 글이 짧을수록 좁고 한쪽으로 치우치며,
    * 길수록 넓고 가운데에 가깝다. 바로 앞 장과 같은 자리는 피하고, 양 끝까지는 가지 않는다(0.2~0.8).
    * 쪽 표시에 자리(왼쪽·가운데·오른쪽)가 있으면 그대로, 없고 강조 블록이 있는 쪽은 가운데.
    */
@@ -90,10 +90,8 @@
     let k = (i * 3 + Math.round(n / 37)) % xs.length;
     if (prev && Math.abs(xs[k] - prev.x) < 0.2) k = (k + 1) % xs.length;
     const x = page.place ? PLACE_X[page.place] : marked ? 0.5 : xs[k];
-    const ys = short ? [0.42, 0.62, 0.3, 0.5] : mid ? [0.38, 0.45, 0.32] : [0.28, 0.34];
-    const y = ys[(i * 5 + n) % ys.length];
     const align = short && x > 0.7 ? 'right' : 'left';
-    return { measure, x, y, align };
+    return { measure, x, align };
   }
 
   /* ---------- 장 만들기 ---------- */
@@ -118,7 +116,6 @@
       column.style.setProperty('--measure', lay.measure + 'em');
       column.style.setProperty('--x', String(lay.x));
       column.style.setProperty('--align', lay.align);
-      scroll.style.setProperty('--y', String(lay.y));
 
       const items = [];
       let at = 0;

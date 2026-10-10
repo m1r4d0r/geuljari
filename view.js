@@ -98,7 +98,7 @@
   const pts = () => [...touches.values()].slice(0, 2);
 
   document.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, a, input')) return;
+    if (e.target.closest('button, a, input, .end-title')) return;
     if (e.pointerType === 'touch') touches.set(e.pointerId, [e.clientX, e.clientY]);
     if (touches.size === 2) {
       move = null;

@@ -37,10 +37,11 @@
   };
 
   /*
-   * 블록 효과. {{이름:글}}로 지정하고, 이름 없이 {{글}}이면 떠오름.
+   * 블록 효과. {{이름:글}}로 지정하고, 이름 없이 {{글}}이면 강조(떠오름. 한 글에 여럿이면 DEFAULT_CYCLE을 차례로 돈다).
    * fx: 글자에 거는 움직임 / before·after: 블록 앞뒤 뜸 / char: 글자 사이 / group: 어절 사이 / line: 블록 안 줄바꿈
-   * char가 'type'이면 자판 치듯 들쭉날쭉, 'rush'면 갈수록 빨라짐.
+   * char가 'type'이면 자판 치듯 들쭉날쭉.
    * unit이 있으면 글자 단위가 아니라 문장(또는 줄) 단위로 한꺼번에 나오고, 단위 사이를 unitGap만큼 쉰다.
+   * exit가 있으면 퇴장 블록: 다 나타난 뒤 hold만큼 머물고 그 움직임으로 물러난다. 다음 글은 물러난 뒤에 온다.
    */
   const BLOCKS = {
     '떠오름': { fx: 'rise', unit: true, before: 500, unitGap: 900, char: 0, group: 0, line: 900, after: 350 },
@@ -49,34 +50,67 @@
     '초점': { fx: 'focus', before: 500, char: 0, group: 0, line: 0, after: 1900 },
     '모여듦': { fx: 'gather', before: 400, char: 32, group: 60, line: 200, after: 1100 },
     '떨림': { fx: 'tremble', before: 400, char: 70, group: 140, line: 300, after: 600 },
-    '흘러내림': { fx: 'fall', before: 380, char: 150, group: 220, line: 300, after: 450 },
-    '크게': { fx: 'rise', cls: 'fx-big', before: 700, char: 90, group: 500, line: 700, after: 700 },
+    '흘러내림': { fx: 'fall', before: 420, char: 170, group: 260, line: 380, after: 600 },
     '조명': { fx: 'rise', cls: 'lit', spot: true, unit: true, before: 500, unitGap: 900, char: 0, group: 0, line: 900, after: 350 },
-    '숨가쁨': { fx: 'fade', before: 150, char: 'rush', group: 'rush', line: 40, after: 300 },
-    '벌어짐': { fx: 'fade', lines: 'spread', before: 300, char: 40, group: 40, line: 160, after: 800 },
-    '어긋남': { fx: 'fade', lines: 'drift', before: 300, char: 40, group: 40, line: 160, after: 800 },
-    '고쳐 씀': { fx: 'fade', rewrite: true, before: 300, char: 45, group: 45, line: 200, after: 500 },
     '사라짐': { fx: 'fade', exit: 'vanish', hold: 1600, before: 400, char: 70, group: 140, line: 300, after: 300 },
-    '흩날림': { fx: 'fade', exit: 'scatter', hold: 1300, before: 400, char: 70, group: 140, line: 300, after: 300 }
+    '흩날림': { fx: 'fade', exit: 'scatter', hold: 1300, before: 400, char: 70, group: 140, line: 300, after: 300 },
+    '지워짐': { fx: 'fade', exit: 'erase', hold: 1400, before: 400, char: 70, group: 140, line: 300, after: 300 },
+    '희미해짐': { fx: 'fade', exit: 'dim', hold: 1400, before: 400, char: 70, group: 140, line: 300, after: 300 },
+    '걷힘': { fx: 'fade', exit: 'fold', hold: 1500, before: 400, char: 70, group: 140, line: 300, after: 300 },
+    '가라앉음': { fx: 'fade', exit: 'sink', hold: 1500, before: 400, char: 70, group: 140, line: 300, after: 300 }
   };
-  /* 블록 갈래(편집실이 효과 막대를 나눌 때 씀). docs/효과-규칙.md */
+  /* 블록 갈래(편집실이 효과 막대를 나눌 때 씀). 등장·머묾은 강조, 퇴장은 따로 고른다. docs/효과-규칙.md */
   const BLOCK_GROUPS = {
-    '등장': ['떠오름', '번짐', '타자', '초점', '모여듦', '크게'],
-    '머묾': ['떨림', '흘러내림', '벌어짐', '어긋남', '숨가쁨', '조명'],
-    '고침': ['고쳐 씀'],
-    '퇴장': ['사라짐', '흩날림']
+    '등장': ['떠오름', '번짐', '타자', '초점', '모여듦'],
+    '머묾': ['떨림', '흘러내림', '조명'],
+    '퇴장': ['사라짐', '흩날림', '지워짐', '희미해짐', '걷힘', '가라앉음']
   };
   const BLOCK_DEFAULT = '떠오름';
+  const DEFAULT_CYCLE = ['떠오름', '번짐', '초점', '떠오름', '모여듦'];
   const BLOCK_NAMES = Object.keys(BLOCKS);
+  /*
+   * 글자 꾸밈. 효과와 함께 +로 이어 적는다: {{굵게:…}} · {{떨림+밑줄:…}} · {{강조+빨강:…}}(강조 = 이름 없는 강조).
+   * 꾸밈만 적은 블록은 강조가 아니어서 흐름대로 나오고 모양만 바뀐다.
+   */
+  const KEEP = '강조';
+  const STYLES = { '굵게': 'b', '기울임': 'i', '밑줄': 'u', '취소선': 's' };
+  const COLORS = { '빨강': 'red', '주황': 'orange', '초록': 'green', '파랑': 'blue', '보라': 'violet', '회색': 'gray' };
+  const HEAD_WORDS = [...BLOCK_NAMES, KEEP, ...Object.keys(STYLES), ...Object.keys(COLORS)].sort((a, b) => b.length - a.length);
+  const WORD_ALT = HEAD_WORDS.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const HEAD_SRC = `(?:${WORD_ALT})(?:\\+(?:${WORD_ALT}))*`;
+
+  /* 블록 머리('떨림+굵게+빨강')를 {fx, keep, styles, color}로 읽는다. fx는 효과 이름(없으면 null) */
+  function parseHead(head) {
+    const out = { fx: null, keep: false, styles: [], color: null };
+    String(head || '').split('+').forEach((w) => {
+      if (BLOCKS[w]) out.fx = w;
+      else if (w === KEEP) out.keep = true;
+      else if (STYLES[w]) { if (!out.styles.includes(w)) out.styles.push(w); }
+      else if (COLORS[w]) out.color = w;
+    });
+    return out;
+  }
+  /* {fx, keep, styles, color} → 블록 머리 글(이름 없는 강조만이면 빈 글) */
+  function headText(h) {
+    const words = [];
+    if (h.fx) words.push(h.fx);
+    else if (h.keep && (h.styles.length || h.color)) words.push(KEEP);
+    words.push(...h.styles);
+    if (h.color) words.push(h.color);
+    return words.join('+');
+  }
 
   /* 쉼 앞뒤 완급: 쉼 앞 마지막 글자들은 점점 느려지고(끝에서부터), 쉼 뒤 첫 글자들은 느리게 시작해 원래 속도로 돌아온다 */
   const EASE_INTO_REST = [2.6, 2.1, 1.7, 1.35];
   const EASE_OUT_OF_REST = [2.2, 1.7, 1.35, 1.12];
 
   /* 글자가 다 자리 잡을 때까지 걸리는 시간(ms) */
-  const SETTLE = { fade: 700, soft: 1000, rise: 2000, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 4000, fall: 820 };
+  const SETTLE = { fade: 700, soft: 1000, rise: 2000, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 4000, fall: 1300 };
   /* 글자가 다 나타날 때까지 걸리는 시간(ms). 다음 글은 앞 글자가 다 나타난 뒤에 온다. 떨림은 나타난 뒤에도 흔들리므로 나타나는 데까지만 센다. */
-  const ENTER = { fade: 700, soft: 1000, rise: 750, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 820, vanish: 1100, scatter: 1300 };
+  const ENTER = {
+    fade: 700, soft: 1000, rise: 750, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 1300,
+    vanish: 1100, scatter: 1300, erase: 1500, dim: 1200, fold: 1100, sink: 1400
+  };
   const AFTER_GAP = 120;
 
   const MASK = '■';
@@ -89,7 +123,7 @@
    * 넘김과 자리는 그 쪽에만 걸린다.
    */
   const SCENES = { '밤': 'night', '낮': 'day', '라이트': 'day', '다크': 'night' };
-  const GROUNDS = { '창빛': 'window', '한지': 'hanji', '영사광': 'projector', '오로라': 'aurora', '물빛': 'caustic' };
+  const GROUNDS = { '창빛': 'window', '한지': 'hanji', '잎그늘': 'leaf', '새벽': 'dawn', '영사광': 'projector', '오로라': 'aurora', '물빛': 'caustic' };
   const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash' };
   const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };
@@ -104,9 +138,8 @@
     const pick = (map) => { const k = parts.find((x) => map[x]); return k ? map[k] : null; };
     return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS), place: pick(PLACES) };
   }
-  const NAME_ALT = BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const PREFIX_RE = new RegExp(`^(${NAME_ALT}):`);
-  const MARKS_RE = new RegExp(`(\\{\\{(?:${NAME_ALT}):|\\{\\{|\\}\\}|\\[\\[${MARK_BODY}\\]\\]|\\|)`);
+  const PREFIX_RE = new RegExp(`^(${HEAD_SRC}):`);
+  const MARKS_RE = new RegExp(`(\\{\\{(?:${HEAD_SRC}):|\\{\\{|\\}\\}|\\[\\[${MARK_BODY}\\]\\])`);
 
   const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter)
     ? new Intl.Segmenter('ko', { granularity: 'grapheme' })
@@ -139,35 +172,38 @@
     return normalize(text).replace(/^(?:[^\S\n]*\n)+/, '').replace(/\s+$/, '');
   }
 
-  /* 글자수를 셀 때 쓰는 글: 장면 표시 줄, 블록 표시, 고쳐 씀의 | 를 뺀다. */
+  /* 글자수를 셀 때 쓰는 글: 장면 표시 줄과 블록 표시를 뺀다. */
   function stripMarks(text) {
     return normalize(text)
       .replace(SCENE_LINES_RE, '')
-      .replace(new RegExp(`\\{\\{(?:${NAME_ALT}):`, 'g'), '')
-      .split(EM_OPEN).join('').split(EM_CLOSE).join('')
-      .split('|').join('');
+      .replace(new RegExp(`\\{\\{(?:${HEAD_SRC}):`, 'g'), '')
+      .split(EM_OPEN).join('').split(EM_CLOSE).join('');
   }
 
   /*
-   * 문단 하나를 {ch, em, fx, block, part} 칸으로 펼친다. 블록 표시는 문단 끝에서 저절로 닫힌다.
-   * 표시가 있던 자리는 open(여는 표시 글자열)·close·pipe로 남겨 가림판이 같은 폭으로 그릴 수 있게 한다.
+   * 문단 하나를 {ch, em, fx, block, st, color} 칸으로 펼친다. 블록 표시는 문단 끝에서 저절로 닫힌다.
+   * st는 꾸밈 기호(b·i·u·s)를 이은 글, color는 색 이름(COLORS의 값).
+   * ctr.k는 글 전체에서 이름 없는 강조를 센다(DEFAULT_CYCLE을 돌 때 씀).
+   * 표시가 있던 자리는 open(여는 표시 글자열)·close로 남겨 가림판이 같은 폭으로 그릴 수 있게 한다.
    */
-  function flagCells(paraText) {
+  function flagCells(paraText, ctr) {
     const g = graphemes(paraText);
     const cells = [];
     let em = false;
     let fx = null;
+    let st = '';
+    let color = null;
     let block = -1;
-    let part = 0;
     let pendingOpen = null;
-    let pendingPipe = false;
     for (let i = 0; i < g.length; i++) {
       if (g[i] === '{' && g[i + 1] === '{') {
-        const m = g.slice(i + 2, i + 10).join('').match(PREFIX_RE);
-        em = true;
-        fx = m ? m[1] : BLOCK_DEFAULT;
-        block++;
-        part = 0;
+        const m = g.slice(i + 2, i + 48).join('').match(PREFIX_RE);
+        const h = parseHead(m ? m[1] : '');
+        em = !!(h.fx || h.keep || !m);
+        fx = em ? (h.fx || DEFAULT_CYCLE[(ctr.k++) % DEFAULT_CYCLE.length]) : null;
+        st = h.styles.map((w) => STYLES[w]).join('');
+        color = h.color ? COLORS[h.color] : null;
+        if (em) block++;
         pendingOpen = EM_OPEN + (m ? m[0] : '');
         i += 1 + (m ? graphemes(m[0]).length : 0);
         continue;
@@ -175,6 +211,8 @@
       if (g[i] === '}' && g[i + 1] === '}') {
         em = false;
         fx = null;
+        st = '';
+        color = null;
         for (let k = cells.length - 1; k >= 0; k--) {
           if (cells[k].ch === '\n' || isSpace(cells[k].ch)) continue;
           cells[k].close = (cells[k].close || 0) + 1;
@@ -183,16 +221,10 @@
         i++;
         continue;
       }
-      if (em && BLOCKS[fx].rewrite && g[i] === '|' && part === 0) {
-        part = 1;
-        pendingPipe = true;
-        continue;
-      }
-      const cell = { ch: g[i], em, fx: em ? fx : null, block: em ? block : -1, part: em ? part : 0 };
-      if (g[i] !== '\n' && !isSpace(g[i])) {
-        if (pendingOpen) { cell.open = pendingOpen; pendingOpen = null; }
-        if (pendingPipe) { cell.pipe = true; pendingPipe = false; }
-      }
+      const cell = { ch: g[i], em, fx: em ? fx : null, block: em ? block : -1 };
+      if (st) cell.st = st;
+      if (color) cell.color = color;
+      if (g[i] !== '\n' && !isSpace(g[i]) && pendingOpen) { cell.open = pendingOpen; pendingOpen = null; }
       cells.push(cell);
     }
     return cells;
@@ -280,18 +312,16 @@
     line.tokens.forEach((t) => { if (!t.role) t.role = kind === 'drip' ? 'drip' : kind; });
   }
 
-  function stepOf(cfg, key, k, cell) {
+  function stepOf(cfg, key, k) {
     const v = cfg[key];
     if (cfg.unit) return key === 'line' ? cfg.unitGap : 0;
-    if (cfg.rewrite && cell && cell.part) return key === 'group' ? 400 : 60;
     if (v === 'type') return 50 + ((k * 73) % 100);
-    if (v === 'rush') return Math.max(7, 95 * Math.pow(0.93, k));
     return v;
   }
 
   /*
    * 문단 시작 기준으로 글자마다 등장 시각(t)과 효과(anim)를 붙인다.
-   * 고쳐 씀은 먼저 쓴 글자에 줄 긋는 시각(strikeAt)을, 줄 단위 효과(벌어짐·어긋남·조명)는 para.events를 남긴다.
+   * 조명과 퇴장은 para.events에 남긴다.
    */
   function schedule(para) {
     const rate = TIME.flowSlow - (TIME.flowSlow - TIME.flowFast) * clamp((para.count - 60) / 300, 0, 1);
@@ -324,7 +354,7 @@
       const first = cells[0];
       const continues = li > 0 && prev && first.em && first.block === prev.block;
       const lastEm = cells[cells.length - 1].em;
-      if (li > 0) t += continues ? stepOf(BLOCKS[prev.fx], 'line', bi, first) : TIME.lineBreak;
+      if (li > 0) t += continues ? stepOf(BLOCKS[prev.fx], 'line', bi) : TIME.lineBreak;
       if (continues) unitBreak = false;
       const short = line.kind === 'short';
       if (short && !continues) t += TIME.shortBefore;
@@ -337,7 +367,7 @@
         tk.afterRest = ti > 0 && tk.gap > 1;
         if (ti > 0) {
           if (tk.afterRest) t += (tk.gap - 1) * TIME.restPerSpace;
-          if (prev && c0.em && !drip && c0.block === prev.block) t += stepOf(BLOCKS[prev.fx], 'group', bi, c0);
+          if (prev && c0.em && !drip && c0.block === prev.block) t += stepOf(BLOCKS[prev.fx], 'group', bi);
           else if (!c0.em || drip) t += (short ? TIME.shortChar : rate) * (tk.afterRest ? 1.8 : 1);
         }
         if (drip && prevRole !== 'drip') t += TIME.dripBefore;
@@ -354,7 +384,7 @@
             t = Math.max(t + cfg.before, flowEnd);
             bi = 0;
             unitBreak = false;
-            blocks[c.block] = { cfg, start: t, end: t, lines: [], old: [], cells: [] };
+            blocks[c.block] = { cfg, start: t, end: t, cells: [] };
           } else if (!em && prev) {
             leave(prev);
           } else if (em && cfg.unit && unitBreak && tk.letters > 0) {
@@ -362,29 +392,19 @@
           }
           if (tk.letters > 0) unitBreak = false;
 
-          if (em && cfg.rewrite && c.part === 1 && prev && prev.block === c.block && prev.part === 0) {
-            const B = blocks[c.block];
-            const strikeStart = t + 700;
-            B.old.forEach((oc, k) => { oc.strikeAt = Math.round(strikeStart + k * 35); });
-            t = strikeStart + B.old.length * 35 + 900;
-            end = Math.max(end, t + 1000);
-          }
-
           c.t = Math.round(t);
           if (drip) c.anim = 'fall';
-          else if (em) c.anim = cfg.rewrite ? (c.part ? 'rise' : 'fade') : cfg.fx;
+          else if (em) c.anim = cfg.fx;
           else c.anim = (tk.afterRest || (tk.restAfter && fromEnd < 2)) ? 'soft' : 'fade';
           c.cls = em && cfg.cls ? cfg.cls : null;
 
           if (drip) t += TIME.dripChar;
           else if (em) {
-            t += stepOf(cfg, 'char', bi, c);
+            t += stepOf(cfg, 'char', bi);
             bi++;
             const B = blocks[c.block];
             B.end = c.t;
-            if (!B.lines.includes(li)) B.lines.push(li);
             B.cells.push(c);
-            if (cfg.rewrite && !c.part) B.old.push(c);
           } else if (short) t += TIME.shortChar * (nearRest ? slow : 1);
           else { t += rate * (1 + TIME.flowEase * Math.exp(-flowIndex / 5)) * (nearRest ? slow : 1); flowIndex++; }
 
@@ -409,12 +429,10 @@
 
     para.events = [];
     Object.values(blocks).forEach((B) => {
-      if (B.cfg.lines) para.events.push({ type: B.cfg.lines, t: Math.round(B.start), lines: B.lines });
       if (B.cfg.spot) {
         para.events.push({ type: 'spot', t: Math.round(B.start), end: Math.round(B.end + 2600) });
         end = Math.max(end, B.end + 3600);
       }
-      if (B.cfg.lines) end = Math.max(end, B.start + 3800);
       if (B.cfg.exit && B.exitAt != null) {
         para.events.push({ type: 'exit', fx: B.cfg.exit, t: Math.round(B.exitAt), cells: B.cells });
         end = Math.max(end, B.exitAt + B.cells.length * TIME.exitStagger + ENTER[B.cfg.exit]);
@@ -435,11 +453,12 @@
     const paragraphs = [];
     if (!src) return { paragraphs };
     const parts = src.split(/(\n(?:[^\S\n]*\n)+)/);
+    const ctr = { k: 0 };
     for (let i = 0; i < parts.length; i += 2) {
       const block = parts[i];
       const sep = i ? parts[i - 1] : '';
       const pageStart = i === 0 || (sep.match(/\n/g) || []).length >= 3;
-      const cells = flagCells(block);
+      const cells = flagCells(block, ctr);
       const rawLines = [[]];
       cells.forEach((c) => {
         if (c.ch === '\n') rawLines.push([]);
@@ -545,7 +564,7 @@
     return { withSpaces, noSpaces, tokens, lines, paragraphs: real.length, pages: pages(p).length, marks, scenes, ms };
   }
 
-  /* 공백·줄바꿈·블록 표시·장면 표시·| 는 그대로 두고 나머지 글자를 가린다. keepPunct면 문장부호도 남긴다. */
+  /* 공백·줄바꿈·블록 표시·장면 표시는 그대로 두고 나머지 글자를 가린다. keepPunct면 문장부호도 남긴다. */
   function mask(text, opts) {
     const keep = !!(opts && opts.keepPunct);
     const glyph = (opts && opts.glyph) || MASK;
@@ -558,7 +577,8 @@
   }
 
   global.Geulgyeol = {
-    RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
+    RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, DEFAULT_CYCLE, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
+    KEEP, STYLES, COLORS, HEAD_SRC, parseHead, headText,
     SCENES, GROUNDS, TURNS, PLACES, DEFAULT_GROUND, SCENE_LINE_RE, readMark,
     graphemes, isPunct, trimSource, stripMarks, parse, pages, stats, mask
   };

@@ -1,8 +1,9 @@
 """글결 편집실 스모크.
 저장소 루트를 정적 서버로 띄우고 PC·폰 크기에서
-글(예시 글, 쪽 면·구분선, 줄 사이에 올리면 '여기서 나누기'와 누르면 쪽 나누기, 반전 켜고 끄기, 잇기, 끌어 고르면 강조, 분위기)
-→ 미리보기(화면을 채운 틀, 책갈피로 판 하나씩: 배경의 글 자리·반전 쪽의 넘어오는 결, 글씨의 글꼴, 강조 판의 효과 걸고 바꾸기,
-글 상자 끌어 붙이기, Ctrl+휠·손가락 벌리기 확대와 맞춤, PC·폰 틀, 숨기기·꺼내기, 쓰는 중 넘기기 막기)
+글(처음 안내, 예시 글, 쪽 면·구분선, 줄 사이 띠로 쪽 나누기, 반전 켜고 넘김 고르고 끄기, 잇기, 치고 나서 반전해도 글자가 그대로인지,
+끌어 고르면 강조, 분위기, 주색)
+→ 미리보기(두 장 번갈아 쓰는 틀, 오른쪽 책갈피, 글씨는 다시 쓰지 않고 바로, 움직임은 다시 보기로, 배경의 바탕·넘김만 보기,
+글 상자를 눌러 그 자리에서 고치고 굵게·색·효과, 글 상자 끌어 붙이기, 확대, PC·폰·병렬, 숨기기, 쓰는 중 넘기기 막기)
 → 글로 돌아가기 → 심상 살펴보기 페이지를 차례로 밟는다.
 쓰임: python3 tests/smoke_studio.py [찍은 그림을 둘 폴더]   (Playwright Chromium 필요)
 """
@@ -21,8 +22,9 @@ errors = []
 written = """() => { const d = document.querySelector('.sheet.is-current'); return d ? (+d.dataset.i + 1) + '쪽 ' + d.querySelectorAll('.ch:not(.pending)').length + '/' + d.querySelectorAll('.ch').length : 'none'; }"""
 src = "() => document.getElementById('src').value"
 marks = "() => document.getElementById('src').value.split('\\n').filter(l => l.startsWith('[[')).join(' ')"
+plain = "() => Geulgyeol.stripMarks(document.getElementById('src').value).replace(/\\s+/g, '')"
 pages = "() => document.querySelectorAll('#write-ed .cp-shade').length"
-frame_box = "() => { const b = document.getElementById('frame-box'); const r = b.getBoundingClientRect(); return b.style.width + 'x' + b.style.height + ' → ' + Math.round(r.width) + 'x' + Math.round(r.height); }"
+active_src = "() => document.querySelector('#screen-main .frame.on').src"
 
 
 def launch(p):
@@ -33,8 +35,8 @@ def launch(p):
         return p.chromium.launch(executable_path=exe, args=ARGS)
 
 
-def pv(pg):
-    return pg.query_selector('#pv').content_frame()
+def pv(pg, screen='main'):
+    return pg.query_selector(f'#screen-{screen} .frame.on').content_frame()
 
 
 def tabs_open(pg, tag):
@@ -47,20 +49,21 @@ def tab(pg, tag, name):
     pg.click(f'.tab[data-panel="{name}"]'); pg.wait_for_timeout(350)
 
 
-def div_click(pg, needle, cls):
-    """쪽 사이 구분선(needle 글줄로 시작하는 쪽 바로 앞)의 단추를 누른다"""
-    pg.evaluate("""([needle, cls]) => {
-      const v = document.getElementById('src').value; const at = v.indexOf(needle);
+def div_click(pg, needle, sel):
+    """쪽 사이 구분선(needle 글줄로 시작하는 쪽 바로 앞)의 요소를 누르거나 고른다"""
+    return pg.evaluate("""([needle, sel]) => {
       const ta = document.getElementById('src'); const m = document.getElementById('write-mirror');
-      const divs = [...document.querySelectorAll('#write-ed .cp-div')];
-      // 글줄 자리(y)를 재어 그 바로 위 구분선을 고른다
+      const at = ta.value.indexOf(needle);
       const walker = document.createTreeWalker(m, NodeFilter.SHOW_TEXT); let left = at, node;
       while ((node = walker.nextNode())) { if (left < node.length) break; left -= node.length; }
       const r = document.createRange(); r.setStart(node, left); r.setEnd(node, left + 1);
       const y = r.getBoundingClientRect().top;
-      const d = divs.filter(x => x.getBoundingClientRect().top < y).pop();
-      d.querySelector(cls).click();
-    }""", [needle, cls])
+      const d = [...document.querySelectorAll('#write-ed .cp-div')].filter(x => x.getBoundingClientRect().top < y).pop();
+      const el = d.querySelector(sel);
+      if (!el) return false;
+      if (el.tagName === 'SELECT') { el.value = '셔터'; el.dispatchEvent(new Event('change')); } else el.click();
+      return true;
+    }""", [needle, sel])
 
 
 def seam_point(pg, needle):
@@ -75,7 +78,7 @@ def seam_point(pg, needle):
       ta.scrollTop += b.top - mb.top - 200; ta.dispatchEvent(new Event('scroll'));
       b = r.getBoundingClientRect();
       const lh = parseFloat(getComputedStyle(m).lineHeight);
-      return [b.left + 120, b.top - (lh - b.height) / 2];
+      return [b.left + 220, b.top - (lh - b.height) / 2];
     }""", needle)
 
 
@@ -90,140 +93,157 @@ try:
             pg.on('console', lambda m, t=tag: m.type == 'error' and 'ERR_' not in m.text and errors.append(f'{t} {m.text}'))
             pg.on('dialog', lambda d: d.accept())
             pg.goto(f'http://127.0.0.1:{PORT}/'); pg.wait_for_timeout(600)
-            print(tag, 'root opens studio', pg.evaluate("() => document.body.dataset.step"), '| empty', repr(pg.evaluate(src)))
+            print(tag, 'root opens studio', pg.evaluate("() => document.body.dataset.step"), '| guide', pg.is_visible('#guide'))
+            pg.screenshot(path=str(OUT / f'st-{tag}-0guide.png'))
+            pg.click('#guide-ok'); pg.wait_for_timeout(200)
             pg.click('#sample'); pg.wait_for_timeout(1200)
             n0 = pg.evaluate(pages)
-            print(tag, 'write', pg.text_content('#count'), '| pages', n0, 'dividers', pg.evaluate("() => document.querySelectorAll('#write-ed .cp-div').length"),
-                  '| night text', pg.evaluate("() => document.querySelectorAll('#write-mirror .m-night').length"), '| guessed moods', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"))
+            base = pg.evaluate(plain)
+            print(tag, 'write', pg.text_content('#count'), '| pages', n0, '| rests', pg.evaluate("() => getComputedStyle(document.querySelector('#write-mirror .m-sp')).backgroundColor"),
+                  '| guessed moods', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"))
             pg.screenshot(path=str(OUT / f'st-{tag}-1write.png'))
 
             # 줄 사이: 올리면 띠, 누르면 쪽 나누기
+            x, y = seam_point(pg, '편지를 쓰는'); pg.wait_for_timeout(250)
+            pg.mouse.move(x, y); pg.wait_for_timeout(150)
+            print(tag, '  hover hint', pg.evaluate("() => !document.querySelector('#write-ed .cp-hint').hidden && document.querySelector('#write-ed .cp-hint').textContent"))
             if tag == 'desk':
-                x, y = seam_point(pg, '편지를 쓰는'); pg.wait_for_timeout(250)
-                pg.mouse.move(x, y); pg.wait_for_timeout(150)
-                print(tag, '  hover hint', pg.evaluate("() => !document.querySelector('#write-ed .cp-hint').hidden && document.querySelector('#write-ed .cp-hint').textContent"))
                 pg.screenshot(path=str(OUT / f'st-{tag}-2hover.png'))
-                pg.click('#write-ed .cp-hint'); pg.wait_for_timeout(300)
-            else:
-                # 폰 폭(마우스): 줄 사이 띠가 같이 뜬다. 손가락 화면의 문단 사이 '나누기'는 실기기에서 본다
-                x, y = seam_point(pg, '편지를 쓰는'); pg.wait_for_timeout(250)
-                pg.mouse.move(x, y); pg.wait_for_timeout(150)
-                if pg.evaluate("() => !document.querySelector('#write-ed .cp-hint').hidden"):
-                    pg.click('#write-ed .cp-hint'); pg.wait_for_timeout(300)
-            print(tag, '  split', pg.evaluate(pages) == n0 + 1, '그랬다.\n\n\n편지' in pg.evaluate(src))
+            pg.mouse.click(x, y); pg.wait_for_timeout(300)
+            print(tag, '  split by clicking the band', pg.evaluate(pages) == n0 + 1, '그랬다.\n\n\n편지' in pg.evaluate(src))
             div_click(pg, '편지를 쓰는', '.cp-rev'); pg.wait_for_timeout(300)
-            print(tag, '  reverse on', pg.evaluate(marks), '| night shades', pg.evaluate("() => document.querySelectorAll('#write-ed .cp-shade.night').length"))
+            print(tag, '  reverse on', pg.evaluate(marks), '| turn picker', div_click(pg, '편지를 쓰는', '.cp-turn'))
+            pg.wait_for_timeout(300)
+            print(tag, '  turn chosen', pg.evaluate(marks))
             div_click(pg, '편지를 쓰는', '.cp-rev'); pg.wait_for_timeout(300)
             print(tag, '  reverse off', repr(pg.evaluate(marks)))
             div_click(pg, '편지를 쓰는', '.cp-join'); pg.wait_for_timeout(300)
             print(tag, '  join', pg.evaluate(pages) == n0)
+            # 치고 바로 반전해도 글자가 그대로
             pg.evaluate("""() => { const t = document.getElementById('src'); const a = t.value.indexOf('그랬다.') + 4; t.focus(); t.setSelectionRange(a, a); }""")
-            pg.keyboard.press('Enter'); pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
-            print(tag, '  typing still works', pg.evaluate(pages) == n0 + 1)
+            pg.keyboard.press('Enter'); pg.keyboard.press('Enter'); pg.wait_for_timeout(200)
             div_click(pg, '편지를 쓰는', '.cp-rev'); pg.wait_for_timeout(300)
+            print(tag, '  typed then reversed, text intact', pg.evaluate(plain) == base, '| pages', pg.evaluate(pages) == n0 + 1)
             # 끌어 고르면 강조
             pg.evaluate("""() => { const t = document.getElementById('src'); const a = t.value.indexOf('보고 싶다고'); t.focus(); t.setSelectionRange(a, a + 15); t.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); }""")
             pg.wait_for_timeout(250)
-            print(tag, '  pop', pg.evaluate("() => { const p = document.querySelector('#write-ed .cp-pop'); return !p.hidden && p.textContent; }"))
             pg.locator('#write-ed .cp-pop button', has_text='강조').first.click(); pg.wait_for_timeout(250)
-            print(tag, '  emphasized', '{{보고 싶다고 쓰는 것은 너무}}' in pg.evaluate(src), '| marks', pg.evaluate("() => document.querySelectorAll('#write-mirror .m-em.focus').length"))
+            print(tag, '  emphasized', '{{보고 싶다고 쓰는 것은 너무}}' in pg.evaluate(src))
             pg.locator('#moods button', has_text='고요한').click(); pg.wait_for_timeout(200)
-            print(tag, '  mood', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"), '|', pg.text_content('#count'))
+            pg.click('#themes .swatch[title="쪽"]'); pg.wait_for_timeout(200)
+            print(tag, '  mood', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"), '| theme ink', pg.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--ink')"))
             pg.screenshot(path=str(OUT / f'st-{tag}-3marked.png'))
 
             # 미리보기
             pg.click('#go-tune'); pg.wait_for_timeout(2600)
-            print(tag, 'preview', pv(pg).evaluate(written), '| frame', pg.evaluate(frame_box), '| header hidden', pg.evaluate("() => getComputedStyle(document.querySelector('.top')).display"))
+            print(tag, 'preview', pv(pg).evaluate(written), '| frames', pg.evaluate("() => [...document.querySelectorAll('#screen-main .frame')].map(f => f.classList.contains('on') ? 'on' : 'off').join(' ')"),
+                  '| header', pg.evaluate("() => getComputedStyle(document.querySelector('.top')).display"),
+                  '| tabs right' if tag == 'desk' else '', pg.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().right)") if tag == 'desk' else '')
+            print(tag, '  theme in preview', pv(pg).evaluate("() => getComputedStyle(document.querySelector('.sheet.is-current')).getPropertyValue('--ink').trim()"))
             pg.screenshot(path=str(OUT / f'st-{tag}-4preview.png'))
 
-            # 배경: 글 자리
-            tab(pg, tag, 'ground')
-            print(tag, 'ground panel', pg.is_visible('#panel-ground'), pg.text_content('#panel-ground .panel-sub'), pg.evaluate("() => [...document.querySelectorAll('#panel-ground .pn-name')].map(x => x.textContent)"))
-            pg.locator('#panel-ground .seg button', has_text='오른쪽').click(); pg.wait_for_timeout(500)
-            print(tag, '  place', pg.evaluate(marks), '| frame shrinks above sheet' if tag == 'phone' else '', pg.evaluate(frame_box) if tag == 'phone' else '')
-            pg.screenshot(path=str(OUT / f'st-{tag}-5ground.png'))
-            # 반전된 쪽으로 넘겨 넘어오는 결 고르기
-            fr = pv(pg)
-            fr.evaluate("() => window.postMessage({ type: 'geulgyeol:goto', page: 2 }, location.origin)"); pg.wait_for_timeout(1200)
-            print(tag, '  on page', pg.text_content('#panel-ground .panel-sub'), pg.evaluate("() => [...document.querySelectorAll('#panel-ground .pn-name')].map(x => x.textContent)"))
-            pg.locator('#panel-ground .seg button', has_text='섬광').click(); pg.wait_for_timeout(500)
-            print(tag, '  turn', pg.evaluate(marks))
-            pg.wait_for_timeout(5000)
-            print(tag, '  auto next shows turn', pv(pg).evaluate(written))
-
-            # 글씨
+            # 글씨: 다시 쓰지 않고 바로
             tab(pg, tag, 'type')
-            print(tag, 'type panel', pg.is_visible('#panel-type'), '| one at a time', not pg.is_visible('#panel-ground'))
-            pg.locator('#panel-type .seg button', has_text='함렛').click(); pg.wait_for_timeout(300)
-            print(tag, '  font', pg.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--f-read').split(',')[0]"))
+            before = pg.evaluate(active_src)
+            pg.evaluate("() => { const r = document.querySelector('#panel-type input[type=range]'); r.value = 130; r.dispatchEvent(new Event('input')); }")
+            pg.locator('#panel-type .seg button', has_text='양쪽').click(); pg.wait_for_timeout(400)
+            print(tag, 'type live', pg.evaluate(active_src) == before, '| size', pv(pg).evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--fs-k')"),
+                  '| align', pv(pg).evaluate("() => getComputedStyle(document.querySelector('.sheet.is-current .column')).textAlign"))
+            pg.screenshot(path=str(OUT / f'st-{tag}-5type.png'))
 
-            # 강조: 3쪽 글에서 효과
-            tab(pg, tag, 'mark')
-            pg.evaluate("""() => { const t = document.querySelector('#panel-mark textarea'); const i = t.value.indexOf('잘 지내냐고'); t.focus(); t.setSelectionRange(i, i + 12); document.dispatchEvent(new Event('selectionchange')); }""")
+            # 움직임: 다시 보기를 기다림
+            tab(pg, tag, 'motion')
+            before = pg.evaluate(active_src)
+            pg.evaluate("() => { const r = document.querySelector('#panel-motion input[type=range]'); r.value = 70; r.dispatchEvent(new Event('input')); }"); pg.wait_for_timeout(300)
+            print(tag, 'motion waits', pg.evaluate(active_src) == before, '| replay due', pg.evaluate("() => document.getElementById('replay').classList.contains('due')"))
+            tabs_open(pg, tag)
+            pg.click('#replay'); pg.wait_for_timeout(1500)
+            print(tag, '  replayed', pg.evaluate(active_src) != before, '| due cleared', not pg.evaluate("() => document.getElementById('replay').classList.contains('due')"))
+
+            # 배경: 다른 쪽 바탕은 다 쓴 모습으로, 넘김은 넘김만
+            fr = pv(pg)
+            fr.evaluate("() => window.postMessage({ type: 'geulgyeol:goto', page: 1 }, location.origin)"); pg.wait_for_timeout(1300)
+            tab(pg, tag, 'ground')
+            print(tag, 'ground', pg.text_content('#panel-ground .panel-sub'), pg.evaluate("() => [...document.querySelectorAll('#panel-ground .pn-name')].map(x => x.textContent)"))
+            pg.locator('#panel-ground .seg button', has_text='잎그늘').click(); pg.wait_for_timeout(1400)
+            print(tag, '  light ground', pg.evaluate(marks), '| shown done', pv(pg).evaluate(written))
+            pv(pg).evaluate("() => window.postMessage({ type: 'geulgyeol:goto', page: 2 }, location.origin)"); pg.wait_for_timeout(1300)
+            pg.locator('#panel-ground .seg button', has_text='섬광').click(); pg.wait_for_timeout(2400)
+            print(tag, '  turn only', pg.evaluate(marks), '| landed', pv(pg).evaluate(written))
+            pg.screenshot(path=str(OUT / f'st-{tag}-6ground.png'))
+            pg.click('#panel-ground .panel-x'); pg.wait_for_timeout(300)
+
+            # 글 상자를 눌러 그 자리에서 고치기
+            fr = pv(pg)
+            fr.evaluate("() => document.querySelector('.sheet.is-current .column').click()"); pg.wait_for_timeout(500)
+            print(tag, 'inplace open', fr.evaluate("() => !!document.querySelector('.ip') && document.querySelector('.ip textarea').value.slice(0, 12)"))
+            fr.evaluate("""() => { const t = document.querySelector('.ip textarea'); const i = t.value.indexOf('잘 지내냐고'); t.focus(); t.setSelectionRange(i, i + 6); document.dispatchEvent(new Event('selectionchange')); }""")
             pg.wait_for_timeout(200)
-            print(tag, 'mark panel', pg.text_content('#panel-mark .panel-sub'), '| fxbar', pg.evaluate("() => !document.querySelector('#panel-mark .fxbar').hidden"))
-            pg.locator('#panel-mark .fx-list [data-fx="떨림"]').click(); pg.wait_for_timeout(300)
-            print(tag, '  wrapped', '{{떨림:잘 지내냐고' in pg.evaluate(src))
-            pg.locator('#panel-mark .fx-list [data-fx="사라짐"]').click(); pg.wait_for_timeout(300)
-            print(tag, '  switched without re-drag', '{{사라짐:잘 지내냐고' in pg.evaluate(src))
-            pg.wait_for_timeout(2500)
-            print(tag, '  preview from there', pv(pg).evaluate(written))
-            pg.screenshot(path=str(OUT / f'st-{tag}-6mark.png'))
-            pg.click('#panel-mark .panel-x'); pg.wait_for_timeout(300)
+            print(tag, '  bar', fr.evaluate("() => !document.querySelector('.ip-bar').hidden"))
+            fr.click('.ip-bar .ip-style[data-style="굵게"]'); pg.wait_for_timeout(200)
+            fr.click('.ip-bar .ip-color[data-color="빨강"]'); pg.wait_for_timeout(200)
+            print(tag, '  styled', '{{굵게+빨강:잘 지내냐고' in pg.evaluate(src))
+            pg.screenshot(path=str(OUT / f'st-{tag}-7inplace.png'))
+            fr.click('.ip-bar .ip-open:has-text("효과")'); pg.wait_for_timeout(150)
+            fr.click('.ip-list [data-fx="떨림"]'); pg.wait_for_timeout(2500)
+            print(tag, '  effect + replay', '{{떨림+굵게+빨강:잘 지내냐고' in pg.evaluate(src), '|', pv(pg).evaluate(written))
+            fr = pv(pg)
+            fr.evaluate("() => document.querySelector('.sheet.is-current .column').click()"); pg.wait_for_timeout(500)
+            fr.evaluate("""() => { const t = document.querySelector('.ip textarea'); t.focus(); t.setSelectionRange(0, 0); document.execCommand('insertText', false, '정말 '); }""")
+            pg.wait_for_timeout(200)
+            fr.click('.ip-done'); pg.wait_for_timeout(1400)
+            print(tag, '  typed in place', '정말 편지를' in pg.evaluate(src), '| shown done', pv(pg).evaluate(written))
 
-            # 글 상자 끌기(PC 틀에서만 티가 난다)
+            # 글 상자 끌기(PC), 확대
             if tag == 'desk':
                 fr = pv(pg)
                 box = fr.evaluate("() => { const r = document.querySelector('.sheet.is-current .column').getBoundingClientRect(); return [r.left + r.width / 2, r.top + 20]; }")
-                pg.mouse.move(box[0], box[1]); pg.mouse.down(); pg.mouse.move(box[0] - 120, box[1], steps=6)
+                pg.mouse.move(box[0], box[1]); pg.mouse.down(); pg.mouse.move(box[0] - 140, box[1], steps=6)
                 print(tag, 'drag box guides', fr.evaluate("() => [...document.querySelectorAll('.place-guide')].map(g => g.classList.contains('on') ? g.dataset.place : '·').join(' ')"))
                 pg.mouse.move(box[0] - 420, box[1], steps=6); pg.mouse.up(); pg.wait_for_timeout(500)
-                print(tag, '  dropped', pg.evaluate(marks), '| page stayed', fr.evaluate(written))
-
-            # 확대: Ctrl+휠(PC), 두 손가락 벌리기(폰)
-            if tag == 'desk':
-                pg.mouse.move(640, 300); pg.keyboard.down('Control'); pg.mouse.wheel(0, -300); pg.keyboard.up('Control'); pg.wait_for_timeout(300)
-                print(tag, 'zoom', pg.evaluate("() => !document.getElementById('zoom').hidden && document.getElementById('zoom-k').textContent"), pg.evaluate(frame_box))
-                pg.mouse.move(640, 300); pg.mouse.down(); pg.mouse.move(540, 250, steps=4); pg.mouse.up(); pg.wait_for_timeout(200)
-                print(tag, '  pan', pg.evaluate("() => document.getElementById('frame-box').style.transform"))
+                print(tag, '  dropped', pg.evaluate(marks), '| no edit opened', not fr.evaluate("() => !!document.querySelector('.ip')"))
+                pg.mouse.move(640, 300); pg.keyboard.down('Control'); pg.mouse.wheel(0, -200); pg.keyboard.up('Control'); pg.wait_for_timeout(300)
+                print(tag, 'zoom', pg.evaluate("() => !document.getElementById('zoom').hidden && document.getElementById('zoom-k').textContent"))
             else:
                 cdp = ctx.new_cdp_session(pg)
-                pts = lambda d: [{'x': 195 - d, 'y': 420, 'id': 1}, {'x': 195 + d, 'y': 420, 'id': 2}]
+                pts = lambda d: [{'x': 195 - d, 'y': 600, 'id': 1}, {'x': 195 + d, 'y': 600, 'id': 2}]
                 cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': pts(40)})
                 for d in range(50, 130, 10):
                     cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': pts(d)}); pg.wait_for_timeout(16)
                 cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); pg.wait_for_timeout(300)
-                print(tag, 'pinch zoom', pg.evaluate("() => !document.getElementById('zoom').hidden && document.getElementById('zoom-k').textContent"), pg.evaluate(frame_box))
-            pg.screenshot(path=str(OUT / f'st-{tag}-7zoom.png'))
+                print(tag, 'pinch zoom', pg.evaluate("() => !document.getElementById('zoom').hidden && document.getElementById('zoom-k').textContent"))
             pg.click('#zoom-fit'); pg.wait_for_timeout(200)
-            print(tag, '  fit back', pg.evaluate("() => document.getElementById('zoom').hidden"), pg.evaluate(frame_box))
 
-            # PC·폰 틀
+            # PC·폰·병렬
             tabs_open(pg, tag)
-            pg.click('#device [data-device="pc"]' if tag == 'phone' else '#device [data-device="mobile"]'); pg.wait_for_timeout(400)
-            print(tag, 'other device frame', pg.evaluate(frame_box))
-            pg.screenshot(path=str(OUT / f'st-{tag}-8device.png'))
-            pg.click('#device [data-device="mobile"]' if tag == 'phone' else '#device [data-device="pc"]'); pg.wait_for_timeout(300)
-            print(tag, '  back to real size', pg.evaluate(frame_box))
+            if tag == 'desk':
+                pg.click('#device [data-device="both"]'); pg.wait_for_timeout(2600)
+                print(tag, 'side by side', pg.evaluate("() => [...document.querySelectorAll('.screen')].map(s => s.hidden ? 'hidden' : Math.round(s.getBoundingClientRect().width) + 'x' + Math.round(s.getBoundingClientRect().height)).join(' + ')"),
+                      '| phone frame', pv(pg, 'side').evaluate(written))
+                pg.screenshot(path=str(OUT / f'st-{tag}-8both.png'))
+                pg.click('#device [data-device="pc"]'); pg.wait_for_timeout(400)
+            else:
+                print(tag, 'no side by side on phone', not pg.is_visible('#device [data-device="both"]'))
+                pg.click('#device [data-device="pc"]'); pg.wait_for_timeout(400)
+                print(tag, 'pc frame', pg.evaluate("() => { const r = document.getElementById('screen-main').getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); }"))
+                pg.screenshot(path=str(OUT / f'st-{tag}-8device.png'))
+                tabs_open(pg, tag)
+                pg.click('#device [data-device="mobile"]'); pg.wait_for_timeout(300)
 
-            # 숨기기·꺼내기
+            # 숨기기·꺼내기, 쓰는 중 넘기기 막기
             tabs_open(pg, tag)
             pg.click('#hide-all'); pg.wait_for_timeout(200)
-            print(tag, 'hide all', pg.evaluate("() => [document.getElementById('tabs').hidden, document.querySelectorAll('.panel:not([hidden])').length, document.getElementById('peek').hidden]"))
+            print(tag, 'hide all', pg.evaluate("() => [document.getElementById('tabs').hidden, document.getElementById('peek').hidden]"))
             pg.click('#peek'); pg.wait_for_timeout(200)
-            print(tag, '  peek back', pg.evaluate("() => document.getElementById('tabs').hidden"))
-
-            # 쓰는 중 넘기기 막기, 이 쪽 다시
             fr = pv(pg)
             fr.evaluate("() => document.getElementById('again').click()"); pg.wait_for_timeout(500)
             fr.evaluate("() => document.getElementById('next').click()"); pg.wait_for_timeout(300)
             print(tag, 'skip guard', fr.evaluate(written), fr.evaluate("() => document.querySelector('.cue.busy').classList.contains('is-on')"))
             print(tag, 'h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"))
 
-            # 글로 돌아가기
             tabs_open(pg, tag)
             pg.click('#back'); pg.wait_for_timeout(400)
-            print(tag, 'back to write', pg.evaluate("() => document.body.dataset.step"), pg.evaluate(pages), 'pages | preview stopped', pg.evaluate("() => document.getElementById('pv').src"),
+            print(tag, 'back to write', pg.evaluate("() => document.body.dataset.step"), '| preview stopped', pg.evaluate("() => [...document.querySelectorAll('.frame')].every(f => !f.src || f.src === 'about:blank')"),
                   '| marks kept', pg.evaluate(marks))
 
             pg.goto(f'http://127.0.0.1:{PORT}/simsang.html'); pg.wait_for_timeout(500)

@@ -46,6 +46,7 @@
   const HOLD_LINE = 0.86;     // 쓰는 자리가 화면 높이의 이 비율 아래로 내려가면 기다린다
   const SKIP_WINDOW = 1800;   // 쓰는 중에 넘기려 한 뒤 이 안에 한 번 더 하면 다 쓴다
   const AUTO_NEXT = 700;      // 다 쓰고 저절로 넘길 때 기다림
+  const NEXT_ONLY = 420;      // 넘김만 볼 때 앞 쪽을 보여 주는 시간
   const LAND_WAIT = 320;      // 장에 도착한 뒤 쓰기 시작까지
   const HOLD_MS = 480;        // 이만큼 누르고 있으면 머무르기
 
@@ -636,6 +637,7 @@
       const k = clamp(Number(e.data.page) || 0, 0, pages.length - 1);
       if (k !== S.cur) goTo(k);
     } else if (e.data.type === 'geulgyeol:again') again();
+    else if (e.data.type === 'geulgyeol:finish') { const P = pages[S.cur]; if (writing(P) || P.state === 'idle') finish(P); }
   });
 
   G.touchable(stage);
@@ -659,10 +661,12 @@
   const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
   Promise.race([fonts, new Promise((r) => setTimeout(r, 1500))]).then(start, start);
 
+  /* 시작 자리: 주소의 start(편집실이 틀마다 넣음)가 먼저, 없으면 sessionStorage에 남긴 것 */
   function readStart() {
     if (location.hash !== '#preview') return null;
-    const raw = store.get('sessionStorage', 'geulgyeol.start');
-    store.del('sessionStorage', 'geulgyeol.start');
+    const q = new URLSearchParams(location.search).get('start');
+    const raw = q || store.get('sessionStorage', 'geulgyeol.start');
+    if (!q) store.del('sessionStorage', 'geulgyeol.start');
     try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
   }
 
@@ -682,9 +686,15 @@
       }
     }
     if (k || from) S.firstShown = true;
-    if (at && at.next && k < pages.length - 1) pages[k].after = () => goTo(k + 1);
+    const done = !!(at && at.done);
+    if (at && at.next && k < pages.length - 1 && !done) pages[k].after = () => goTo(k + 1);
     spring.set(k);
     render(k);
     land(k, from);
+    /* done: 그 쪽을 다 쓴 모습으로 바로 놓는다(설정을 바꿨을 때). next와 함께면 곧바로 다음 쪽으로 넘겨 넘김만 보인다 */
+    if (done) {
+      finish(pages[k]);
+      if (at.next && k < pages.length - 1) setTimeout(() => goTo(k + 1), NEXT_ONLY);
+    }
   }
 })();

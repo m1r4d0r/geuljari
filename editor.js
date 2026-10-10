@@ -2,7 +2,8 @@
  * 글결 편집창
  * 투명한 입력창(textarea) 뒤에 같은 글을 같은 글꼴·폭으로 그려 표시만 보이게 한다. 두 층은 글자 자리가 같아야 하므로
  * 표시층은 글자를 한 자도 더하거나 빼지 않고 감싸기만 한다.
- *   블록 표시 글자는 옅게, 블록 안 글은 물결 밑줄과 번진 면(이름 없는 블록 '남길 곳'은 더 진한 면),
+ *   블록 표시 글자는 옅게, 강조 안 글은 물결 밑줄과 번진 면(이름 없는 강조는 더 진한 면),
+ *   꾸밈은 글자 폭이 바뀌지 않는 모양으로(굵게는 겹친 그림자, 기울임·밑줄·취소선·색은 그대로),
  *   쪽 표시 줄은 면, 어절 사이 두 번째 칸부터는 빈 네모, 쪽이 바뀌는 자리에는 겹줄과 쪽 번호, 다크 쪽 글줄은 밝은 글자.
  * 글 화면과 미리보기의 '강조' 판이 함께 쓴다. 전역 GeulEditor.
  */
@@ -11,8 +12,7 @@
   const E = global.Geulgyeol;
   const S = global.GeulSense;
 
-  const NAME_ALT = E.BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const TOKEN_RE = new RegExp(`\\{\\{(?:(${NAME_ALT}):)?|\\}\\}`, 'g');
+  const TOKEN_RE = new RegExp(`\\{\\{(?:(${E.HEAD_SRC}):)?|\\}\\}`, 'g');
 
   function esc(s) {
     return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -48,7 +48,14 @@
       }
       const night = nights && nights.has(ln.page);
       const line = ln.text;
-      const emOpen = () => `<span class="m-em${open && !open.named ? ' focus' : ''}">`;
+      const emOpen = () => {
+        const h = open.head;
+        const cls = [open.em ? 'm-em' : 'm-st'];
+        if (open.em && !h.fx) cls.push('focus');
+        h.styles.forEach((w) => cls.push('m-s' + E.STYLES[w]));
+        if (h.color) cls.push('m-c-' + E.COLORS[h.color]);
+        return `<span class="${cls.join(' ')}">`;
+      };
       let html = open ? emOpen() : '';
       const textPart = (a, b) => esc(line.slice(a, b)).replace(/(\S) ( +)/g, (all, c, more) => c + ' ' + more.split('').map(() => '<span class="m-sp"> </span>').join(''));
       const lead = line.match(/^[^\S\n]*/)[0].length;
@@ -63,7 +70,8 @@
           open = null;
         } else {
           html += (open ? '</span>' : '') + `<span class="m-mark">${esc(m[0])}</span>`;
-          open = { named: !!m[1] };
+          const head = E.parseHead(m[1] || '');
+          open = { head, em: !!(head.fx || head.keep || !m[1]) };
           html += emOpen();
         }
         i = m.index + m[0].length;
@@ -141,8 +149,8 @@
     };
 
     ta.addEventListener('input', () => {
-      api.draw();
       if (!quiet && o.onInput) o.onInput(ta.value);
+      api.draw();
     });
     ta.addEventListener('scroll', () => { mirror.scrollTop = ta.scrollTop; if (o.onScroll) o.onScroll(); });
     new ResizeObserver(() => api.draw()).observe(ta);

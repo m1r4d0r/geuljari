@@ -5,7 +5,7 @@
  * 원문에서 드래그한 뒤 효과 메뉴에서 고르면 그 부분을 {{효과:…}}로 감싼다(떠오름은 이름 없이 {{…}}).
  * 이미 효과가 붙은 블록 안에서 고르면 효과를 바꾸고, 효과 풀기를 고르면 표시를 걷어 낸다.
  * Ctrl/⌘+B는 마지막에 고른 효과를 붙인다.
- * 블록 표시·장면 표시 [[밤]]·[[낮]]([[밤:오로라]]처럼 바탕 이름 포함)·고쳐 씀의 | 는 가리지 않는다.
+ * 블록 표시·장면 표시 [[밤]]·[[낮]]([[밤:오로라]]처럼 바탕 이름 포함)는 가리지 않는다.
  * 새 페이지가 시작되는 자리(빈 줄 둘, 장면 표시)에는 가린 글에 가는 선을 긋는다.
  */
 (function () {
@@ -29,7 +29,7 @@
   const DRAFT = 'geulgyeol.draft';
   const PREFS = 'geulgyeol.mask-prefs';
   const UNWRAP = '풀기';
-  const PREFIX_ALL = new RegExp(`\\{\\{(?:${E.BLOCK_NAMES.join('|')}):`, 'g');
+  const PREFIX_ALL = new RegExp(`\\{\\{(?:${E.HEAD_SRC}):`, 'g');
   const GOAL = 1000;
   const SCALE = 1200;
 
@@ -165,7 +165,6 @@
           w.dataset.role = tk.role;
           tk.cells.forEach((c) => {
             if (c.open) w.append(markNode(c.open));
-            if (c.pipe) w.append(markNode('|'));
             const node = maskNode(c.ch);
             if (c.em) {
               const wrap = document.createElement('span');
@@ -253,7 +252,7 @@
     if (open === -1 || open < before.lastIndexOf(E.EM_CLOSE)) return null;
     const close = v.indexOf(E.EM_CLOSE, open + 2);
     if (close === -1 || close < e) return null;
-    const m = v.slice(open + 2, open + 12).match(E.PREFIX_RE);
+    const m = v.slice(open + 2, open + 50).match(E.PREFIX_RE);
     return { open, close, prefixLen: m ? m[0].length : 0, name: m ? m[1] : E.BLOCK_DEFAULT };
   }
 
@@ -276,17 +275,13 @@
       const innerStart = b.open + 2 + b.prefixLen;
       let inner = v.slice(innerStart, b.close);
       if (name === UNWRAP) {
-        if (b.name === '고쳐 씀' && inner.includes('|')) inner = inner.slice(inner.indexOf('|') + 1);
         replaceRange(b.open, b.close + 2, inner);
         src.setSelectionRange(b.open, b.open + inner.length);
       } else {
-        if (name !== '고쳐 씀' && b.name === '고쳐 씀') inner = inner.split('|').join('');
-        const addPipe = name === '고쳐 씀' && !inner.includes('|');
-        const body = E.EM_OPEN + prefixOf(name) + inner + (addPipe ? '|' : '') + E.EM_CLOSE;
+        const body = E.EM_OPEN + prefixOf(name) + inner + E.EM_CLOSE;
         replaceRange(b.open, b.close + 2, body);
         const at = b.open + 2 + prefixOf(name).length;
-        if (addPipe) src.setSelectionRange(at + inner.length + 1, at + inner.length + 1);
-        else src.setSelectionRange(at, at + inner.length);
+        src.setSelectionRange(at, at + inner.length);
       }
       edited();
       return;
@@ -299,14 +294,8 @@
 
     const inner = v.slice(s, e).replace(PREFIX_ALL, '').split(E.EM_OPEN).join('').split(E.EM_CLOSE).join('');
     const prefix = prefixOf(name);
-    if (name === '고쳐 씀') {
-      replaceRange(s, e, E.EM_OPEN + prefix + inner + '|' + E.EM_CLOSE);
-      const at = s + 2 + prefix.length + inner.length + 1;
-      src.setSelectionRange(at, at);
-    } else {
-      replaceRange(s, e, E.EM_OPEN + prefix + inner + E.EM_CLOSE);
-      src.setSelectionRange(s + 2 + prefix.length, s + 2 + prefix.length + inner.length);
-    }
+    replaceRange(s, e, E.EM_OPEN + prefix + inner + E.EM_CLOSE);
+    src.setSelectionRange(s + 2 + prefix.length, s + 2 + prefix.length + inner.length);
     edited();
   }
 

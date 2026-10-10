@@ -1,10 +1,10 @@
 /*
  * 글결 글 읽기
  * 가리지 않은 원문을 이 브라우저 안에서만 읽어 1차 안의 재료를 만든다. 글은 어디로도 보내지 않는다.
- * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김·자리), 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
+ * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김·자리), 강조는 이름 없는 {{…}}, 효과·꾸밈은 {{떨림+굵게:…}}.
  * 반전은 장면이 적힌 첫 쪽 표시 줄이다. 장면 이름은 라이트·다크로 쓴다.
  * - 짐작: 심상 낱말, 반전 자리, 남기고 싶은 곳 후보, 문장별 효과 제안.
- * - 고치기: 반전 줄 옮기기, 쪽마다 넘김·자리 정하기, 남기고 싶은 곳 바꾸기, 효과 감싸기·벗기기, 긴 쪽 나누기.
+ * - 고치기: 반전 줄 옮기기, 쪽마다 넘김·자리 정하기, 강조 바꾸기, 효과·꾸밈 감싸기·벗기기·바꾸기, 긴 쪽 나누기.
  * 전역 GeulSense.
  */
 (function (global) {
@@ -39,8 +39,7 @@
   const GROUND_NAME = NAMES(E.GROUNDS);
   const TURN_NAME = NAMES(E.TURNS);
   const PLACE_NAME = NAMES(E.PLACES);
-  const NAME_ALT = E.BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const TOKEN_RE = new RegExp(`\\{\\{(?:(${NAME_ALT}):)?|\\}\\}`, 'g');
+  const TOKEN_RE = new RegExp(`\\{\\{(?:(${E.HEAD_SRC}):)?|\\}\\}`, 'g');
 
   const letters = (s) => s.replace(/\s/g, '').length;
   const plain = (s) => E.stripMarks(s);
@@ -94,7 +93,10 @@
     return out;
   }
 
-  /* 본문 안의 블록 {os, oe, cs, ce, fx, named}. 문단 끝에서 닫히지 않은 블록은 빼고 센다. */
+  /*
+   * 본문 안의 블록 {os, oe, cs, ce, fx, named, head}. 문단 끝에서 닫히지 않은 블록은 빼고 센다.
+   * head는 머리를 읽은 {fx, keep, styles, color}, em은 강조(효과가 있거나 이름 없는 강조)인지, named는 효과 이름이 적혔는지.
+   */
   function blocks(text) {
     const out = [];
     let open = null;
@@ -105,7 +107,8 @@
         if (open) out.push(Object.assign(open, { cs: m.index, ce: m.index + 2 }));
         open = null;
       } else {
-        open = { os: m.index, oe: m.index + m[0].length, fx: m[1] || E.BLOCK_DEFAULT, named: !!m[1] };
+        const head = E.parseHead(m[1] || '');
+        open = { os: m.index, oe: m.index + m[0].length, head, fx: head.fx || E.BLOCK_DEFAULT, named: !!head.fx, em: !!(head.fx || head.keep || !m[1]) };
       }
     }
     return out.filter((b) => !/\n[^\S\n]*\n/.test(text.slice(b.os, b.ce)));
@@ -163,9 +166,7 @@
       let why = '';
       const words = s.text.split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}]/gu, '')).filter((w) => w.length > 1);
       const rep = words.find((w) => words.filter((x) => x === w).length >= 3);
-      const commas = (s.text.match(/,/g) || []).length;
-      if (rep) { fx = '숨가쁨'; why = `“${rep}” 세 번`; }
-      else if (commas >= 3) { fx = '숨가쁨'; why = `쉼표 ${commas}`; }
+      if (rep) { fx = '떨림'; why = `“${rep}” 세 번`; }
       else {
         const hit = SUGGEST.find((r) => r.re.test(s.text));
         if (hit) { fx = hit.fx; why = `“${s.text.match(hit.re)[0]}”`; }
@@ -228,12 +229,20 @@
     return { text: t, start: ranges[0][0], end: last[1] + (open.length + 2) * ranges.length };
   }
 
+  /* 블록 머리를 바꾼다(빈 머리면 이름 없는 강조). 머리에 아무것도 없고 강조도 아니면 표시를 걷는다 */
+  function setHead(text, blk, head) {
+    const h = Object.assign({ fx: null, keep: false, styles: [], color: null }, head);
+    if (!h.fx && !h.keep && !h.styles.length && !h.color) return unwrap(text, blk);
+    const word = E.headText(h);
+    return text.slice(0, blk.os) + '{{' + (word ? word + ':' : '') + text.slice(blk.oe);
+  }
+
   /* 남기고 싶은 곳(이름 없는 블록)을 모두 걷고 start~end에 새로 감싼다. start가 null이면 걷기만. */
   function setFocus(text, start, end) {
     let t = text;
     let a = start;
     let b = end;
-    blocks(t).filter((k) => !k.named).sort((x, y) => y.os - x.os).forEach((k) => {
+    blocks(t).filter((k) => k.em && !k.named).sort((x, y) => y.os - x.os).forEach((k) => {
       t = unwrap(t, k);
       if (a != null) {
         const shift = (p) => p - (p > k.cs ? Math.min(2, p - k.cs) : 0) - (p > k.os ? Math.min(k.oe - k.os, p - k.os) : 0);
@@ -246,7 +255,7 @@
 
   /* 지금 남기고 싶은 곳의 글(띄어쓰기 그대로, 여러 조각이면 이어서) */
   function focusText(text) {
-    return blocks(text).filter((k) => !k.named).map((k) => text.slice(k.oe, k.cs)).join(' ');
+    return blocks(text).filter((k) => k.em && !k.named).map((k) => text.slice(k.oe, k.cs)).join(' ');
   }
 
   /* 쪽 표시 줄 → {scene, ground, turn, place}(한글 이름, 없으면 null) */
@@ -398,6 +407,6 @@
 
   global.GeulSense = {
     SCENE_RE, lines, sentences, blocks, guessMoods, emphasisCandidates, turnCandidate, suggestions,
-    unwrap, wrap, setFocus, focusText, readMarkLine, markLine, turnLine, setTurn, setPageMark, pageMark, autoBreaks, letters
+    unwrap, wrap, setHead, setFocus, focusText, readMarkLine, markLine, turnLine, setTurn, setPageMark, pageMark, autoBreaks, letters
   };
 })(typeof window !== 'undefined' ? window : globalThis);

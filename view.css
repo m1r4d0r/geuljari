@@ -10,16 +10,28 @@
 
 [data-scene="day"] {
   --paper: #ECEDF0;
-  --ink: #2C2F6B;
-  --ink-soft: #4F5280;
-  --wet: #9A9CC2;
+  --ink: var(--theme-ink, #2C2F6B);
+  --ink-soft: var(--theme-lead, #4F5280);
+  --wet: var(--theme-wet, #9A9CC2);
 }
 [data-scene="night"] {
   --wet: #6E7099;
 }
 
 .column { font-weight: 400; letter-spacing: 0; }
-[data-scene="day"] .column { text-shadow: .6px .45px 0 rgba(44, 47, 107, .22); }
+[data-scene="day"] .column { text-shadow: .6px .45px 0 color-mix(in srgb, var(--ink) 22%, transparent); }
+
+/* 편집실이 정한 모양: 글자 크기 배율, 글 상자 폭(넓은 화면), 정렬 */
+:root { --fs-body: calc(clamp(1.02rem, .96rem + .3vw, 1.16rem) * var(--fs-k, 1)); }
+.scroll { position: relative; }
+.column {
+  width: min(var(--m-user, var(--measure, 26em)), 100%);
+  margin-left: calc((100% - min(var(--m-user, var(--measure, 26em)), 100%)) * var(--x, 0));
+  text-align: var(--a-user, var(--align, left));
+}
+@media (max-width: 599px) {
+  .column { width: auto; margin-left: calc(var(--x, 0) * 2.4rem); }
+}
 .ch.em { font-weight: 400; }
 .drying { transition: color var(--dry, 1.8s) ease-in-out; }
 
@@ -39,3 +51,62 @@
 .in-studio .column.is-moving { cursor: grabbing; outline: 1px dashed color-mix(in srgb, currentColor 45%, transparent); outline-offset: 10px; }
 .place-guide { position: fixed; z-index: 20; width: 0; border-left: 1px dashed #fff; mix-blend-mode: difference; opacity: .25; pointer-events: none; transition: opacity .15s ease; }
 .place-guide.on { opacity: .7; }
+
+/* 미리보기 안에서 고치기(inplace.js): 글 상자 자리에 같은 폭·같은 글꼴의 편집창. 표시 모양은 marks.css */
+.column.ip-hidden { visibility: hidden; }
+.ip {
+  position: absolute; z-index: 6;
+  --faint: color-mix(in srgb, var(--ink) 45%, transparent);
+  --smudge: color-mix(in srgb, var(--ink) 10%, transparent);
+  --pick: color-mix(in srgb, var(--ink) 18%, transparent);
+  --dark-ink: var(--ink);
+  font-family: var(--f-body); font-size: var(--fs-body); line-height: 1.95; letter-spacing: 0; color: var(--ink);
+}
+.ip::before {
+  content: ""; position: absolute; inset: -16px -20px; z-index: -1;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  outline: 1px dashed color-mix(in srgb, var(--ink) 38%, transparent);
+}
+.ip-mirror, .ip-input {
+  margin: 0; padding: 0; border: 0; font: inherit; line-height: inherit; letter-spacing: inherit; text-align: left;
+  white-space: pre-wrap; word-break: keep-all; overflow-wrap: break-word; tab-size: 4;
+}
+.ip-mirror { position: relative; min-height: 1.95em; pointer-events: none; }
+.ip-input {
+  position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; resize: none; outline: none;
+  background: transparent; color: transparent; caret-color: var(--ink);
+}
+.ip-input::selection { background: color-mix(in srgb, var(--ink) 22%, transparent); color: transparent; }
+/* 고치는 동안 화면 아래 가운데에 늘 떠 있는 '다 고쳤어요' */
+.ip-done {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 3.4rem); transform: translateX(-50%); z-index: 30;
+  height: 34px; padding: 0 16px; font: 13px 'Noto Sans KR', sans-serif; background: #2C2F6B; color: #F6F6F4; border: 0; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+}
+
+/* 고른 곳 위의 막대: 늘 밝은 종이 위에 남보라(장면과 상관없이 읽히게) */
+.ip-bar {
+  position: absolute; left: -12px; z-index: 8; width: max-content; max-width: min(640px, 92vw);
+  padding: 4px 6px; background: #F6F6F4; color: #2C2F6B; border: 1px solid #2C2F6B;
+  font: 12px/1 'Noto Sans KR', sans-serif; box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+}
+.ip-row, .ip-list { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.ip-list { border-top: 1px solid #C5C7D6; margin-top: 4px; padding-top: 4px; }
+.ip-bar button {
+  height: 28px; min-width: 28px; padding: 0 8px; background: none; border: 0; color: inherit; cursor: pointer;
+  font: inherit; text-shadow: none;
+}
+.ip-bar button:hover { background: rgba(44, 47, 107, .08); }
+.ip-bar button[aria-pressed="true"], .ip-bar .on, .ip-bar [aria-expanded="true"] { background: #2C2F6B; color: #F6F6F4; }
+.ip-bar .ip-style { font-family: 'Song Myung', serif; font-size: 14px; }
+.ip-bar .ip-color { min-width: 0; width: 18px; height: 18px; padding: 0; margin: 0 2px; border: 1px solid #F6F6F4; outline: 1px solid transparent; }
+.ip-bar .ip-color.c-red { background: #B03A2E; }
+.ip-bar .ip-color.c-orange { background: #C06A1C; }
+.ip-bar .ip-color.c-green { background: #3F7A4A; }
+.ip-bar .ip-color.c-blue { background: #2F5DA8; }
+.ip-bar .ip-color.c-violet { background: #6A4BA0; }
+.ip-bar .ip-color.c-gray { background: #8A8C98; }
+.ip-bar .ip-color[aria-pressed="true"] { outline-color: #2C2F6B; }
+.ip-sep { width: 1px; height: 16px; margin: 0 4px; background: #C5C7D6; }
+.ip-bar .ip-style.s-b { font-weight: 700; }
+.ip-bar .ip-style.s-i { font-style: italic; }

@@ -1,7 +1,8 @@
 /*
  * 글결 조판값
  * 편집실(index.js)·심상 검수(simsang.js)·읽기 틀(view.js)이 같은 조판값을 같은 방식으로 엔진에 건다.
- * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 마름, 넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때), 글꼴.
+ * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 마름, 넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때), 글꼴,
+ *   글자 크기(배율), 글 상자 폭(PC, 0이면 저절로), 정렬(저절로·왼쪽·가운데·오른쪽·양쪽), 주색(테마).
  * 심상은 반대말 세 쌍(축)이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
  *   온도 → 넘김·마름 / 물기 → 흐름 / 숨 → 속도·쉼
  * 속도는 흐름·블록·효과 움직임의 시간을 함께 늘이고 줄인다(docs/효과-규칙.md). 넘김은 속도와 상관없다.
@@ -34,7 +35,7 @@
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
   const DRY = { '빨리': 0.9, '보통': 1.8, '느리게': 3.2 };
   const DRY_NAMES = Object.keys(DRY);
-  const GROUNDS = { '라이트': ['창빛', '한지'], '다크': ['영사광', '오로라', '물빛'] };
+  const GROUNDS = { '라이트': ['창빛', '한지', '잎그늘', '새벽'], '다크': ['영사광', '오로라', '물빛'] };
   const OLD_SCENE = { '낮': '라이트', '밤': '다크' };
   /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀌는 쪽에는 스밈을 빼고 고른다. */
   const TURNS = (global.Geulgyeol && global.Geulgyeol.TURNS) || { '쓸기': 'sweep' };
@@ -49,6 +50,12 @@
     '노토 세리프': { css: "'Noto Serif KR'", q: 'Noto+Serif+KR:wght@300..500' }
   };
   const FONT_NAMES = Object.keys(FONTS);
+  const ALIGNS = { '저절로': null, '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right', '양쪽': 'justify' };
+  const ALIGN_NAMES = Object.keys(ALIGNS);
+  /* 주색: 편집실의 먹과 라이트 장면 글자색. 나머지 색(흐린 글씨·선·고름 면)은 종이색과 섞어 만든다 */
+  const THEMES = { '남보라': '#2C2F6B', '먹': '#24221F', '쪽': '#1E4A66', '솔': '#2E5640', '벽돌': '#7E3328', '자두': '#5A2A4F' };
+  const THEME_NAMES = Object.keys(THEMES);
+  const PAPER = '#ECEDF0';
   /* 속도에 따라 줄이고 늘리는 시간표 항목 */
   const PACED = ['flowSlow', 'flowFast', 'lineBreak', 'stop', 'shortBefore', 'shortChar', 'shortAfter', 'dripBefore', 'dripChar', 'dripAfter', 'exitStagger'];
   const BLOCK_PACED = ['before', 'char', 'group', 'line', 'after', 'unitGap', 'hold'];
@@ -56,7 +63,10 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   function defaults() {
-    return { flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', dry: '보통', turn: '쓸기', font: '송명' };
+    return {
+      flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', dry: '보통', turn: '쓸기', font: '송명',
+      size: 1, measure: 0, align: '저절로', theme: '남보라'
+    };
   }
 
   /* 빠진 값·어긋난 값을 기본값으로 메운다 */
@@ -72,6 +82,10 @@
     if (!(o.dry in DRY)) o.dry = '보통';
     if (!SCENE_TURNS.includes(o.turn)) o.turn = '쓸기';
     if (!(o.font in FONTS)) o.font = '송명';
+    o.size = clamp(Number(o.size) || 1, 0.8, 1.5);
+    o.measure = Number(o.measure) >= 14 ? clamp(Math.round(Number(o.measure)), 14, 44) : 0;
+    if (!(o.align in ALIGNS)) o.align = '저절로';
+    if (!(o.theme in THEMES)) o.theme = '남보라';
     return o;
   }
 
@@ -93,7 +107,7 @@
    */
   function fromMoods(words, keep) {
     const s = defaults();
-    if (keep) ['scene', 'ground', 'font'].forEach((k) => { s[k] = keep[k]; });
+    if (keep) ['scene', 'ground', 'font', 'size', 'measure', 'align', 'theme'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
     oneEach(words).forEach((w) => {
       const m = MOOD[w];
       ['flow', 'speed', 'rest', 'dry', 'turn'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
@@ -161,6 +175,26 @@
     };
   }
 
+  /* 두 색을 t만큼 섞는다(#rrggbb) */
+  function mix(a, b, t) {
+    const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const [x, y] = [p(a), p(b)];
+    return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  }
+  /* 주색에서 만든 색 변수들 */
+  function themeVars(name) {
+    const ink = THEMES[name] || THEMES['남보라'];
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16));
+    return {
+      '--ink': ink, '--lead': mix(ink, PAPER, 0.22), '--faint': mix(ink, PAPER, 0.48), '--line': mix(ink, PAPER, 0.74),
+      '--empty': mix(ink, PAPER, 0.6), '--pick': mix(ink, PAPER, 0.84), '--smudge': `rgba(${r}, ${g}, ${b}, .10)`,
+      '--carbon': `.6px .45px 0 rgba(${r}, ${g}, ${b}, .24)`, '--wet-ink': mix(ink, PAPER, 0.45)
+    };
+  }
+  function useTheme(doc, s) {
+    Object.entries(themeVars(s.theme)).forEach(([k, v]) => doc.documentElement.style.setProperty(k, v));
+  }
+
   /* 글꼴을 문서에 불러오고 --f-read에 건다 */
   function useFont(doc, s) {
     const f = FONTS[s.font];
@@ -179,6 +213,7 @@
 
   global.GeulTune = {
     AXES, WORDS, MOOD, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
-    defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont
+    ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES,
+    defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeVars, useTheme
   };
 })(typeof window !== 'undefined' ? window : globalThis);

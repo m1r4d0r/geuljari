@@ -10,10 +10,32 @@
 /* 블록 효과의 모양(읽기 틀·효과 견본 공통). 움직임 자체는 fx.js가 건다. */
 .ch[data-a="rise"], .ch[data-a="focus"], .ch[data-a="gather"], .ch[data-a="tremble"], .ch[data-a="fall"] { display: inline-block; }
 .ch.em { font-weight: 520; letter-spacing: .02em; }
-.ch.fx-big { font-family: var(--f-display); font-weight: 400; font-size: 1.9em; line-height: 1.25; letter-spacing: .04em; }
+
+/* 퇴장의 끝 모습 */
 .ch.gone { opacity: 0; }
-.ch.struck { text-decoration: line-through; text-decoration-thickness: 1px; opacity: .4; transition: opacity .8s ease; }
-.ch.after-strike { margin-left: .3em; }
+.ch.erasing { text-decoration: line-through; text-decoration-thickness: 1px; }
+.ch.dimmed { opacity: .22; filter: blur(.6px); }
+.ch.folding { overflow: hidden; vertical-align: bottom; }
+.ch.folded { display: none; }
+
+/* 글자 꾸밈: 굵게·기울임·밑줄·취소선, 색(장면마다 읽히는 밝기로) */
+.ch.s-b { font-weight: 700; }
+.ch.s-i { font-style: italic; }
+.s-u { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .22em; }
+.s-s { text-decoration: line-through; text-decoration-thickness: 1px; }
+.s-u.s-s { text-decoration: underline line-through; }
+.ch.c-red { color: #B03A2E; }
+.ch.c-orange { color: #C06A1C; }
+.ch.c-green { color: #3F7A4A; }
+.ch.c-blue { color: #2F5DA8; }
+.ch.c-violet { color: #6A4BA0; }
+.ch.c-gray { color: #8A8C98; }
+[data-scene="night"] .ch.c-red { color: #F08A7C; }
+[data-scene="night"] .ch.c-orange { color: #F2B06A; }
+[data-scene="night"] .ch.c-green { color: #8FCB98; }
+[data-scene="night"] .ch.c-blue { color: #8EB4F2; }
+[data-scene="night"] .ch.c-violet { color: #C2A8F0; }
+[data-scene="night"] .ch.c-gray { color: #A3A6B8; }
 .spot-ready .ch { transition: opacity .9s ease; }
 .spotlight .ch:not(.lit) { opacity: .2; }
 .caret {

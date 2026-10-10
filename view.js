@@ -2,10 +2,12 @@
  * 글결 미리보기 읽기 틀 준비
  * 루트의 reader.js가 글을 세우기 전에 돈다(defer 차례). 편집실이 남긴 조판값(속도·쉼·흐름·글꼴·넘김)을 엔진과 읽기 틀에 걸고,
  * 넘어온 글이 없을 때 쓸 예시 글을 채운다. ?embed로 열리면 작은 미리보기 모양으로 줄인다.
+ * 모양 조판값(글꼴·글자 크기·글 상자 폭·정렬·주색)은 CSS 변수로 걸어서, 편집실이 geulgyeol:style로 보내면 다시 쓰지 않고 바로 바꾼다.
  * 편집실 안(iframe)에서는 손짓 몇 가지를 편집실로 넘긴다.
  * - 글 상자 끌기: 넓은 화면에서 글 상자를 옆으로 끌면 왼쪽·가운데·오른쪽 중 가까운 자리에 붙고, 편집실에 그 쪽의 자리를 알린다.
  * - 확대: 손가락 벌리기와 Ctrl+휠(트랙패드 벌리기)은 편집실이 미리보기 틀을 키우고 줄이게 한다.
  *   확대된 동안에는 끌기·휠이 쪽을 넘기지 않고 틀을 옮긴다.
+ * - 글 상자를 누르면 그 자리에서 고친다(inplace.js). 끌어서 옮긴 직후의 누름은 빼고.
  * - Esc는 편집실에 판을 접어 달라고 알린다.
  */
 (function () {
@@ -21,7 +23,25 @@
   const s = T.normalize(read('geulgyeol.tune'));
   T.apply(E, s, window.GeulFx);
   T.patchFlow(E, s);
-  T.useFont(document, s);
+  look(s);
+
+  /* 모양 조판값: 글꼴, 글자 크기(배율), 글 상자 폭(em, 0은 저절로), 정렬, 주색(라이트 장면 글자색) */
+  function look(v) {
+    const root = document.documentElement.style;
+    T.useFont(document, v);
+    root.setProperty('--fs-k', String(v.size));
+    if (v.measure) root.setProperty('--m-user', v.measure + 'em'); else root.removeProperty('--m-user');
+    if (T.ALIGNS[v.align]) root.setProperty('--a-user', T.ALIGNS[v.align]); else root.removeProperty('--a-user');
+    const tv = T.themeVars(v.theme);
+    root.setProperty('--theme-ink', tv['--ink']);
+    root.setProperty('--theme-lead', tv['--lead']);
+    root.setProperty('--theme-wet', tv['--wet-ink']);
+  }
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:style') return;
+    look(T.normalize(e.data.settings));
+    window.dispatchEvent(new Event('resize'));
+  });
   window.GeulReaderOpts = { turn: T.TURNS[s.turn] };
   document.documentElement.style.setProperty('--dry', T.DRY[s.dry] + 's');
   if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');
@@ -33,7 +53,7 @@
   const tell = (msg) => { if (embedded) window.parent.postMessage(msg, location.origin); };
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') tell({ type: 'geulgyeol:close' });
+    if (e.key === 'Escape' && !e.defaultPrevented) tell({ type: 'geulgyeol:close' });
   });
   if (!embedded) return;
   document.documentElement.classList.add('in-studio');
@@ -126,12 +146,28 @@
     }
     if (pan && e.pointerId === pan.id) { pan = null; e.stopPropagation(); return; }
     if (move && e.pointerId === move.id) {
-      if (move.on) { e.stopPropagation(); dropMove(e.clientX - move.x); }
+      if (move.on) { e.stopPropagation(); dropMove(e.clientX - move.x); movedAt = performance.now(); }
       move = null;
     }
   }
   document.addEventListener('pointerup', end, true);
   document.addEventListener('pointercancel', (e) => { if (e.isTrusted) end(e); }, true);
+
+  /* ---------- 글 상자 누르면 고치기 ---------- */
+
+  let movedAt = 0;
+  let downAt = 0;
+  document.addEventListener('pointerdown', () => { downAt = performance.now(); }, true);
+  document.addEventListener('click', (e) => {
+    const col = e.target.closest('.sheet.is-current .column');
+    const now = performance.now();
+    const held = downAt ? now - downAt : 0;
+    downAt = 0;
+    if (!col || zoomed || now - movedAt < 400 || held > 450 || !window.GeulInplace) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    window.GeulInplace.open(col, Number(col.closest('.sheet').dataset.i));
+  });
 
   /* ---------- 글 상자 끌기 ---------- */
 

@@ -129,14 +129,6 @@ body > * { position: relative; z-index: 1; }
 .stage .spot.past { opacity: .32; }
 .stage .spot.lit { opacity: 1; }
 
-/* 크게 */
-.big {
-  font-family: var(--f-display);
-  font-size: clamp(3.2rem, 2rem + 8vw, 7rem);
-  line-height: 1.1;
-  letter-spacing: .08em;
-}
-
 /* ---------- 조작 막대 ---------- */
 
 .ops {

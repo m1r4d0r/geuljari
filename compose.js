@@ -5,6 +5,7 @@
  * - 줄 사이에 마우스를 올리면 점선과 '여기서 나누기'가 보이고, 누르면 거기서 쪽이 나뉜다(빈 줄 둘).
  *   손가락으로 쓰는 화면에서는 문단 사이(빈 줄)에 '나누기'를 늘 둔다.
  * - 쪽 사이에는 쪽 번호와 [반전]·[잇기]. 반전은 그 쪽부터 라이트·다크를 바꾸는 쪽 표시 줄을 넣고 뺀다.
+ *   반전된 자리에서는 넘어오는 결(넘김)도 바로 고른다.
  * - 글을 끌어 고르면 바로 위에 [강조]가, 강조 안을 누르면 [강조 빼기]가 뜬다.
  * 자리는 표시층 글자의 화면 상자로 잰다. 전역 GeulCompose.
  */
@@ -25,7 +26,7 @@
 
   /*
    * box: .ed 요소, ta·mirror: 그 안의 입력창·표시층, ed: GeulEditor.attach가 돌려준 것
-   * ctx: { get() 본문, set(text, sel) 본문 바꾸기, head() 첫 쪽 표시 줄, scene() 처음 장면 이름 }
+   * ctx: { get() 본문, set(text, sel) 본문 바꾸기, head() 첫 쪽 표시 줄, scene() 처음 장면 이름, turn() 기본 넘김 이름 }
    * 돌려주는 것: { draw() 편집창이 다시 그린 뒤 부른다, scroll() 굴릴 때 부른다, nights() 다크 쪽 번호, pages() }
    */
   function mount(box, ta, mirror, ed, ctx) {
@@ -141,7 +142,7 @@
           const a = prev.ln.start + prev.ln.text.length;
           const b = p.ln.start;
           const y = blanks ? (prev.bottom + p.top) / 2 : p.top;
-          const reach = blanks ? Math.max(8, (p.top - prev.bottom) / 2) : 7;
+          const reach = blanks ? Math.max(10, (p.top - prev.bottom) / 2) : 10;
           seams.push({ y, reach, a, b, kind: blanks ? 'para' : 'line' });
           if (blanks && coarse.matches) {
             const cut = el('button', 'cp-cut', '나누기');
@@ -174,6 +175,7 @@
         rev.append(turned ? `반전 · ${sceneWord(pg.scene)}로` : '반전');
         rev.title = first.ln.i === candidate && !turned ? '글을 읽어 보니 여기서 분위기가 바뀌는 것 같아요.' : '이 쪽부터 라이트와 다크를 바꿔요.';
         rev.addEventListener('click', () => {
+          if (!guard(a, b)) return;
           const t = ctx.get();
           const mk = markLn ? S.readMarkLine(markLn.text) : { scene: null, ground: null, turn: null, place: null };
           if (turned) { mk.scene = null; mk.ground = null; mk.turn = null; }
@@ -185,18 +187,52 @@
         join.type = 'button';
         join.title = '나눈 쪽을 다시 이어요.';
         join.addEventListener('click', () => {
+          if (!guard(a, b)) return;
           const t = ctx.get();
           ctx.set(t.slice(0, a) + '\n\n' + t.slice(b));
         });
         const acts = el('span', 'cp-acts');
-        acts.append(rev, join);
+        acts.append(rev);
+        if (turned) {
+          const own = markLn ? S.readMarkLine(markLn.text).turn : null;
+          const sel = el('select', 'cp-turn');
+          sel.setAttribute('aria-label', '넘어오는 결');
+          sel.title = '이 쪽으로 넘어올 때의 결';
+          Object.keys(E.TURNS).filter((n) => n !== '스밈').forEach((n) => {
+            const o = el('option', null, n === (own || ctx.turn()) && !own ? `${n} (기본)` : n);
+            o.value = n;
+            o.selected = n === (own || ctx.turn());
+            sel.append(o);
+          });
+          sel.addEventListener('change', () => {
+            if (!guard(a, b)) return;
+            const t = ctx.get();
+            const mk = markLn ? S.readMarkLine(markLn.text) : { scene: pg.scene === 'night' ? '다크' : '라이트', ground: null, turn: null, place: null };
+            mk.turn = sel.value;
+            ctx.set(t.slice(0, a) + '\n\n\n' + S.markLine(mk) + '\n' + t.slice(b));
+          });
+          acts.append(sel);
+        }
+        acts.append(join);
         div.append(el('span', 'cp-rule'), acts);
         inner.append(div);
       });
       scroll();
     }
 
+    /* 쪽 사이·줄 사이 자리(a~b)에는 빈 줄과 쪽 표시 줄만 있어야 한다. 그 사이 글이 바뀌었으면 다시 그리고 손대지 않는다 */
+    function gapOk(t, a, b) {
+      if (a >= b || b > t.length || t[a] !== '\n' || t[b - 1] !== '\n') return false;
+      return t.slice(a, b).split('\n').every((x) => !x.trim() || E.SCENE_LINE_RE.test(x));
+    }
+    function guard(a, b) {
+      if (gapOk(ctx.get(), a, b)) return true;
+      ed.draw();
+      return false;
+    }
+
     function split(a, b) {
+      if (!guard(a, b)) return;
       const t = ctx.get();
       hideHint();
       ctx.set(t.slice(0, a) + '\n\n\n' + t.slice(b), [a + 3, a + 3]);
@@ -226,7 +262,9 @@
       hintAt = best;
       hint.hidden = false;
       hint.className = 'cp-hint ' + best.kind;
-      hint.style.top = (m.top - box.getBoundingClientRect().top) + best.y - mirror.scrollTop + 'px';
+      const host = box.getBoundingClientRect();
+      hint.style.top = (m.top - host.top) + best.y - mirror.scrollTop + 'px';
+      hint.style.setProperty('--hx', Math.max(0, Math.min(e.clientX - hint.getBoundingClientRect().left + 14, hint.clientWidth - 96)) + 'px');
     }
     box.addEventListener('pointermove', onMove);
     box.addEventListener('pointerleave', hideHint);

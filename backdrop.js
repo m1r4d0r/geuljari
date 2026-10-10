@@ -4,6 +4,8 @@
  * 낮
  *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀐다.
  *   - hanji(한지): 종이 섬유와 닥 펄프 얼룩. 빛이 아주 천천히 비스듬히 지나간다.
+ *   - leaf(잎그늘): 나뭇잎 사이로 드는 볕. 바람에 잎이 흔들리듯 볕 조각이 느리게 일렁인다.
+ *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛과 그 위를 천천히 흐르는 엷은 안개 결.
  * 밤
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
  *   - aurora(오로라): 아랫단이 밝고 위로 갈수록 바래는 빛의 커튼. 결이 세로로 잘게 일렁인다.
@@ -32,6 +34,8 @@
   const KINDS = {
     hanji: { engine: '2d', scale: () => Math.min(2, window.devicePixelRatio || 1) },
     window: { engine: 'gl', scale: () => 0.5 },
+    leaf: { engine: 'gl', scale: () => 0.5 },
+    dawn: { engine: 'gl', scale: () => 0.4 },
     aurora: { engine: 'gl', scale: () => 0.5 },
     projector: { engine: 'gl', scale: () => 0.6 },
     caustic: { engine: 'gl', scale: () => 0.8 }
@@ -88,6 +92,34 @@
         float edge = smoothstep(0.25, 1.15, length(vUv - 0.5) * 1.6);
         float shadeA = 0.045 * (1.0 - light) + 0.035 * edge;
         gl_FragColor = over(warm, vec4(uInk * shadeA, shadeA));
+      }
+    `,
+    leaf: `
+      void main() {
+        float asp = uRes.x / uRes.y;
+        vec2 p = vec2(vUv.x * asp, vUv.y) + uPtr * vec2(0.03, -0.02);
+        float t = uTime * 0.05;
+        vec2 w = vec2(fbm(p * 1.4 + vec2(t, 0.0)), fbm(p * 1.4 + vec2(0.0, t * 0.8) + 5.0));
+        float n = fbm(p * 3.2 + w * 1.6 + vec2(t * 0.6, -t * 0.4));
+        float spots = smoothstep(0.5, 0.66, n) * (0.7 + 0.3 * fbm(p * 0.7 + t * 0.2));
+        float shade = (1.0 - spots) * (0.05 + 0.05 * fbm(p * 1.1 - t * 0.3));
+        vec4 sun = vec4(vec3(1.0, 0.97, 0.86) * spots * 0.32, spots * 0.32);
+        float edge = 0.03 * smoothstep(0.3, 1.2, length(vUv - 0.5) * 1.6);
+        gl_FragColor = over(sun, vec4(uInk * (shade + edge), shade + edge));
+      }
+    `,
+    dawn: `
+      void main() {
+        float asp = uRes.x / uRes.y;
+        vec2 p = vec2(vUv.x * asp, vUv.y);
+        float t = uTime * 0.015;
+        float h = vUv.y + uPtr.y * 0.01;
+        float glow = exp(-h * 2.4);
+        float haze = fbm(vec2(p.x * 0.8 + t, h * 3.0 - t * 0.5));
+        vec3 warm = mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h));
+        float a = glow * (0.30 + 0.14 * haze);
+        float bands = 0.035 * smoothstep(0.45, 0.75, fbm(vec2(p.x * 0.5 - t * 0.7, h * 8.0)));
+        gl_FragColor = over(vec4(warm * a, a), vec4(uInk * bands, bands));
       }
     `,
     aurora: `

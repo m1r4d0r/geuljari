@@ -5,7 +5,9 @@
  * - 효과는 Web Animations(element.animate)로 실행하고, 색 변수는 키프레임에 넣지 않는다.
  *   젖은 잉크 색은 .wet → .drying 클래스로 바꿔 CSS 전환으로 말린다.
  * - 초점 띠: 화면 가운데 줄만 또렷하게. 손끝: 다 쓴 어절에 손대면 다시 젖음.
- * - 퇴장 효과(vanish·scatter)는 글자에 .gone을 붙여 두고 그 위에서 사라지는 움직임만 건다. 움직임이 끝나면 .gone이 남는다.
+ * - 퇴장 효과(vanish·scatter·erase·dim·fold·sink)는 끝 모습 클래스(EXIT_END)를 붙여 두고 그 위에서 물러나는 움직임만 건다.
+ *   움직임이 끝나면 끝 모습이 남는다(사라짐·흩날림·지워짐·가라앉음은 .gone, 희미해짐은 .dimmed, 걷힘은 .folded).
+ * - 꾸밈(굵게·기울임·밑줄·취소선·색)은 글자에 s-b·s-i·s-u·s-s·c-색 클래스로 붙인다. 모양은 glyph.css.
  * - setPace(k): 모든 효과 시간을 1/k로 줄이고 늘인다(조판의 속도).
  * - 문단 하나를 글자 단위로 그리는 일(buildParagraph)도 여기서 해서 읽기 틀과 효과 견본이 똑같이 움직인다.
  * 읽기 틀(reader.js)과 효과 견본(effects.js)이 함께 쓴다.
@@ -99,13 +101,13 @@
       ], { duration: 240, iterations: 16, easing: 'linear' });
     },
 
+    /* 흘러내림: 위에서 천천히 내려와 튀지 않고 자리에 앉는다 */
     fall(el) {
       return animate(el, [
-        { opacity: 0, transform: 'translateY(-.8em)', easing: 'cubic-bezier(.55, 0, 1, .45)' },
-        { opacity: 1, transform: 'translateY(0)', offset: 0.6, easing: 'cubic-bezier(0, .55, .45, 1)' },
-        { opacity: 1, transform: 'translateY(-.07em)', offset: 0.78, easing: 'cubic-bezier(.55, 0, 1, .45)' },
+        { opacity: 0, transform: 'translateY(-.7em)', filter: 'blur(1.5px)' },
+        { opacity: 1, transform: 'translateY(-.12em)', filter: 'blur(0px)', offset: 0.55 },
         { opacity: 1, transform: 'translateY(0)' }
-      ], { duration: 820 });
+      ], { duration: 1300, easing: 'cubic-bezier(.25, .1, .25, 1)' });
     },
 
     /* 타자: 글자는 그냥 나타나고 커서가 뒤를 따라간다. 마지막 글자 뒤 잠시 깜박이다 사라진다. */
@@ -114,34 +116,6 @@
       clearTimeout(caret._off);
       caret._off = setTimeout(() => caret.remove(), 1600);
       return null;
-    },
-
-    /* 고쳐 씀: 먼저 쓴 글자에 줄을 긋고 옅게 만든다 */
-    strike(el) {
-      el.classList.add('struck');
-      return null;
-    },
-
-    /* 벌어짐: 블록이 걸친 줄들이 가운데 줄을 기준으로 위아래로 벌어졌다가 돌아온다 */
-    spread(el, item) {
-      const off = (item.k - (item.n - 1) / 2) * 0.7;
-      return animate(el, [
-        { transform: 'translateY(0)' },
-        { transform: `translateY(${off}em)`, offset: 0.35 },
-        { transform: `translateY(${off}em)`, offset: 0.65 },
-        { transform: 'translateY(0)' }
-      ], { duration: 3600, easing: 'cubic-bezier(.45, 0, .3, 1)' });
-    },
-
-    /* 어긋남: 줄들이 번갈아 좌우로 밀렸다가 돌아온다 */
-    drift(el, item) {
-      const dir = item.k % 2 ? -1 : 1;
-      return animate(el, [
-        { transform: 'translateX(0)', filter: 'blur(0px)' },
-        { transform: `translateX(${dir * 0.7}em)`, filter: 'blur(.6px)', offset: 0.4 },
-        { transform: `translateX(${-dir * 0.35}em)`, offset: 0.7 },
-        { transform: 'translateX(0)', filter: 'blur(0px)' }
-      ], { duration: 3400, delay: item.k * 120, easing: 'ease-in-out' });
     },
 
     /* 사라짐: 옅어지며 흐려지고 살짝 떠서 사라진다 */
@@ -166,6 +140,50 @@
       ], { duration: 1300, easing: 'cubic-bezier(.3, .1, .6, 1)' });
     },
 
+    /* 지워짐: 줄이 그어진 뒤 옅어지며 사라진다 */
+    erase(el) {
+      el.classList.add('gone', 'erasing');
+      return animate(el, [
+        { opacity: 1, textDecorationColor: 'currentColor' },
+        { opacity: 1, offset: 0.4 },
+        { opacity: 0 }
+      ], { duration: 1500, easing: 'ease-in' });
+    },
+
+    /* 희미해짐: 옅어진 채로 남는다(뒤에 오는 글이 앞으로 나선다) */
+    dim(el) {
+      el.classList.add('dimmed');
+      return animate(el, [
+        { opacity: 1, filter: 'blur(0px)' },
+        { opacity: 0.22, filter: 'blur(.6px)' }
+      ], { duration: 1200, easing: 'ease-in-out' });
+    },
+
+    /* 걷힘: 사라지면서 자리도 좁혀, 뒤의 글이 다가와 메운다 */
+    fold(el) {
+      const w = el.getBoundingClientRect().width;
+      if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
+      el.classList.add('folding');
+      const a = animate(el, [
+        { opacity: 1, width: w + 'px' },
+        { opacity: 0, width: w + 'px', offset: 0.45 },
+        { opacity: 0, width: '0px' }
+      ], { duration: 1100, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+      const done = () => { el.classList.add('folded'); el.classList.remove('folding'); };
+      if (a) a.finished.then(done, () => {}); else done();
+      return a;
+    },
+
+    /* 가라앉음: 천천히 아래로 가라앉으며 흐려진다 */
+    sink(el) {
+      el.classList.add('gone');
+      if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
+      return animate(el, [
+        { opacity: 1, transform: 'translateY(0)', filter: 'blur(0px)' },
+        { opacity: 0, transform: 'translateY(.6em)', filter: 'blur(2px)' }
+      ], { duration: 1400, easing: 'cubic-bezier(.45, 0, .55, 1)' });
+    },
+
     /* 조명: 문단의 다른 글자를 어둡게 하고(.lit 글자만 밝게) 얼마 뒤 되돌린다 */
     spot(el) {
       el.classList.add('spot-ready', 'spotlight');
@@ -180,7 +198,7 @@
 
   /*
    * 시간표 재생기. items: [{ el, t(ms), fx, keep?, k?, n? }]
-   * keep이 있는 항목(줄 긋기·줄 움직임·조명)은 글자를 숨기지 않고 그 시각에 효과만 건다.
+   * keep이 있는 항목(퇴장·조명)은 글자를 숨기지 않고 그 시각에 효과만 건다.
    * opts.gate(item)가 false를 돌려주면 그 글자 앞에서 시간을 멈추고, true가 될 때까지 기다렸다가 이어 간다.
    * opts.from(ms)을 주면 그 시각 앞의 글자는 다 쓴 모습으로 바로 놓고 그 시각부터 재생한다.
    * 화면 갱신마다 흐른 시간을 더하되 한 번에 64ms까지만 더해서, 탭이 가려졌다 돌아와도 밀린 글자가 한꺼번에 쏟아지지 않는다.
@@ -247,13 +265,13 @@
     };
   }
 
-  const EXITS = ['vanish', 'scatter'];
+  /* 퇴장 효과마다 끝 모습 */
+  const EXIT_END = { vanish: 'gone', scatter: 'gone', erase: 'gone', sink: 'gone', dim: 'dimmed', fold: 'folded' };
 
-  /* 다 쓴 모습으로 바로 놓는다(줄 그은 글자는 그어진 채로, 퇴장한 글자는 사라진 채로). */
+  /* 다 쓴 모습으로 바로 놓는다(퇴장한 글자는 물러난 채로). */
   function show(items) {
     items.forEach((it) => {
-      if (EXITS.includes(it.fx)) it.el.classList.add('gone');
-      else if (it.fx === 'strike') it.el.classList.add('struck');
+      if (EXIT_END[it.fx]) it.el.classList.add(EXIT_END[it.fx]);
       else if (it.fx === 'spot' || it.fx === 'unspot') it.el.classList.remove('spotlight', 'spot-ready');
       else if (!it.keep) it.el.classList.remove('pending', 'wet', 'drying');
     });
@@ -263,8 +281,7 @@
   /* 쓰기 전 모습으로 되돌린다. */
   function hide(items) {
     items.forEach((it) => {
-      if (EXITS.includes(it.fx)) it.el.classList.remove('gone');
-      else if (it.fx === 'strike') it.el.classList.remove('struck');
+      if (EXIT_END[it.fx]) it.el.classList.remove('gone', 'dimmed', 'folded', 'folding', 'erasing');
       else if (it.fx === 'spot' || it.fx === 'unspot') it.el.classList.remove('spotlight', 'spot-ready');
       else if (!it.keep) { it.el.classList.add('pending'); it.el.classList.remove('wet', 'drying'); }
     });
@@ -272,8 +289,15 @@
 
   /* ---------- 문단 그리기 ---------- */
 
+  /* 글자 꾸밈 클래스 */
+  function decorate(el, c) {
+    if (c.st) for (const k of c.st) el.classList.add('s-' + k);
+    if (c.color) el.classList.add('c-' + c.color);
+  }
+
   /* 엔진이 짠 문단 하나를 inner 안에 줄·어절·글자로 그리고, 재생기에 넘길 항목을 돌려준다.
-     어절 사이는 띄어쓰기를 몇 칸 했든 화면에는 한 칸으로 놓는다(쉬는 시간은 엔진이 이미 반영함). */
+     어절 사이는 띄어쓰기를 몇 칸 했든 화면에는 한 칸으로 놓는다(쉬는 시간은 엔진이 이미 반영함).
+     밑줄·취소선이 앞뒤 어절에 이어지면 사이 칸에도 긋는다. */
   function buildParagraph(para, inner) {
     const items = [];
     const lineEls = [];
@@ -289,6 +313,9 @@
           const sp = document.createElement('span');
           sp.className = 'sp';
           sp.textContent = ' ';
+          const a = line.tokens[ti - 1].cells[line.tokens[ti - 1].cells.length - 1];
+          const b = tk.cells[0];
+          ['u', 's'].forEach((k) => { if (a.st && b.st && a.st.includes(k) && b.st.includes(k)) sp.classList.add('s-' + k); });
           row.append(sp);
         }
         const w = document.createElement('span');
@@ -302,12 +329,11 @@
           s.dataset.a = c.anim;
           if (c.em) s.classList.add('em');
           if (c.cls) s.classList.add(c.cls);
-          if (c.pipe) s.classList.add('after-strike');
+          decorate(s, c);
           s.textContent = c.ch;
           cellEls.set(c, s);
           w.append(s);
           items.push({ el: s, t: c.t, fx: c.anim });
-          if (c.strikeAt != null) items.push({ el: s, t: c.strikeAt, fx: 'strike', keep: true });
         });
         row.append(w);
       });
@@ -323,8 +349,6 @@
       } else if (ev.type === 'spot') {
         items.push({ el: inner, t: ev.t, fx: 'spot', keep: true });
         items.push({ el: inner, t: ev.end, fx: 'unspot', keep: true });
-      } else {
-        ev.lines.forEach((li, k) => items.push({ el: lineEls[li], t: ev.t, fx: ev.type, keep: true, k, n: ev.lines.length }));
       }
     });
     return { items, lineEls };
@@ -361,11 +385,11 @@
     const wetToken = (e) => {
       const tk = e.target.closest && e.target.closest('.tk');
       if (!tk || !root.contains(tk)) return;
-      tk.querySelectorAll('.ch:not(.pending):not(.struck)').forEach((c) => wet(c, 900));
+      tk.querySelectorAll('.ch:not(.pending):not(.gone):not(.dimmed)').forEach((c) => wet(c, 900));
     };
     root.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') wetToken(e); });
     root.addEventListener('pointerdown', wetToken);
   }
 
-  global.GeulFx = { FX, animate, wet, timeline, show, hide, buildParagraph, focusBand, touchable, rnd, setPace };
+  global.GeulFx = { FX, EXIT_END, animate, wet, timeline, show, hide, buildParagraph, decorate, focusBand, touchable, rnd, setPace };
 })(typeof window !== 'undefined' ? window : globalThis);

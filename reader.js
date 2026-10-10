@@ -100,7 +100,8 @@
 
   function buildPages(src) {
     const data = E.pages(E.parse(src.text));
-    stage.textContent = '';
+    /* 무대에는 장만 지운다. 넘김 빛(flip.js가 붙인 바늘·고리 등)은 남겨 둔다 */
+    stage.querySelectorAll('.sheet').forEach((s) => s.remove());
     srBox.textContent = '';
     let prevLayout = null;
     const list = data.map((pg, i) => {

@@ -746,7 +746,7 @@
     c.fillRect(0, 0, w, h);
     vignette(c, w, h, night ? 0.28 : 0.06);
     const ph = Math.round(h * 0.84);
-    const pw = Math.round(Math.min(w * 0.86, Math.max(ph * 0.78, w * 0.5)));
+    const pw = Math.round(Math.min(w * 0.86, Math.max(ph * 0.78, w * 0.62)));
     const x = Math.round((w - pw) / 2);
     const y = Math.round((h - ph) / 2);
     const u = Math.min(w, h) / 630;

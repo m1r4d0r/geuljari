@@ -11,7 +11,7 @@
  * 움직임 줄이기 설정이면 장면마다 차이가 가장 잘 보이는 한 순간에 멈춰 둔다.
  * open({ moods, pick, axis }): moods는 지금 고른 낱말, pick(list)가 있으면 낱말 쪽을 눌러 축마다 하나씩 고르고
  *   고른 것을 다시 누르면 뺀다(GeulPanels.moodGrid와 같은 뜻). axis(축 이름)를 주면 그 장부터 연다. close()로 닫는다.
- * Esc·닫기·바깥 누르기로 닫고, 좌우 방향키로 장을 넘긴다. 닫으면 #mood-look(없으면 열기 전 자리)으로 초점을 돌려준다.
+ * Esc·닫기·바깥 누르기로 닫고, 좌우 방향키로 장을 넘긴다. 닫으면 #mood-look(보이지 않으면 열기 전 자리)으로 초점을 돌려준다.
  * 폰 폭에서는 아래에서 올라오는 판. 전역 GeulLook.
  */
 (function (global) {
@@ -282,7 +282,10 @@
     return out.join(' · ');
   }
 
-  /* 다크 쪽으로 넘김: flip.js의 셔터(가로 살이 한꺼번에 벌어짐)와 조리개(가운데에서 둥글게 열림)를 카드 크기로. 셔터가 아니면 조리개로 그린다 */
+  /*
+   * 다크 쪽으로 넘김: flip.js의 셔터(가로 살이 한꺼번에 벌어짐)와 조리개(가운데에서 둥글게 열림)를 카드 크기로. 셔터가 아니면 조리개로 그린다.
+   * flip.js처럼 모양은 진행값에 곧게 따르고, 움직임의 결은 timing의 곡선(ease)이 정한다.
+   */
   function turn(o, t) {
     const { night, ring, glint, card, tm } = o;
     const p = (t - o.turnAt - tm.lead) / tm.run;
@@ -295,7 +298,7 @@
     night.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
     if (o.mode === 'blinds') {
       const band = Math.max(12, H / 7);
-      const open = (band * e).toFixed(2);
+      const open = (band * q).toFixed(2);
       const mask = moving ? `repeating-linear-gradient(to bottom, #000 0, #000 ${open}px, transparent ${open}px, transparent ${band.toFixed(2)}px)` : '';
       night.style.webkitMaskImage = mask;
       night.style.maskImage = mask;
@@ -305,7 +308,7 @@
       glint.style.opacity = moving ? mid.toFixed(3) : '0';
       ring.style.opacity = '0';
     } else {
-      const R = Math.hypot(W, H) * 0.56 * e;
+      const R = Math.hypot(W, H) * 0.56 * q;
       night.style.clipPath = moving ? `circle(${R.toFixed(1)}px at 50% 50%)` : '';
       night.style.transform = moving ? `scale(${(1.04 - 0.04 * e).toFixed(4)})` : '';
       ring.style.width = ring.style.height = (R * 2).toFixed(1) + 'px';
@@ -584,8 +587,9 @@
     root.hidden = true;
     global.removeEventListener('keydown', onKey, true);
     global.removeEventListener('resize', onResize);
-    const back = doc.getElementById('mood-look') || lastFocus;
-    if (back && typeof back.focus === 'function') back.focus({ preventScroll: true });
+    const shown = (n) => n && n.isConnected && typeof n.focus === 'function' && n.getClientRects().length > 0;
+    const back = [doc.getElementById('mood-look'), lastFocus].find(shown);
+    if (back) back.focus({ preventScroll: true });
   }
 
   global.GeulLook = { open, close };

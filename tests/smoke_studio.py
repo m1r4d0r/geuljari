@@ -5,7 +5,7 @@
 끌어 고르면 강조, 분위기, 주색, 미리보기로 넘기는 글·제목·만든 날·마지막 화면)
 → 미리보기(두 장 번갈아 쓰는 틀, 오른쪽 책갈피, 분위기 판의 주색은 다시 쓰지 않고 바로, 글씨는 다시 쓰지 않고 바로, 움직임은 다시 보기로,
 배경의 바탕·넘김만 보기, 마지막 화면의 배경, 마지막 화면에서 고친 제목 받기,
-글 상자를 눌러 그 자리에서 고치고 굵게·색·효과, 글 상자 끌어 붙이기, 확대, PC·폰·병렬, 숨기기, 쓰는 중 넘기기 막기)
+글 상자를 눌러 그 자리에서 고치고 굵게·색·효과, 글 상자 끌어 붙이기, 확대, PC·폰·병렬, 숨기기, 쓰는 중 첫 넘김은 다 쓰기)
 → 글로 돌아가기 → 심상 살펴보기 페이지를 차례로 밟는다.
 쓰임: python3 tests/smoke_studio.py [찍은 그림을 둘 폴더]   (Playwright Chromium 필요, 포트는 환경 변수 PORT로 바꿀 수 있음)
 """
@@ -314,15 +314,16 @@ try:
                 tabs_open(pg, tag)
                 pg.click('#device [data-device="mobile"]'); pg.wait_for_timeout(300)
 
-            # 숨기기·꺼내기, 쓰는 중 넘기기 막기
+            # 숨기기·꺼내기, 쓰는 중 첫 넘김은 다 쓰기
             tabs_open(pg, tag)
             pg.click('#hide-all'); pg.wait_for_timeout(200)
             print(tag, 'hide all', pg.evaluate("() => [document.getElementById('tabs').hidden, document.getElementById('peek').hidden]"))
             pg.click('#peek'); pg.wait_for_timeout(200)
             fr = pv(pg)
             fr.evaluate("() => window.postMessage({ type: 'geulgyeol:again' }, location.origin)"); pg.wait_for_timeout(500)
+            before = fr.evaluate(written)
             fr.evaluate("() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))"); pg.wait_for_timeout(300)
-            print(tag, 'skip guard', fr.evaluate(written), fr.evaluate("() => document.querySelector('.cue.busy').classList.contains('is-on')"))
+            print(tag, 'skip guard: first press finishes', before, '->', fr.evaluate(written))
             print(tag, 'h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"))
 
             tabs_open(pg, tag)

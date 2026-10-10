@@ -1,9 +1,10 @@
 /*
  * 글결 합본 글 읽기
  * 가리지 않은 원문을 이 브라우저 안에서만 읽어 1차 안의 재료를 만든다. 글은 어디로도 보내지 않는다.
- * 본문 하나가 모든 것을 담는다: 반전은 [[밤]]·[[낮]] 줄, 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
+ * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김), 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
+ * 반전은 장면이 적힌 첫 쪽 표시 줄이다.
  * - 짐작: 심상 낱말, 반전 자리, 남기고 싶은 곳 후보, 문장별 효과 제안.
- * - 고치기: 반전 줄 옮기기, 남기고 싶은 곳 바꾸기, 효과 감싸기·벗기기, 긴 쪽 나누기.
+ * - 고치기: 반전 줄 옮기기, 쪽마다 넘김 정하기, 남기고 싶은 곳 바꾸기, 효과 감싸기·벗기기, 긴 쪽 나누기.
  * 전역 GeulSense.
  */
 (function (global) {
@@ -38,7 +39,11 @@
   const PAGE_MIN = 50;       // 나눈 뒤 한쪽이 이보다 짧아지면 나누지 않는다
   const MARK_RE = /\{\{|\}\}|\[\[|\]\]/;
   const SENT_RE = /[^.?!…。]*[.?!…。]+["'”’」』)\]]*|[^.?!…。]+$/g;
-  const SCENE_RE = /^[^\S\n]*\[\[(밤|낮)(?:[:·]\s*[^\]\n]+)?\]\][^\S\n]*$/;
+  const SCENE_RE = E.SCENE_LINE_RE;
+  const NAMES = (map) => Object.fromEntries(Object.entries(map).map(([k, v]) => [v, k]));
+  const SCENE_NAME = NAMES(E.SCENES);
+  const GROUND_NAME = NAMES(E.GROUNDS);
+  const TURN_NAME = NAMES(E.TURNS);
   const NAME_ALT = E.BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const TOKEN_RE = new RegExp(`\\{\\{(?:(${NAME_ALT}):)?|\\}\\}`, 'g');
 
@@ -249,28 +254,79 @@
     return blocks(text).filter((k) => !k.named).map((k) => text.slice(k.oe, k.cs)).join(' ');
   }
 
-  /* 첫 장면 줄(반전)의 줄 번호. 없으면 null */
+  /* 쪽 표시 줄 → {scene, ground, turn}(한글 이름, 없으면 null) */
+  function readMarkLine(textLine) {
+    const m = textLine.match(SCENE_RE);
+    if (!m) return null;
+    const k = E.readMark(m[1]);
+    return { scene: SCENE_NAME[k.scene] || null, ground: GROUND_NAME[k.ground] || null, turn: TURN_NAME[k.turn] || null };
+  }
+  /* {scene, ground, turn} → 쪽 표시 줄(다 비면 빈 문자열) */
+  function markLine(mk) {
+    const parts = [mk.scene, mk.ground, mk.turn].filter(Boolean);
+    return parts.length ? `[[${parts.join(':')}]]` : '';
+  }
+
+  /* 줄 하나를 바꾼다(빈 문자열이면 그 줄을 지운다) */
+  function setLine(text, ln, next) {
+    const e = ln.start + ln.text.length;
+    if (next) return text.slice(0, ln.start) + next + text.slice(e);
+    return text.slice(0, ln.start) + text.slice(Math.min(text.length, e + 1));
+  }
+
+  /* 반전 줄: 장면이 적힌 첫 쪽 표시 줄의 줄 번호. 없으면 null */
   function turnLine(text) {
-    const l = lines(text).find((x) => x.scene);
+    const l = lines(text).find((x) => x.scene && readMarkLine(x.text).scene);
     return l ? l.i : null;
   }
 
-  /* 반전 줄을 옮긴다. line이 null이면 지우기만. scene은 넣을 장면(밤·낮) */
+  /*
+   * 반전을 line 줄 앞으로 옮긴다. line이 null이면 지우기만. scene은 넣을 장면(밤·낮).
+   * 옛 반전 줄에 넘김이 함께 적혀 있으면 장면만 빼고 넘김은 남긴다. 새 자리가 이미 쪽 표시 줄이면 거기에 장면을 더한다.
+   */
   function setTurn(text, line, scene) {
-    const ls = lines(text);
-    const old = ls.find((x) => x.scene);
-    const target = line != null ? ls[line] : null;
     let t = text;
-    let at = target ? target.start : null;
-    if (old) {
-      const s = old.start;
-      const e = Math.min(text.length, old.start + old.text.length + 1);
-      t = cut(t, s, e);
-      if (at != null && at > s) at -= e - s;
-      if (target && target.i === old.i) at = null;
+    let target = line;
+    const old = turnLine(t);
+    if (old != null) {
+      if (old === target || old + 1 === target) target = target === old ? null : target;
+      const ln = lines(t)[old];
+      const mk = readMarkLine(ln.text);
+      const rest = markLine({ scene: null, ground: null, turn: mk.turn });
+      t = setLine(t, ln, rest);
+      if (!rest && target != null && target > old) target--;
+      if (old + 1 === line && rest) target = old;
     }
-    if (at != null) t = t.slice(0, at) + `[[${scene}]]\n` + t.slice(at);
-    return t;
+    if (target == null) return t;
+    const ls = lines(t);
+    const at = ls[target];
+    if (!at || at.empty) return t;
+    const prevMark = at.scene ? at : (ls[target - 1] && ls[target - 1].scene ? ls[target - 1] : null);
+    if (prevMark) {
+      const mk = readMarkLine(prevMark.text);
+      return setLine(t, prevMark, markLine({ scene, ground: null, turn: mk.turn }));
+    }
+    return t.slice(0, at.start) + `[[${scene}]]\n` + t.slice(at.start);
+  }
+
+  /* 쪽 page(0부터)의 넘김을 정한다. turn이 null이면 그 쪽의 넘김 표시를 걷는다. 첫 쪽은 넘김이 없다. */
+  function setPageTurn(text, page, turn) {
+    if (page < 1) return text;
+    const ls = lines(text);
+    const first = ls.find((l) => !l.empty && l.page === page);
+    if (!first) return text;
+    if (first.scene) {
+      const mk = readMarkLine(first.text);
+      return setLine(text, first, markLine({ scene: mk.scene, ground: mk.ground, turn }));
+    }
+    if (!turn) return text;
+    return text.slice(0, first.start) + `[[${turn}]]\n` + text.slice(first.start);
+  }
+
+  /* 쪽 page(0부터)에 적힌 넘김 이름. 없으면 null */
+  function pageTurn(text, page) {
+    const first = lines(text).find((l) => !l.empty && l.page === page);
+    return first && first.scene ? readMarkLine(first.text).turn : null;
   }
 
   /*
@@ -340,6 +396,6 @@
 
   global.GeulSense = {
     SCENE_RE, lines, sentences, blocks, guessMoods, emphasisCandidates, turnCandidate, suggestions,
-    unwrap, wrap, setFocus, focusText, turnLine, setTurn, autoBreaks, letters
+    unwrap, wrap, setFocus, focusText, readMarkLine, turnLine, setTurn, setPageTurn, pageTurn, autoBreaks, letters
   };
 })(typeof window !== 'undefined' ? window : globalThis);

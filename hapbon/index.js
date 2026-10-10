@@ -1,11 +1,12 @@
 /*
  * 글결 합본 편집실
  * 한 화면, 하나의 본문. 모드만 바뀐다.
- * - 쓰기: 본문과 결 보기(글자는 네모, 쪽·쉼·문단·강조는 표시). 규칙 네 가지는 쓰인 만큼 불이 켜진다.
- * - 묻기: 글 위에 문항을 하나씩 띄운다. 1 결(심상 낱말, 견본 한 줄이 바로 움직임) → 2 반전 줄(글에서 누름)
+ * - 쓰기: 입력창 하나. 쪽·쉼·강조는 편집창 안의 표시(겹줄·빈 네모·물결 밑줄)로 바로 보인다.
+ * - 묻기: 글 위에 문항을 하나씩 띄운다. 1 결(반대말 여섯 쌍에서 하나씩, 견본 한 줄이 바로 움직임) → 2 반전 줄(글에서 누름)
  *   → 3 남기고 싶은 곳(글에서 끌어 고름) → 1차 안을 전체 화면 미리보기로 보여 준다.
  *   처음 묻을 때는 글을 읽어 긴 쪽을 나누고 심상·반전·남길 곳의 짐작을 채워 둔다.
- * - 다듬기: 본문을 그대로 고치며, 고른 자리에 효과를 감싼다. 오른쪽 미리보기는 바뀐 자리부터 다시 쓴다.
+ * - 다듬기: 본문을 그대로 고치며, 고른 자리 바로 위에 뜨는 효과 막대로 효과를 감싸고 바꾼다(고른 자리는 그대로 남는다).
+ *   오른쪽 미리보기는 바뀐 자리부터 다시 쓰고, 쪽마다 넘김을 고를 수 있다.
  * 반전·남길 곳·효과는 모두 본문 안의 표시로 들어가므로 언제든 쓰기·묻기로 돌아가 바꿀 수 있다.
  * 상태는 이 브라우저의 localStorage에만, 미리보기 글과 조판값은 sessionStorage로 read.html에 넘긴다.
  */
@@ -15,8 +16,7 @@
   const G = window.GeulFx;
   const T = window.GeulTune;
   const S = window.GeulSense;
-  const Y = window.GeulGyeol;
-  if (!E || !G || !T || !S || !Y) return;
+  if (!E || !G || !T || !S) return;
 
   const $ = (id) => document.getElementById(id);
   const KEY = 'hapbon.state';
@@ -222,24 +222,9 @@
     }
   }
 
-  /* ---------- 결 보기 ---------- */
-
-  function drawGyeol() {
-    const n = Y.draw($('gyeol'), st.source.trim() ? fullText() : '');
-    const set = (rule, v) => {
-      const r = $('rules').querySelector(`[data-rule="${rule}"]`);
-      r.classList.toggle('on', v > 0);
-      r.querySelector('.n').textContent = v > 0 ? String(v) : '';
-    };
-    set('page', Math.max(0, n.pages - 1));
-    set('rest', n.rests);
-    set('para', n.paras);
-    set('mark', n.marks);
-  }
-
   function countLine() {
     if (!st.source.trim()) return '';
-    T.apply(E, st.settings);
+    T.apply(E, st.settings, G);
     const full = fullText();
     const s = E.stats(full);
     return `${s.withSpaces.toLocaleString('ko-KR')}자 · 원고지 ${(s.withSpaces / 200).toFixed(1)}매 · ${s.pages}쪽 · 약 ${Math.round(s.ms / 1000)}초`;
@@ -250,8 +235,7 @@
     clearTimeout(sideTimer);
     sideTimer = setTimeout(() => {
       $('count').textContent = countLine();
-      if (st.mode !== 'tune') drawGyeol();
-      else drawPageList();
+      if (st.mode === 'tune') drawPageList();
       syncCrumbs();
     }, 120);
   }
@@ -341,7 +325,7 @@
     let t = st.source;
     const ab = S.autoBreaks(t);
     t = ab.text;
-    st.moods = S.guessMoods(t);
+    st.moods = T.oneEach(S.guessMoods(t));
     st.settings = T.fromMoods(st.moods);
     const tl = S.turnCandidate(t, st.settings.scene);
     if (tl != null) t = S.setTurn(t, tl, OPPOSITE[st.settings.scene]);
@@ -374,6 +358,18 @@
     if (n === 1) { drawMoods($('moods'), true); playSample(); }
     if (n === 2) { renderTurn(); scrollToMark('.m-scene'); }
     if (n === 3) { renderFocus(); scrollToMark('.m-em.focus'); }
+    fitAskCard();
+  }
+
+  /* 2·3번 문항은 화면 위에 붙고, 글은 그 아래부터 보이도록 문항 높이만큼 내린다 */
+  function fitAskCard() {
+    requestAnimationFrame(() => {
+      const docked = st.mode === 'ask' && st.askStep > 1;
+      const card = $('ask-card');
+      const top = phone.matches ? 60 : 72;
+      const h = docked ? top + card.offsetHeight - $('work').getBoundingClientRect().top + 12 : 8;
+      document.body.style.setProperty('--ask-h', Math.max(8, Math.round(h)) + 'px');
+    });
   }
 
   $('ask-next').addEventListener('click', () => {
@@ -388,44 +384,48 @@
   /* 1. 결 */
 
   function setMoods(list) {
-    st.moods = list;
+    st.moods = T.oneEach(list);
     st.settings = T.fromMoods(st.moods);
+    T.useFont(document, st.settings);
     fixTurnScene();
     save();
   }
 
-  /* 처음 장면이 바뀌면 반전 줄의 장면도 반대로 맞춘다 */
+  /* 처음 장면이 바뀌면 반전 줄의 장면도 반대로 맞춘다(같은 줄에 적힌 넘김은 그대로) */
   function fixTurnScene() {
     const li = S.turnLine(st.source);
     if (li == null) return;
     const ls = st.source.split('\n');
     const want = OPPOSITE[st.settings.scene];
-    if (ls[li].includes(`[[${want}`)) return;
-    ls[li] = `[[${want}]]`;
+    const mk = S.readMarkLine(ls[li]);
+    if (mk.scene === want) return;
+    ls[li] = '[[' + [want, mk.turn].filter(Boolean).join(':') + ']]';
     setSource(ls.join('\n'), [ta.selectionStart, ta.selectionEnd]);
   }
 
+  /* 심상: 축(반대말 한 쌍)마다 한 줄. 줄 안에서 하나만 고르고, 고른 것을 다시 누르면 뺀다 */
   function drawMoods(box, withNotes) {
     box.textContent = '';
-    T.WORDS.forEach((w) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = w;
-      b.title = T.MOOD[w].note;
-      b.setAttribute('aria-pressed', String(st.moods.includes(w)));
-      b.addEventListener('click', () => {
-        const list = st.moods.slice();
-        const i = list.indexOf(w);
-        if (i >= 0) list.splice(i, 1);
-        else {
-          list.push(w);
-          if (list.length > 3) list.shift();
-        }
-        setMoods(list);
-        if (st.mode === 'ask') { drawMoods($('moods'), true); playSample(); }
-        else { renderTune(); playAt(st.lastStart || startAtCaret()); }
+    T.AXES.forEach((ax) => {
+      const name = document.createElement('span');
+      name.className = 'ax';
+      name.textContent = ax.name;
+      box.append(name);
+      ax.words.forEach((w) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = w;
+        b.title = T.MOOD[w].note;
+        b.setAttribute('aria-pressed', String(st.moods.includes(w)));
+        b.addEventListener('click', () => {
+          const list = st.moods.filter((x) => !ax.words.includes(x));
+          if (!st.moods.includes(w)) list.push(w);
+          setMoods(list);
+          if (st.mode === 'ask') { drawMoods($('moods'), true); playSample(); }
+          else { renderTune(); refreshSide(); playAt(st.lastStart || startAtCaret()); }
+        });
+        box.append(b);
       });
-      box.append(b);
     });
     const mix = box === $('moods') ? $('mix') : $('mix-t');
     mix.textContent = '';
@@ -451,11 +451,10 @@
       const line = E.stripMarks(pick).replace(/\s+/g, ' ').trim().slice(0, 60);
       box.textContent = '';
       if (!line) return;
-      T.apply(E, st.settings);
+      T.apply(E, st.settings, G);
       const para = E.parse(line).paragraphs[0];
       if (!para) return;
-      const fx = T.FLOWS[st.settings.flow];
-      if (fx) para.lines.forEach((l) => l.tokens.forEach((tk) => tk.cells.forEach((c) => { if (c.anim === 'fade' || c.anim === 'soft') c.anim = fx; })));
+      T.flowCells(para, st.settings);
       box.style.setProperty('--dry', T.DRY[st.settings.dry] + 's');
       const inner = document.createElement('div');
       box.append(inner);
@@ -614,12 +613,21 @@
 
   function buildFxbar() {
     const list = $('fx-list');
-    E.BLOCK_NAMES.forEach((n) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.dataset.fx = n;
-      b.textContent = n;
-      list.append(b);
+    Object.entries(E.BLOCK_GROUPS).forEach(([group, names], gi) => {
+      if (gi) {
+        const sep = document.createElement('i');
+        sep.className = 'sep';
+        sep.setAttribute('aria-hidden', 'true');
+        list.append(sep);
+      }
+      names.forEach((n) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.fx = n;
+        b.textContent = n;
+        b.title = group;
+        list.append(b);
+      });
     });
     let busy = false;
     $('fxbar').addEventListener('pointerdown', () => { busy = true; });
@@ -639,30 +647,71 @@
     const blk = blockAtSel();
     const on = (ta.selectionStart !== ta.selectionEnd && document.activeElement === ta) || (!!blk && document.activeElement === ta);
     $('fxbar').hidden = !on;
+    if (on) placeFxbar();
     const cur = blk ? blk.fx : null;
     $('fx-list').querySelectorAll('[data-fx]').forEach((el) => el.setAttribute('aria-pressed', String(el.dataset.fx === cur)));
     $('fx-off').hidden = !blk;
   }
 
+  /* 효과 막대를 고른 자리 첫 글자 바로 위에 띄운다. 위에 자리가 없으면 고른 자리 아래로 */
+  function placeFxbar() {
+    const bar = $('fxbar');
+    const box = rectAt(ta.selectionStart);
+    const ed = $('ed').getBoundingClientRect();
+    if (!box) { bar.style.top = '8px'; return; }
+    const h = bar.offsetHeight || 44;
+    let top = box.top - ed.top - h - 10;
+    if (top < 4) top = rectAt(Math.max(ta.selectionStart, ta.selectionEnd - 1)).bottom - ed.top + 12;
+    bar.style.top = Math.max(4, Math.min(top, ed.height - h - 4)) + 'px';
+  }
+
+  /* 본문 offset 자리 글자의 화면 상자(표시층에서 잰다) */
+  function rectAt(offset) {
+    const walker = document.createTreeWalker(mirror, NodeFilter.SHOW_TEXT);
+    let left = offset;
+    let node;
+    while ((node = walker.nextNode())) {
+      if (left < node.length) {
+        const r = document.createRange();
+        r.setStart(node, left);
+        r.setEnd(node, left + 1);
+        const b = r.getBoundingClientRect();
+        return b.height ? b : null;
+      }
+      left -= node.length;
+    }
+    return null;
+  }
+  ta.addEventListener('scroll', () => { if (!$('fxbar').hidden) placeFxbar(); });
+
+  /*
+   * 고른 자리에 효과를 감싼다. 고른 자리가 이미 블록 안이면 그 블록의 효과만 바꾼다.
+   * 감싼 뒤에도 블록 안 글을 고른 채로 두어 다른 효과를 바로 눌러 바꿀 수 있다.
+   */
   function applyFx(fx) {
     const v = ta.value;
     const blk = blockAtSel();
-    let a = ta.selectionStart;
-    let b = ta.selectionEnd;
+    const a = ta.selectionStart;
+    const b = ta.selectionEnd;
     let next;
-    if (blk && a >= blk.oe && b <= blk.cs) {
-      next = v.slice(0, blk.os) + '{{' + fx + ':' + v.slice(blk.oe);
-      a = blk.os;
-      b = blk.cs + (fx.length + 3 - (blk.oe - blk.os));
+    let sel;
+    if (blk) {
+      const open = '{{' + fx + ':';
+      next = v.slice(0, blk.os) + open + v.slice(blk.oe);
+      const shift = open.length - (blk.oe - blk.os);
+      sel = [blk.os + open.length, blk.cs + shift];
     } else {
       if (a === b) return;
       const r = S.wrap(v, a, b, fx);
       next = r.text;
-      a = r.start;
-      b = r.end;
+      const inner = S.blocks(next).find((k) => k.os >= r.start - 1 && k.os <= r.start + 1) || null;
+      sel = inner ? [inner.oe, inner.cs] : [r.start, r.start];
     }
-    setSource(next, [a, a]);
-    playAt(startAtRange(a, b));
+    setSource(next, sel);
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(sel[0], sel[1]);
+    syncFxbar();
+    playAt(startAtRange(sel[0], sel[1]));
   }
 
   function removeFx() {
@@ -686,14 +735,18 @@
     });
   }
 
-  /* 넘김을 보려면 장면이 바뀌기 바로 앞 쪽의 끝에서 시작한다 */
+  /* 쪽 k의 마지막 몇 어절부터(넘김을 보려면 넘기기 바로 앞에서 시작한다) */
+  function startAtEndOf(k) {
+    const pages = E.pages(E.parse(fullText()));
+    const pg = pages[Math.max(0, Math.min(k, pages.length - 1))];
+    const lines = pg ? pg.paragraphs.flatMap((p) => p.lines) : [];
+    const last = lines[lines.length - 1];
+    return { page: Math.max(0, k), needle: last ? last.tokens.slice(-3).map((t) => t.text).join(' ') : '' };
+  }
   function startBeforeTurn() {
     const pages = E.pages(E.parse(fullText()));
-    const k = pages.findIndex((p, i) => i > 0 && p.scene !== pages[i - 1].scene);
-    if (k < 1) return { page: 0 };
-    const lines = pages[k - 1].paragraphs.flatMap((p) => p.lines);
-    const last = lines[lines.length - 1];
-    return { page: k - 1, needle: last ? last.tokens.slice(-3).map((t) => t.text).join(' ') : '' };
+    const k = pages.findIndex((p, i) => i > 0 && p.scene !== pages[i - 1].scene && !p.turn);
+    return k < 1 ? { page: 0 } : startAtEndOf(k - 1);
   }
 
   function renderTune() {
@@ -711,8 +764,9 @@
     segment($('set-flow'), T.FLOW_NAMES, s.flow, (v) => set('flow', v));
     segment($('set-scene'), Object.keys(T.GROUNDS), s.scene, (v) => set('scene', v, { page: 0 }));
     segment($('set-ground'), T.GROUNDS[s.scene], s.ground, (v) => set('ground', v, { page: 0 }));
-    segment($('set-turn'), T.TURN_NAMES, s.turn, (v) => set('turn', v, startBeforeTurn()));
+    segment($('set-turn'), T.SCENE_TURNS, s.turn, (v) => set('turn', v, startBeforeTurn()));
     segment($('set-dry'), T.DRY_NAMES, s.dry, (v) => set('dry', v));
+    segment($('set-font'), T.FONT_NAMES, s.font, (v) => { set('font', v); T.useFont(document, st.settings); });
     $('set-speed').value = String(Math.round(s.speed * 100));
     $('speed-v').textContent = s.speed.toFixed(2) + '×';
     $('set-rest').value = String(s.rest);
@@ -769,7 +823,7 @@
       const tags = [];
       const prev = pages[i - 1];
       if (i === 0) tags.push({ on: true, name: `${pg.scene === 'night' ? '밤' : '낮'} · ${groundName(pg.ground)}`, why: '처음 장면' });
-      else if (prev.scene !== pg.scene) tags.push({ on: true, name: `${st.settings.turn} → ${pg.scene === 'night' ? '밤' : '낮'} · ${groundName(pg.ground)}`, why: '반전', act: () => playAt({ page: i - 1, needle: '' }) });
+      else if (prev.scene !== pg.scene) tags.push({ on: true, name: `→ ${pg.scene === 'night' ? '밤' : '낮'} · ${groundName(pg.ground)}`, why: '반전', act: () => playAt(startAtEndOf(i - 1)) });
 
       const blocks = [];
       let dripRun = 0;
@@ -836,6 +890,10 @@
       headEl.className = 'pg-head';
       const first = pg.paragraphs[0] && pg.paragraphs[0].lines[0];
       headEl.textContent = first ? first.tokens.map((t) => t.text).join(' ') : '';
+      const top = document.createElement('span');
+      top.className = 'pg-top';
+      top.append(headEl);
+      if (i > 0) top.append(turnSelect(i, pg, prev));
       const tg = document.createElement('span');
       tg.className = 'tags';
       tags.forEach((t) => {
@@ -853,9 +911,32 @@
         el.append(box, t.name, why);
         tg.append(el);
       });
-      li.append(n, headEl, tg);
+      li.append(n, top, tg);
       list.append(li);
     });
+  }
+
+  /* 쪽 i로 들어올 때의 넘김. 비워 두면 장면이 바뀔 때는 조판의 넘김, 같으면 스밈 */
+  function turnSelect(i, pg, prev) {
+    const sel = document.createElement('select');
+    sel.className = 'tsel';
+    sel.setAttribute('aria-label', `${i + 1}쪽으로 넘어갈 때`);
+    const own = S.pageTurn(st.source, i) || '';
+    const auto = pg.scene !== prev.scene ? st.settings.turn : '스밈';
+    [['', `넘김 ${auto}`]].concat(T.TURN_NAMES.map((n) => [n, n])).forEach(([v, label]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = label;
+      o.selected = v === own;
+      sel.append(o);
+    });
+    sel.addEventListener('change', () => {
+      const caret = ta.selectionStart;
+      setSource(S.setPageTurn(st.source, i, sel.value || null), [caret, caret]);
+      playAt(startAtEndOf(i - 1));
+      toast('다음 쪽으로 넘기면 넘김이 보여요.');
+    });
+    return sel;
   }
 
   $('copy-mask').addEventListener('click', () => {
@@ -871,6 +952,7 @@
   /* ---------- 시작 ---------- */
 
   buildFxbar();
+  T.useFont(document, st.settings);
   $('title').value = st.title || '';
   ta.value = st.source;
   drawMirror();

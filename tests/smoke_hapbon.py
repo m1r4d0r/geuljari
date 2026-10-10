@@ -1,7 +1,8 @@
 """글결 합본 스모크.
 저장소 루트를 정적 서버로 띄우고 PC·폰 크기에서
-쓰기(예시 글, 결 보기·규칙 불) → 묻기 1(결·견본 한 줄) → 2(글에서 반전 줄 누르기) → 3(글에서 끌어 남길 곳)
-→ 1차 안(전체 화면 미리보기가 써지는지) → 다듬기(효과 감싸기 뒤 그 자리부터 미리보기, 넘김 바꾸기, 제안 받기)
+쓰기(예시 글, 편집창 표시) → 묻기 1(축마다 하나씩, 견본 한 줄) → 2(글에서 반전 줄 누르기) → 3(글에서 끌어 남길 곳)
+→ 1차 안(전체 화면 미리보기가 써지는지) → 다듬기(효과 감싸기 뒤 그 자리부터 미리보기, 다시 고르지 않고 효과 바꾸기,
+쪽마다 넘김, 글꼴, 제안 받기) → 심상 살펴보기 페이지
 → 긴 쪽에서 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 기다리는지를 차례로 밟는다.
 쓰임: python3 tests/smoke_hapbon.py [찍은 그림을 둘 폴더]   (Playwright Chromium 필요)
 """
@@ -46,8 +47,7 @@ try:
             print(tag, 'empty', repr(pg.evaluate("() => document.getElementById('src').value")), '| title', repr(pg.evaluate("() => document.getElementById('title').value")))
             pg.screenshot(path=str(OUT / f'hb-{tag}-0empty.png'))
             pg.click('#sample'); pg.wait_for_timeout(400)
-            print(tag, 'rules', pg.evaluate("() => [...document.querySelectorAll('.rule')].map(r => r.dataset.rule + (r.classList.contains('on') ? '●' : '○') + r.querySelector('.n').textContent).join(' ')"),
-                  '| gyeol', pg.evaluate("() => [document.querySelectorAll('.g-page').length, document.querySelectorAll('.g-sp.rest').length, document.querySelectorAll('.g-m').length]"))
+            print(tag, 'marks in editor', pg.evaluate("() => ['.m-page','.m-sp'].map(s => s + ':' + document.querySelectorAll(s).length).join(' ')"), '| side shown', pg.evaluate("() => getComputedStyle(document.getElementById('side')).display"))
             pg.screenshot(path=str(OUT / f'hb-{tag}-1write.png'))
 
             pg.click('#go-ask'); pg.wait_for_timeout(900)
@@ -55,10 +55,12 @@ try:
                   '| sample', pg.evaluate("() => document.querySelectorAll('#sample-line .ch:not(.pending)').length + '/' + document.querySelectorAll('#sample-line .ch').length"))
             print(tag, '  prepared', pg.evaluate("() => { const v = document.getElementById('src').value; return [(v.match(/\\[\\[/g)||[]).length, (v.match(/\\{\\{/g)||[]).length]; }"), '| toast', pg.text_content('#toast'))
             pg.screenshot(path=str(OUT / f'hb-{tag}-2q1.png'))
-            pg.click('#moods button:nth-child(9)'); pg.wait_for_timeout(300)
-            print(tag, '  mix', pg.text_content('#mix'))
+            pg.locator('#moods button', has_text='새벽').click(); pg.wait_for_timeout(200)
+            pg.locator('#moods button', has_text='한낮').click(); pg.wait_for_timeout(200)
+            pg.locator('#moods button', has_text='새벽').click(); pg.wait_for_timeout(300)
+            print(tag, '  axes one each', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"), '| mix', pg.text_content('#mix'))
             pg.click('#ask-next'); pg.wait_for_timeout(500)
-            print(tag, 'Q2', pg.text_content('#turn-line'))
+            print(tag, 'Q2', pg.text_content('#turn-line'), '| card top', pg.evaluate("() => Math.round(document.getElementById('ask-card').getBoundingClientRect().top)"), '| seg ok', pg.evaluate("() => [...document.querySelectorAll('#turn-seg button')].every(b => b.scrollWidth <= b.clientWidth + 1)"))
             # 글에서 "그리고 잉크" 줄을 누른다
             pg.evaluate("""() => { const t = document.getElementById('src'); const i = t.value.indexOf('그리고 잉크'); t.focus(); t.setSelectionRange(i + 2, i + 2); t.dispatchEvent(new PointerEvent('pointerup')); }""")
             pg.wait_for_timeout(300)
@@ -80,8 +82,11 @@ try:
             pg.evaluate("""() => { const t = document.getElementById('src'); const i = t.value.indexOf('잘 지내냐고'); t.focus(); t.setSelectionRange(i, i + 30); document.dispatchEvent(new Event('selectionchange')); }""")
             pg.wait_for_timeout(200)
             print(tag, 'tune fxbar', not pg.evaluate("() => document.getElementById('fxbar').hidden"))
+            print(tag, '  fxbar above selection', pg.evaluate("() => { const b = document.getElementById('fxbar').getBoundingClientRect(); return Math.round(b.top) + '..' + Math.round(b.bottom); }"))
             pg.click('#fx-list [data-fx="떨림"]'); pg.wait_for_timeout(300)
             print(tag, '  wrapped', '{{떨림:잘 지내냐고' in pg.evaluate("() => document.getElementById('src').value"), '| where', pg.text_content('#pv-where'))
+            pg.click('#fx-list [data-fx="사라짐"]'); pg.wait_for_timeout(300)
+            print(tag, '  switched without re-drag', '{{사라짐:잘 지내냐고' in pg.evaluate("() => document.getElementById('src').value"), '| pressed', pg.evaluate("() => [...document.querySelectorAll('#fx-list [aria-pressed=true]')].map(b => b.dataset.fx)"))
             if tag == 'phone':
                 pg.click('#tabs [data-tab="look"]'); pg.wait_for_timeout(300)
             pg.wait_for_timeout(2500)
@@ -90,6 +95,10 @@ try:
             if tag == 'phone':
                 pg.click('#tabs [data-tab="set"]'); pg.wait_for_timeout(200)
             pg.click('#set-turn button:nth-child(2)'); pg.wait_for_timeout(300)
+            pg.locator('#set-font button', has_text='함렛').click(); pg.wait_for_timeout(300)
+            print(tag, '  font', pg.evaluate("() => getComputedStyle(document.getElementById('mirror')).fontFamily.split(',')[0]"))
+            pg.select_option('#pagelist li:nth-child(2) select', '깨짐'); pg.wait_for_timeout(400)
+            print(tag, '  page turn', pg.evaluate("() => document.getElementById('src').value.split('\\n').filter(l => l.startsWith('[[')).join(' ')"), '| where', pg.text_content('#pv-where'))
             print(tag, '  turn set', pg.text_content('#toast'), '| tags', pg.evaluate("() => document.querySelectorAll('#pagelist .tag').length"), 'sugg', pg.evaluate("() => [...document.querySelectorAll('#pagelist .tag')].filter(t => !t.querySelector('.box.on')).length"))
             sug = pg.locator('#pagelist button.tag:not(:has(.box.on))').first
             if sug.count():
@@ -106,6 +115,10 @@ try:
             pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
             print(tag, 'esc closes', pg.evaluate("() => document.getElementById('pv-layer').hidden"))
             print(tag, 'h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"), '| mirror=input', pg.evaluate("() => document.getElementById('mirror').scrollHeight === document.getElementById('src').scrollHeight"))
+            pg.goto(f'http://127.0.0.1:{PORT}/hapbon/simsang.html'); pg.wait_for_timeout(500)
+            pg.click('.axis:nth-child(2) .tile:nth-of-type(1)'); pg.wait_for_timeout(1500)
+            print(tag, 'simsang tiles', pg.evaluate("() => document.querySelectorAll('.tile').length"), '| playing', pg.evaluate("() => document.querySelectorAll('.tile.on .ch:not(.pending)').length + '/' + document.querySelectorAll('.tile.on .ch').length"))
+            pg.screenshot(path=str(OUT / f'hb-{tag}-8simsang.png'), full_page=True)
             ctx.close()
         b.close()
 finally:

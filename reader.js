@@ -8,7 +8,7 @@
  * 글이 화면보다 긴 장은 안에서 위아래로 스크롤되고, 그때만 화면 가운데 줄이 또렷한 초점 띠가 켜진다.
  * 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 거기서 기다린다. 읽는 사람이 내리면 이어 쓴다.
  * 휠은 조금 굴리면 넘김이 걸리고, 걸린 뒤로는 손을 멈출 때까지 더 굴러도 한 장만 휙 넘긴다.
- * window.GeulReaderOpts.turn으로 장면이 바뀔 때의 넘김(sweep·iris·blinds·curtain)을 고른다.
+ * 쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(기본 쓸기), 같으면 스밈.
  * 미리 보기로 열렸을 때 sessionStorage의 geulgyeol.start({page, needle})가 있으면 그 장의 그 글귀 조금 앞부터 쓴다.
  * 길게 누르면 그 줄에 머물러 나머지가 가라앉고 바탕도 느려진다. 다 쓴 어절에 손을 대면 잠깐 다시 젖는다.
  */
@@ -34,7 +34,7 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   const OPTS = window.GeulReaderOpts || {};
-  const TURN = ['sweep', 'iris', 'blinds', 'curtain'].includes(OPTS.turn) ? OPTS.turn : 'sweep';
+  const TURN = Object.values(E.TURNS).includes(OPTS.turn) && OPTS.turn !== 'drift' ? OPTS.turn : 'sweep';
   const PARA_GAP = 650;       // 한 장 안에서 문단과 문단 사이(ms)
   const WHEEL_KICK = 40;      // 휠을 이만큼(px) 굴리면 넘김이 걸린다
   const WHEEL_REST = 260;     // 휠이 이만큼 멈추면 다음 넘김을 받는다
@@ -132,7 +132,7 @@
       stage.append(sheet);
       B.mount(sheet, pg.ground);
 
-      const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, state: 'idle', tl: null, start: 0, fits: true, held: false };
+      const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, turn: pg.turn, state: 'idle', tl: null, start: 0, fits: true, held: false };
       P.lines = [...column.querySelectorAll('.ln')];
       scroll.addEventListener('scroll', () => { if (P === pages[S.cur]) band(); }, { passive: true });
       return P;
@@ -255,11 +255,17 @@
       const b = pages[Math.min(N - 1, i + 1)];
       if (writing(a)) finish(a);
       if (writing(b) && b === pages[S.cur]) finish(b);
-      const mode = a.scene !== b.scene ? TURN : 'drift';
+      const mode = modeOf(a, b);
       flip.begin(a.el, b.el, mode, 1, axis || S.axis || 'x');
       flip.render(f, light);
       B.setActive([a.el, b.el], keepAround(i).concat(keepAround(i + 1)));
     }
+  }
+
+  /* a 장에서 b 장으로 넘어갈 때의 넘김(되돌아갈 때도 같은 넘김을 거꾸로 돌린다) */
+  function modeOf(a, b) {
+    if (b.turn) return b.turn;
+    return a.scene !== b.scene ? TURN : 'drift';
   }
 
   /* 장 k에 멈췄다. from을 주면 그 시각부터 쓴다 */
@@ -307,7 +313,7 @@
     if (!S.on || reduce.matches) { spring.set(to); land(to); return; }
     const from = S.pos;
     const lo = Math.min(from, to);
-    const sweep = pages[Math.floor(lo)].scene !== pages[Math.min(N - 1, Math.floor(lo) + 1)].scene;
+    const sweep = modeOf(pages[Math.floor(lo)], pages[Math.min(N - 1, Math.floor(lo) + 1)]) !== 'drift';
     if (!sweep) {
       tw = M.tween(from, to, 760, M.ease.inOut, (x) => render(x), () => { tw = null; spring.set(to); land(to); });
       return;

@@ -17,7 +17,6 @@
 <script src="../sample.js" defer></script>
 <script src="tune.js" defer></script>
 <script src="sense.js" defer></script>
-<script src="gyeol.js" defer></script>
 <script src="index.js" defer></script>
 </head>
 <body data-mode="write">
@@ -58,27 +57,15 @@
     <div class="ed" id="ed">
       <div class="ed-mirror" id="mirror" aria-hidden="true"></div>
       <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
-        placeholder="여기에 글을 놓아 주세요.&#10;&#10;빈 줄 둘은 새 쪽, 띄어쓰기 두 번은 쉼이 돼요."></textarea>
-    </div>
-    <div class="fxbar" id="fxbar" role="group" aria-label="효과" hidden>
-      <span class="k">고른 자리</span>
-      <span class="fx-list" id="fx-list"></span>
-      <button type="button" class="link" id="fx-off">빼기</button>
+        placeholder="여기에 글을 놓아 주세요.&#10;&#10;빈 줄 둘은 새 쪽, 띄어쓰기 두 번은 쉼, 빈 줄 하나는 문단 사이가 돼요."></textarea>
+      <div class="fxbar" id="fxbar" role="group" aria-label="효과" hidden>
+        <span class="fx-list" id="fx-list"></span>
+        <button type="button" class="link" id="fx-off">빼기</button>
+      </div>
     </div>
   </section>
 
   <aside class="side" id="side">
-
-    <!-- 쓰기: 결 보기 -->
-    <section class="pane gyeol-pane" data-for="write" aria-label="결">
-      <div class="rules" id="rules">
-        <span class="rule" data-rule="page"><i class="sw sw-page"></i>빈 줄 둘<b>새 쪽</b><em class="n"></em></span>
-        <span class="rule" data-rule="rest"><i class="sw sw-rest"></i>띄어쓰기 두 번<b>쉼</b><em class="n"></em></span>
-        <span class="rule" data-rule="para"><i class="sw sw-para"></i>빈 줄 하나<b>문단</b><em class="n"></em></span>
-        <span class="rule" data-rule="mark"><i class="sw sw-mark"></i>끌어서 고르기<b>강조</b><em class="n"></em></span>
-      </div>
-      <div class="gyeol" id="gyeol" aria-label="글의 결: 글자는 네모로, 쪽과 쉼은 표시로"></div>
-    </section>
 
     <!-- 다듬기: 미리보기와 조판 -->
     <section class="pane look-pane" data-for="tune" data-tab="look" aria-label="미리보기">
@@ -92,8 +79,8 @@
 
     <section class="pane set-pane" data-for="tune" data-tab="set" aria-label="조판">
       <div class="ctl">
-        <span class="ctl-name">결</span>
-        <div class="moods small" id="moods-t"></div>
+        <span class="ctl-name split"><span>결</span><a class="link small" href="simsang.html">낱말 하나씩 살펴보기</a></span>
+        <div class="moods" id="moods-t"></div>
         <p class="mix" id="mix-t"></p>
       </div>
       <div class="ctl"><span class="ctl-name">흐름</span><div class="seg wide" role="group" aria-label="흐름" id="set-flow"></div></div>
@@ -101,7 +88,8 @@
         <div class="ctl"><span class="ctl-name">처음 장면</span><div class="seg" role="group" aria-label="처음 장면" id="set-scene"></div></div>
         <div class="ctl"><span class="ctl-name">바탕</span><div class="seg wide" role="group" aria-label="바탕" id="set-ground"></div></div>
       </div>
-      <div class="ctl"><span class="ctl-name">넘김</span><div class="seg wide" role="group" aria-label="넘김" id="set-turn"></div></div>
+      <div class="ctl"><span class="ctl-name">장면이 바뀔 때 넘김</span><div class="seg wide grid4" role="group" aria-label="장면이 바뀔 때 넘김" id="set-turn"></div></div>
+      <div class="ctl"><span class="ctl-name">글꼴</span><div class="seg wide" role="group" aria-label="글꼴" id="set-font"></div></div>
       <div class="ctl">
         <label class="ctl-name split" for="set-speed"><span>쓰는 속도</span><span class="k" id="speed-v"></span></label>
         <input type="range" id="set-speed" min="50" max="160" step="5">
@@ -148,6 +136,7 @@
       <p class="notes" id="notes"></p>
       <p class="mix" id="mix"></p>
       <div class="sample" id="sample-line" aria-label="견본"></div>
+      <a class="link small" href="simsang.html">낱말 하나씩 살펴보기</a>
     </div>
 
     <div class="q" data-q="2">

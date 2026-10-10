@@ -11,6 +11,7 @@
 .ch[data-a="rise"], .ch[data-a="focus"], .ch[data-a="gather"], .ch[data-a="tremble"], .ch[data-a="fall"] { display: inline-block; }
 .ch.em { font-weight: 520; letter-spacing: .02em; }
 .ch.fx-big { font-family: var(--f-display); font-weight: 400; font-size: 1.9em; line-height: 1.25; letter-spacing: .04em; }
+.ch.gone { opacity: 0; }
 .ch.struck { text-decoration: line-through; text-decoration-thickness: 1px; opacity: .4; transition: opacity .8s ease; }
 .ch.after-strike { margin-left: .3em; }
 .spot-ready .ch { transition: opacity .9s ease; }

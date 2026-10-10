@@ -32,7 +32,8 @@
     dripBefore: 380,
     dripChar: 260,
     dripAfter: 380,
-    restPerSpace: 320       // 띄어쓰기 두 번째 칸부터 한 칸마다
+    restPerSpace: 320,      // 띄어쓰기 두 번째 칸부터 한 칸마다
+    exitStagger: 45         // 퇴장 블록에서 글자 사이
   };
 
   /*
@@ -54,7 +55,16 @@
     '숨가쁨': { fx: 'fade', before: 150, char: 'rush', group: 'rush', line: 40, after: 300 },
     '벌어짐': { fx: 'fade', lines: 'spread', before: 300, char: 40, group: 40, line: 160, after: 800 },
     '어긋남': { fx: 'fade', lines: 'drift', before: 300, char: 40, group: 40, line: 160, after: 800 },
-    '고쳐 씀': { fx: 'fade', rewrite: true, before: 300, char: 45, group: 45, line: 200, after: 500 }
+    '고쳐 씀': { fx: 'fade', rewrite: true, before: 300, char: 45, group: 45, line: 200, after: 500 },
+    '사라짐': { fx: 'fade', exit: 'vanish', hold: 1600, before: 400, char: 70, group: 140, line: 300, after: 300 },
+    '흩날림': { fx: 'fade', exit: 'scatter', hold: 1300, before: 400, char: 70, group: 140, line: 300, after: 300 }
+  };
+  /* 블록 갈래(편집실이 효과 막대를 나눌 때 씀). docs/효과-규칙.md */
+  const BLOCK_GROUPS = {
+    '등장': ['떠오름', '번짐', '타자', '초점', '모여듦', '크게'],
+    '머묾': ['떨림', '흘러내림', '벌어짐', '어긋남', '숨가쁨', '조명'],
+    '고침': ['고쳐 씀'],
+    '퇴장': ['사라짐', '흩날림']
   };
   const BLOCK_DEFAULT = '떠오름';
   const BLOCK_NAMES = Object.keys(BLOCKS);
@@ -66,22 +76,34 @@
   /* 글자가 다 자리 잡을 때까지 걸리는 시간(ms) */
   const SETTLE = { fade: 700, soft: 1000, rise: 2000, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 4000, fall: 820 };
   /* 글자가 다 나타날 때까지 걸리는 시간(ms). 다음 글은 앞 글자가 다 나타난 뒤에 온다. 떨림은 나타난 뒤에도 흔들리므로 나타나는 데까지만 센다. */
-  const ENTER = { fade: 700, soft: 1000, rise: 750, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 820 };
+  const ENTER = { fade: 700, soft: 1000, rise: 750, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 820, vanish: 1100, scatter: 1300 };
   const AFTER_GAP = 120;
 
   const MASK = '■';
   const EM_OPEN = '{{';
   const EM_CLOSE = '}}';
-  /* 장면 표시: [[밤]]·[[낮]], 바탕을 고르려면 [[밤:오로라]]처럼 이름을 붙인다 */
+  /*
+   * 쪽 표시 줄: 장면(밤·낮)·바탕·넘김을 :로 이어 적는다. [[밤]] · [[밤:오로라]] · [[밤:영사광:깨짐]] · [[조리개]]
+   * 이 줄에서 새 쪽이 시작되고, 적지 않은 것은 앞 쪽을 따른다(장면이 바뀌고 바탕이 없으면 그 장면의 기본 바탕).
+   */
   const SCENES = { '밤': 'night', '낮': 'day' };
   const GROUNDS = { '창빛': 'window', '한지': 'hanji', '영사광': 'projector', '오로라': 'aurora', '물빛': 'caustic' };
+  const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '깨짐': 'shatter', '섬광': 'flash' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };
-  const GROUND_ALT = Object.keys(GROUNDS).join('|');
-  const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(밤|낮)(?:[:·]\\s*(${GROUND_ALT}))?\\]\\][^\\S\\n]*$`);
-  const SCENE_LINES_RE = new RegExp(`^[^\\S\\n]*\\[\\[(?:밤|낮)(?:[:·]\\s*(?:${GROUND_ALT}))?\\]\\][^\\S\\n]*$`, 'gm');
+  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS)].join('|');
+  const MARK_BODY = `(?:${MARK_WORD})(?:\\s*[:·]\\s*(?:${MARK_WORD}))*`;
+  const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(${MARK_BODY})\\]\\][^\\S\\n]*$`);
+  const SCENE_LINES_RE = new RegExp(`^[^\\S\\n]*\\[\\[${MARK_BODY}\\]\\][^\\S\\n]*$`, 'gm');
+
+  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn}으로 읽는다(없는 것은 null) */
+  function readMark(body) {
+    const parts = String(body).split(/\s*[:·]\s*/);
+    const pick = (map) => { const k = parts.find((x) => map[x]); return k ? map[k] : null; };
+    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS) };
+  }
   const NAME_ALT = BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const PREFIX_RE = new RegExp(`^(${NAME_ALT}):`);
-  const MARKS_RE = new RegExp(`(\\{\\{(?:${NAME_ALT}):|\\{\\{|\\}\\}|\\[\\[(?:밤|낮)(?:[:·]\\s*(?:${GROUND_ALT}))?\\]\\]|\\|)`);
+  const MARKS_RE = new RegExp(`(\\{\\{(?:${NAME_ALT}):|\\{\\{|\\}\\}|\\[\\[${MARK_BODY}\\]\\]|\\|)`);
 
   const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter)
     ? new Intl.Segmenter('ko', { granularity: 'grapheme' })
@@ -280,8 +302,19 @@
     let unitBreak = false;
     let emEnd = 0;          // 강조 글자가 다 나타나는 가장 늦은 시각
     let flowEnd = 0;        // 보통 글자가 다 나타나는 가장 늦은 시각
-    /* 블록에서 빠져나올 때: 블록의 뒤 뜸만큼 쉬되, 블록 글자가 다 나타나기 전에는 다음 글을 시작하지 않는다 */
-    const leave = (fx) => { t = Math.max(t + BLOCKS[fx].after, emEnd + AFTER_GAP); };
+    /*
+     * 블록에서 빠져나올 때: 블록의 뒤 뜸만큼 쉬되, 블록 글자가 다 나타나기 전에는 다음 글을 시작하지 않는다.
+     * 퇴장 블록은 다 나타난 뒤 hold만큼 머물고 사라진다. 다음 글은 다 사라진 뒤에 온다.
+     */
+    const leave = (pc) => {
+      const cfg = BLOCKS[pc.fx];
+      const B = blocks[pc.block];
+      if (cfg.exit && B && B.exitAt == null) {
+        B.exitAt = emEnd + cfg.hold;
+        emEnd = B.exitAt + B.cells.length * TIME.exitStagger + ENTER[cfg.exit];
+      }
+      t = Math.max(t + cfg.after, emEnd + AFTER_GAP);
+    };
 
     para.lines.forEach((line, li) => {
       const cells = line.tokens.flatMap((tk) => tk.cells);
@@ -314,13 +347,13 @@
                        (tk.afterRest && j < EASE_OUT_OF_REST.length ? EASE_OUT_OF_REST[j] : 1);
           const cfg = em ? BLOCKS[c.fx] : null;
           if (em && (!prev || prev.block !== c.block)) {
-            if (prev) leave(prev.fx);
+            if (prev) leave(prev);
             t = Math.max(t + cfg.before, flowEnd);
             bi = 0;
             unitBreak = false;
-            blocks[c.block] = { cfg, start: t, end: t, lines: [], old: [] };
+            blocks[c.block] = { cfg, start: t, end: t, lines: [], old: [], cells: [] };
           } else if (!em && prev) {
-            leave(prev.fx);
+            leave(prev);
           } else if (em && cfg.unit && unitBreak && tk.letters > 0) {
             t += cfg.unitGap;
           }
@@ -347,6 +380,7 @@
             const B = blocks[c.block];
             B.end = c.t;
             if (!B.lines.includes(li)) B.lines.push(li);
+            B.cells.push(c);
             if (cfg.rewrite && !c.part) B.old.push(c);
           } else if (short) t += TIME.shortChar * (nearRest ? slow : 1);
           else { t += rate * (1 + TIME.flowEase * Math.exp(-flowIndex / 5)) * (nearRest ? slow : 1); flowIndex++; }
@@ -368,7 +402,7 @@
 
       if (short && !lastEm) t += TIME.shortAfter;
     });
-    if (prev) leave(prev.fx);
+    if (prev) leave(prev);
 
     para.events = [];
     Object.values(blocks).forEach((B) => {
@@ -378,6 +412,10 @@
         end = Math.max(end, B.end + 3600);
       }
       if (B.cfg.lines) end = Math.max(end, B.start + 3800);
+      if (B.cfg.exit && B.exitAt != null) {
+        para.events.push({ type: 'exit', fx: B.cfg.exit, t: Math.round(B.exitAt), cells: B.cells });
+        end = Math.max(end, B.exitAt + B.cells.length * TIME.exitStagger + ENTER[B.cfg.exit]);
+      }
     });
     para.lead = Math.round(t);
     para.span = Math.round(end);
@@ -410,9 +448,10 @@
       rawLines.forEach((rl) => {
         const m = rl.map((c) => c.ch).join('').match(SCENE_LINE_RE);
         if (m) {
-          scene = SCENES[m[1]];
-          ground = m[2] ? GROUNDS[m[2]] : null;
-          rows.push({ sceneMark: scene, ground, text: m[0].trim() });
+          const mk = readMark(m[1]);
+          scene = mk.scene;
+          ground = mk.ground;
+          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, text: m[0].trim() });
           return;
         }
         const line = parseLine(rl);
@@ -433,8 +472,8 @@
   }
 
   /*
-   * 문단을 페이지로 묶는다. 페이지마다 장면(day·night)과 바탕(ground)을 정한다.
-   * 장면 표시가 없으면 앞 페이지의 장면과 바탕을 이어받고, 표시에 바탕 이름이 없으면 그 장면의 기본 바탕을 쓴다.
+   * 문단을 페이지로 묶는다. 페이지마다 장면(day·night)·바탕(ground)·이 쪽으로 들어올 때의 넘김(turn, 없으면 null)을 정한다.
+   * 쪽 표시가 없으면 앞 페이지의 장면과 바탕을 이어받고, 장면을 바꾸며 바탕 이름이 없으면 그 장면의 기본 바탕을 쓴다.
    */
   function pages(parsed) {
     const out = [];
@@ -444,18 +483,22 @@
     let pending = null;
     parsed.paragraphs.forEach((para) => {
       const mark = para.rows.filter((r) => r.sceneMark).pop();
-      if (mark) pending = { scene: mark.sceneMark, ground: mark.ground };
+      if (mark) pending = { scene: mark.scene, ground: mark.ground, turn: mark.turn };
       if (para.sceneOnly) {
         if (cur && cur.paragraphs.length) cur = null;
         return;
       }
       if (!cur || para.pageStart || mark) {
+        let turn = null;
         if (pending) {
-          scene = pending.scene;
-          ground = pending.ground || DEFAULT_GROUND[scene];
+          if (pending.scene) {
+            ground = pending.ground || (pending.scene !== scene ? DEFAULT_GROUND[pending.scene] : ground);
+            scene = pending.scene;
+          } else if (pending.ground) ground = pending.ground;
+          turn = pending.turn;
           pending = null;
         }
-        cur = { paragraphs: [], scene, ground, count: 0 };
+        cur = { paragraphs: [], scene, ground, turn, count: 0 };
         out.push(cur);
       }
       cur.paragraphs.push(para);
@@ -506,8 +549,8 @@
   }
 
   global.Geulgyeol = {
-    RULES, TIME, SETTLE, BLOCKS, BLOCK_NAMES, BLOCK_DEFAULT, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
-    GROUNDS, DEFAULT_GROUND,
+    RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
+    SCENES, GROUNDS, TURNS, DEFAULT_GROUND, SCENE_LINE_RE, readMark,
     graphemes, isPunct, trimSource, stripMarks, parse, pages, stats, mask
   };
 })(typeof window !== 'undefined' ? window : globalThis);

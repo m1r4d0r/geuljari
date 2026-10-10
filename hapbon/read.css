@@ -1,11 +1,11 @@
 /* 글결 합본 읽기 틀
-   루트 reader.css 위에 덮는다. 본문은 송명, 조작은 노토 산스.
+   루트 reader.css 위에 덮는다. 본문은 조판에서 고른 글꼴(--f-read, 기본 송명), 조작은 노토 산스.
    낮 장면의 먹은 복사지의 남보라이고, 젖은 글자는 옅은 남보라로 나와 마르며 진해진다.
    마르는 시간(--dry)은 read.js가 조판값에서 정한다. */
 
 :root {
   --f-display: 'Song Myung', 'Noto Serif KR', serif;
-  --f-body: 'Song Myung', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Batang', serif;
+  --f-body: var(--f-read, 'Song Myung'), 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Batang', serif;
 }
 
 [data-scene="day"] {

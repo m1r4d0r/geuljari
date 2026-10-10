@@ -5,6 +5,8 @@
  * - 효과는 Web Animations(element.animate)로 실행하고, 색 변수는 키프레임에 넣지 않는다.
  *   젖은 잉크 색은 .wet → .drying 클래스로 바꿔 CSS 전환으로 말린다.
  * - 초점 띠: 화면 가운데 줄만 또렷하게. 손끝: 다 쓴 어절에 손대면 다시 젖음.
+ * - 퇴장 효과(vanish·scatter)는 글자에 .gone을 붙여 두고 그 위에서 사라지는 움직임만 건다. 움직임이 끝나면 .gone이 남는다.
+ * - setPace(k): 모든 효과 시간을 1/k로 줄이고 늘인다(조판의 속도).
  * - 문단 하나를 글자 단위로 그리는 일(buildParagraph)도 여기서 해서 읽기 틀과 효과 견본이 똑같이 움직인다.
  * 읽기 틀(reader.js)과 효과 견본(effects.js)이 함께 쓴다.
  */
@@ -16,9 +18,15 @@
   const caret = typeof document !== 'undefined' ? document.createElement('span') : null;
   if (caret) caret.className = 'caret';
 
+  let pace = 1;
+  function setPace(k) { pace = k > 0 ? k : 1; }
+
   function animate(el, frames, opts) {
     if (!canAnimate) return null;
-    try { return el.animate(frames, Object.assign({ fill: 'none' }, opts)); } catch (e) { return null; }
+    const o = Object.assign({ fill: 'none' }, opts);
+    if (o.duration) o.duration /= pace;
+    if (o.delay) o.delay /= pace;
+    try { return el.animate(frames, o); } catch (e) { return null; }
   }
 
   function wet(el, hold) {
@@ -29,7 +37,7 @@
       el.classList.add('drying');
       el.classList.remove('wet');
       el._dry = setTimeout(() => el.classList.remove('drying'), 2000);
-    }, hold || 1400);
+    }, (hold || 1400) / pace);
   }
 
   /* 글자 하나(또는 줄 하나)에 거는 효과. 돌려주는 값은 Animation(없으면 null). */
@@ -136,6 +144,28 @@
       ], { duration: 3400, delay: item.k * 120, easing: 'ease-in-out' });
     },
 
+    /* 사라짐: 옅어지며 흐려지고 살짝 떠서 사라진다 */
+    vanish(el) {
+      el.classList.add('gone');
+      return animate(el, [
+        { opacity: 1, filter: 'blur(0px)', transform: 'translateY(0)' },
+        { opacity: 0, filter: 'blur(3px)', transform: 'translateY(-.18em)' }
+      ], { duration: 1100, easing: 'cubic-bezier(.4, 0, .6, 1)' });
+    },
+
+    /* 흩날림: 글자마다 바람에 날리듯 옆으로 흩어지며 사라진다 */
+    scatter(el) {
+      el.classList.add('gone');
+      const x = rnd(1.4, 3.6);
+      const y = rnd(-1.4, 0.5);
+      const r = rnd(-60, 60);
+      if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
+      return animate(el, [
+        { opacity: 1, transform: 'translate(0, 0) rotate(0deg)' },
+        { opacity: 0, transform: `translate(${x}em, ${y}em) rotate(${r}deg)` }
+      ], { duration: 1300, easing: 'cubic-bezier(.3, .1, .6, 1)' });
+    },
+
     /* 조명: 문단의 다른 글자를 어둡게 하고(.lit 글자만 밝게) 얼마 뒤 되돌린다 */
     spot(el) {
       el.classList.add('spot-ready', 'spotlight');
@@ -217,10 +247,13 @@
     };
   }
 
-  /* 다 쓴 모습으로 바로 놓는다(줄 그은 글자는 그어진 채로). */
+  const EXITS = ['vanish', 'scatter'];
+
+  /* 다 쓴 모습으로 바로 놓는다(줄 그은 글자는 그어진 채로, 퇴장한 글자는 사라진 채로). */
   function show(items) {
     items.forEach((it) => {
-      if (it.fx === 'strike') it.el.classList.add('struck');
+      if (EXITS.includes(it.fx)) it.el.classList.add('gone');
+      else if (it.fx === 'strike') it.el.classList.add('struck');
       else if (it.fx === 'spot' || it.fx === 'unspot') it.el.classList.remove('spotlight', 'spot-ready');
       else if (!it.keep) it.el.classList.remove('pending', 'wet', 'drying');
     });
@@ -230,7 +263,8 @@
   /* 쓰기 전 모습으로 되돌린다. */
   function hide(items) {
     items.forEach((it) => {
-      if (it.fx === 'strike') it.el.classList.remove('struck');
+      if (EXITS.includes(it.fx)) it.el.classList.remove('gone');
+      else if (it.fx === 'strike') it.el.classList.remove('struck');
       else if (it.fx === 'spot' || it.fx === 'unspot') it.el.classList.remove('spotlight', 'spot-ready');
       else if (!it.keep) { it.el.classList.add('pending'); it.el.classList.remove('wet', 'drying'); }
     });
@@ -243,6 +277,7 @@
   function buildParagraph(para, inner) {
     const items = [];
     const lineEls = [];
+    const cellEls = new Map();
     para.lines.forEach((line) => {
       const row = document.createElement('div');
       row.className = 'ln';
@@ -269,6 +304,7 @@
           if (c.cls) s.classList.add(c.cls);
           if (c.pipe) s.classList.add('after-strike');
           s.textContent = c.ch;
+          cellEls.set(c, s);
           w.append(s);
           items.push({ el: s, t: c.t, fx: c.anim });
           if (c.strikeAt != null) items.push({ el: s, t: c.strikeAt, fx: 'strike', keep: true });
@@ -279,7 +315,12 @@
       lineEls.push(row);
     });
     (para.events || []).forEach((ev) => {
-      if (ev.type === 'spot') {
+      if (ev.type === 'exit') {
+        ev.cells.forEach((c, k) => {
+          const el = cellEls.get(c);
+          if (el) items.push({ el, t: ev.t + k * (window.Geulgyeol ? window.Geulgyeol.TIME.exitStagger : 45), fx: ev.fx, keep: true });
+        });
+      } else if (ev.type === 'spot') {
         items.push({ el: inner, t: ev.t, fx: 'spot', keep: true });
         items.push({ el: inner, t: ev.end, fx: 'unspot', keep: true });
       } else {
@@ -326,5 +367,5 @@
     root.addEventListener('pointerdown', wetToken);
   }
 
-  global.GeulFx = { FX, animate, wet, timeline, show, hide, buildParagraph, focusBand, touchable, rnd };
+  global.GeulFx = { FX, animate, wet, timeline, show, hide, buildParagraph, focusBand, touchable, rnd, setPace };
 })(typeof window !== 'undefined' ? window : globalThis);

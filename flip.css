@@ -1,8 +1,9 @@
 /* 글결 반전 그림 요소
-   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail)·조리개 고리(.flip-ring)·막 끝 빛줄(.flip-edge).
+   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail)·조리개 고리(.flip-ring)·막 끝 빛줄(.flip-edge)
+   ·해 빛띠(.flip-sun)·섬광(.flip-flash)·금(.flip-crack)과 깨짐 조각(.flip-shard).
    무대 안에서 장(.sheet)보다 위에 놓인다. 읽기 틀과 반전 시험이 함께 쓴다. */
 
-.flip-hand, .flip-axis, .flip-glow, .flip-trail, .flip-ring, .flip-edge {
+.flip-hand, .flip-axis, .flip-glow, .flip-trail, .flip-ring, .flip-edge, .flip-sun, .flip-flash, .flip-crack {
   position: absolute;
   pointer-events: none;
   opacity: 0;
@@ -60,3 +61,22 @@
   background: linear-gradient(to right, rgba(255, 244, 222, 0), rgba(255, 248, 232, .95) 20%, rgba(255, 248, 232, .95) 80%, rgba(255, 244, 222, 0));
   box-shadow: 0 0 14px 1px rgba(255, 236, 200, .5);
 }
+/* 해돋이·해넘이: 차오르는 끝을 따라 움직이는 따뜻한 빛띠. 해돋이는 끝 위로, 해넘이는 끝 아래로 번진다 */
+.flip-sun {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 42vh;
+  margin-top: -42vh;
+  background: radial-gradient(ellipse 70% 100% at 50% 100%, rgba(255, 214, 160, .62), rgba(255, 176, 120, .2) 45%, rgba(255, 176, 120, 0) 75%);
+}
+.flip-sun.down {
+  margin-top: 0;
+  background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(255, 196, 140, .6), rgba(232, 120, 90, .22) 45%, rgba(232, 120, 90, 0) 75%);
+}
+/* 섬광: 찰칵 하고 번쩍이는 흰 면 */
+.flip-flash { inset: 0; z-index: 6; background: #fffdf8; }
+/* 깨짐: 맞은 자리에서 뻗는 금과 쏟아지는 조각 */
+.flip-crack { inset: 0; width: 100%; height: 100%; z-index: 6; overflow: visible; }
+.flip-crack path { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.2; stroke-linejoin: bevel; filter: drop-shadow(0 0 2px rgba(255, 255, 255, .7)); }
+.flip-shard { z-index: 3 !important; visibility: visible; pointer-events: none; will-change: transform, opacity; }

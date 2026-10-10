@@ -1,0 +1,75 @@
+/* 글결 심상 낱말 살펴보기
+   축(반대말 한 쌍)마다 한 줄, 낱말마다 한 칸. 칸 안에서 그 낱말 하나만 건 조판으로 견본 글을 써 보인다.
+   먹지 색, 각진 모서리. 칸의 바탕은 그 낱말의 장면(낮·밤)을 따른다. */
+
+:root {
+  --paper: #ECEDF0;
+  --sheet: #F6F6F4;
+  --ink: #2C2F6B;
+  --lead: #4F5280;
+  --line: #C5C7D6;
+  --faint: #8A8CB3;
+  --wet: #9A9CC2;
+  --f-ui: 'Noto Sans KR', system-ui, sans-serif;
+  --f-num: 'Nanum Gothic Coding', ui-monospace, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 13px/1.5 var(--f-ui); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+h1 { margin: 0; font-weight: 500; font-size: 15px; }
+
+.top { display: flex; align-items: center; gap: 24px; height: 64px; padding: 0 48px; border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo-mark { display: flex; gap: 2px; }
+.logo-mark i { width: 10px; height: 10px; border: 1px solid var(--ink); }
+.logo-mark i:first-child { background: var(--ink); }
+.logo-name { font-family: 'Song Myung', serif; font-size: 22px; letter-spacing: .04em; }
+.link { text-decoration: underline; text-underline-offset: 4px; }
+.push { margin-left: auto; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 48px 64px; display: flex; flex-direction: column; gap: 22px; }
+.lead { margin: 0; color: var(--lead); }
+
+.axes { display: flex; flex-direction: column; gap: 18px; }
+.axis { display: grid; grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: stretch; }
+.axis > .name { font: 12px var(--f-ui); color: var(--lead); padding-top: 12px; }
+.base { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; }
+.base > .name { font: 12px var(--f-ui); color: var(--lead); padding-top: 12px; }
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 200px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line);
+  background: var(--sheet);
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.tile:hover, .tile.on { border-color: var(--ink); }
+.tile[data-scene="밤"] { background: #0E1317; color: #DCE1DA; border-color: #2A3036; --wet: #6E7099; }
+.tile[data-scene="밤"]:hover, .tile[data-scene="밤"].on { border-color: #DCE1DA; }
+.tile-head { display: flex; align-items: baseline; gap: 12px; }
+.word { font-family: 'Song Myung', serif; font-size: 22px; }
+.note { font-size: 12px; opacity: .8; }
+.vals { display: flex; flex-wrap: wrap; gap: 2px 12px; font: 11px/1.6 var(--f-num); opacity: .85; }
+.vals b { font-weight: 700; }
+.vals .same { opacity: .45; }
+.stage { flex: 1 1 auto; min-height: 4.2em; font-size: 17px; line-height: 1.95; word-break: keep-all; }
+.stage .ln { white-space: pre-wrap; }
+.stage .tk { white-space: nowrap; }
+.stage .drying { transition: color var(--dry, 1.8s) ease-in-out; }
+
+@media (max-width: 760px) {
+  .top { padding: 0 16px; gap: 14px; }
+  .wrap { padding: 18px 16px 48px; }
+  .axis { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .axis > .name { grid-column: 1 / -1; padding-top: 0; }
+  .base { grid-template-columns: 1fr; }
+  .base > .name { padding-top: 0; }
+  .tile { min-height: 180px; padding: 12px; }
+  .stage { font-size: 15px; }
+}

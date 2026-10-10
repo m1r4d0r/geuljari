@@ -44,7 +44,8 @@
   }, store.get(KEY) || {});
   st.settings = T.normalize(st.settings);
   st.moods = T.oneEach(st.moods);
-  if (!STEPS.includes(st.step) || !st.source.trim()) st.step = 'write';
+  /* 열 때는 늘 글 화면에서 시작한다(미리보기는 글 화면에서 넘어간다) */
+  st.step = 'write';
   if (st.device && !['pc', 'mobile', 'both'].includes(st.device)) st.device = null;
 
   let saveTimer = 0;

@@ -9,8 +9,6 @@
  * - curtain(막): 영사 스크린이 위에서 내려오듯 새 장이 위에서부터 덮고, 아랫단에 빛줄이 따라 내려온다.
  * - sunrise(해돋이): 새 장이 아래에서부터 차오르고, 차오르는 끝 위로 따뜻한 빛이 떠오른다.
  * - sunset(해넘이): 새 장이 위에서부터 내려오고, 끝 아래로 빛이 지며 앞 장은 노을빛으로 저문다.
- * - shatter(깨짐): 한 점에서 금이 번진 뒤 앞 장이 유리 조각처럼 쏟아져 내리고 그 뒤로 새 장이 드러난다.
- *   조각은 앞 장을 복제해 잘라 만든다(바탕 캔버스는 복제되지 않아 종이색만 남는다).
  * - flash(섬광): 찰칵 하고 하얗게 번쩍이는 사이에 장이 바뀌고, 빛이 빠지며 새 장이 드러난다.
  * - drift(스밈): 장면이 같은 페이지끼리. 새 장이 위에서 옅게 겹쳐 오고, 글은 넘기는 방향으로 조금 밀리며 바뀐다.
  * dir=1이면 시계방향(앞으로), dir=-1이면 반시계방향(되돌아가기).
@@ -38,12 +36,9 @@
     sun.className = 'flip-sun';
     const flash = document.createElement('i');
     flash.className = 'flip-flash';
-    const crack = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    crack.setAttribute('class', 'flip-crack');
-    const lights = [trail, glow, hand, axis, ring, edge, sun, flash, crack];
+    const lights = [trail, glow, hand, axis, ring, edge, sun, flash];
     lights.forEach((n) => n.setAttribute('aria-hidden', 'true'));
     stage.append(...lights);
-    let shards = [];
 
     let pair = null;
     let g = null;
@@ -68,58 +63,6 @@
       to.classList.add('is-moving');
       from.style.zIndex = '1';
       to.style.zIndex = '2';
-      if (mode === 'shatter') breakGlass(from);
-    }
-
-    /* 깨짐: 맞은 자리에서 뻗는 금을 따라 앞 장을 조각으로 나눈다. 조각마다 앞 장의 복제를 잘라 쓴다. */
-    function breakGlass(from) {
-      const { W, H } = g;
-      const P = [W * 0.56, H * 0.44];
-      const D = Math.hypot(W, H);
-      const n = 7;
-      const angles = [];
-      for (let k = 0; k < n; k++) angles.push(((k + 0.25 + Math.random() * 0.5) / n) * Math.PI * 2);
-      const rings = [D * (0.12 + Math.random() * 0.05), D * (0.34 + Math.random() * 0.08), D * 1.6];
-      const at = (a, r) => [P[0] + Math.cos(a) * r, P[1] + Math.sin(a) * r];
-      const polys = [];
-      for (let k = 0; k < n; k++) {
-        const a0 = angles[k];
-        const a1 = angles[(k + 1) % n] + (k === n - 1 ? Math.PI * 2 : 0);
-        polys.push({ pts: [P, at(a0, rings[0]), at(a1, rings[0])], ring: 0 });
-        polys.push({ pts: [at(a0, rings[0]), at(a0, rings[1]), at(a1, rings[1]), at(a1, rings[0])], ring: 1 });
-        polys.push({ pts: [at(a0, rings[1]), at(a0, rings[2]), at(a1, rings[2]), at(a1, rings[1])], ring: 2 });
-      }
-      shards = polys.map((pl) => {
-        const el = from.cloneNode(true);
-        el.classList.add('flip-shard');
-        el.classList.remove('is-current');
-        el.removeAttribute('data-i');
-        el.style.clipPath = `polygon(${pl.pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(',')})`;
-        const cx = pl.pts.reduce((a, p) => a + p[0], 0) / pl.pts.length;
-        const cy = pl.pts.reduce((a, p) => a + p[1], 0) / pl.pts.length;
-        const dx = cx - P[0];
-        const dy = cy - P[1];
-        const len = Math.hypot(dx, dy) || 1;
-        stage.append(el);
-        const sc = from.querySelector(contentSel || '.scroll');
-        const sc2 = el.querySelector(contentSel || '.scroll');
-        if (sc && sc2) sc2.scrollTop = sc.scrollTop;
-        return {
-          el,
-          ox: `${(cx / W * 100).toFixed(1)}% ${(cy / H * 100).toFixed(1)}%`,
-          vx: (dx / len) * W * (0.08 + pl.ring * 0.05),
-          vy: (dy / len) * H * 0.06,
-          rot: (Math.random() - 0.5) * (40 + pl.ring * 30),
-          lag: pl.ring * 0.06 + Math.random() * 0.05
-        };
-      });
-      shards.forEach((sh) => { sh.el.style.transformOrigin = sh.ox; });
-      const d = [];
-      angles.forEach((a) => d.push(`M${P[0].toFixed(1)} ${P[1].toFixed(1)} L${at(a, rings[0]).map((v) => v.toFixed(1)).join(' ')} L${at(a, rings[1]).map((v) => v.toFixed(1)).join(' ')} L${at(a, rings[2]).map((v) => v.toFixed(1)).join(' ')}`));
-      [0, 1].forEach((r) => d.push('M' + angles.concat(angles[0]).map((a) => at(a, rings[r]).map((v) => v.toFixed(1)).join(' ')).join(' L')));
-      crack.setAttribute('viewBox', `0 0 ${W} ${H}`);
-      crack.innerHTML = `<path d="${d.join(' ')}" />`;
-      from.style.visibility = 'hidden';
     }
 
     function wedge(p) {
@@ -199,24 +142,7 @@
         sun.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
         sun.style.opacity = String(lit * Math.min(1, mid * 1.6));
         glow.style.opacity = String(0.3 * mid * lit);
-        [hand, axis, trail, ring, edge, flash, crack].forEach((n) => { n.style.opacity = '0'; });
-      } else if (mode === 'shatter') {
-        const CR = 0.24;
-        const c = Math.min(1, q / CR);
-        const f = Math.max(0, (q - CR) / (1 - CR));
-        to.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
-        crack.style.opacity = String(q < CR ? c : Math.max(0, 1 - f * 3));
-        shards.forEach((sh) => {
-          const t = Math.max(0, (f - sh.lag) / (1 - sh.lag));
-          const shake = q < CR ? (Math.random() - 0.5) * 1.5 * c : 0;
-          const x = sh.vx * t + shake;
-          const y = sh.vy * t + g.H * 1.25 * t * t;
-          sh.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${(sh.rot * t).toFixed(2)}deg)`;
-          sh.el.style.opacity = String(t > 0.55 ? Math.max(0, 1 - (t - 0.55) / 0.45) : 1);
-          sh.el.style.visibility = q >= 0.9995 ? 'hidden' : 'visible';
-        });
-        flash.style.opacity = String(q < CR ? 0.12 * c * c : 0);
-        [hand, axis, trail, ring, edge, sun, glow].forEach((n) => { n.style.opacity = '0'; });
+        [hand, axis, trail, ring, edge, flash].forEach((n) => { n.style.opacity = '0'; });
       } else if (mode === 'flash') {
         const T0 = 0.42;
         const before = q < T0;
@@ -225,7 +151,7 @@
         from.style.visibility = before ? '' : 'hidden';
         (before ? from : to).style.filter = `brightness(${(1 + 1.4 * f).toFixed(3)}) contrast(${(1 - 0.3 * f).toFixed(3)})`;
         flash.style.opacity = String(f);
-        [hand, axis, trail, ring, edge, sun, glow, crack].forEach((n) => { n.style.opacity = '0'; });
+        [hand, axis, trail, ring, edge, sun, glow].forEach((n) => { n.style.opacity = '0'; });
       } else if (mode === 'sweep') {
         from.style.transform = '';
         to.style.transform = '';
@@ -300,9 +226,6 @@
         });
       }
       pair = null;
-      shards.forEach((sh) => sh.el.remove());
-      shards = [];
-      crack.innerHTML = '';
       lights.forEach((n) => { n.style.opacity = '0'; });
     }
 

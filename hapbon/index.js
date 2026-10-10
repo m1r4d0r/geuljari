@@ -21,7 +21,8 @@
   const $ = (id) => document.getElementById(id);
   const KEY = 'hapbon.state';
   const MODES = ['write', 'ask', 'tune'];
-  const OPPOSITE = { '낮': '밤', '밤': '낮' };
+  const OPPOSITE = { '라이트': '다크', '다크': '라이트' };
+  const SCENE_WORD = { day: '라이트', night: '다크' };
   const phone = window.matchMedia('(max-width: 860px)');
 
   const store = {
@@ -326,7 +327,7 @@
     const ab = S.autoBreaks(t);
     t = ab.text;
     st.moods = T.oneEach(S.guessMoods(t));
-    st.settings = T.fromMoods(st.moods);
+    st.settings = T.fromMoods(st.moods, st.settings);
     const tl = S.turnCandidate(t, st.settings.scene);
     if (tl != null) t = S.setTurn(t, tl, OPPOSITE[st.settings.scene]);
     const f = S.emphasisCandidates(t)[0];
@@ -345,7 +346,7 @@
     renderAsk();
   }
 
-  const TITLES = { 1: '어떤 결이에요', 2: '낮과 밤이 뒤집히는 곳', 3: '남기고 싶은 곳' };
+  const TITLES = { 1: '어떤 결이에요', 2: '라이트와 다크가 바뀌는 곳', 3: '남기고 싶은 곳' };
 
   function renderAsk() {
     const n = st.askStep;
@@ -385,7 +386,7 @@
 
   function setMoods(list) {
     st.moods = T.oneEach(list);
-    st.settings = T.fromMoods(st.moods);
+    st.settings = T.fromMoods(st.moods, st.settings);
     T.useFont(document, st.settings);
     fixTurnScene();
     save();
@@ -476,8 +477,17 @@
       q.textContent = `${pageAt(fullText(), off) + 1}쪽부터 ${OPPOSITE[st.settings.scene]} · ${E.stripMarks(next).trim()}`;
       q.classList.remove('none');
     } else {
-      q.textContent = '뒤집지 않아요.';
+      q.textContent = '바뀌지 않아요.';
       q.classList.add('none');
+    }
+    $('turn-fx-row').hidden = li == null;
+    if (li != null) {
+      const own = S.readMarkLine(st.source.split('\n')[li]).turn;
+      const page = S.lines(st.source)[li].page;
+      segment($('turn-fx'), T.SCENE_TURNS, own || st.settings.turn, (v) => {
+        setSource(S.setPageMark(st.source, page, 'turn', v), [ta.selectionStart, ta.selectionStart]);
+        renderTurn();
+      });
     }
   }
   $('turn-seg').addEventListener('click', (e) => {
@@ -743,11 +753,6 @@
     const last = lines[lines.length - 1];
     return { page: Math.max(0, k), needle: last ? last.tokens.slice(-3).map((t) => t.text).join(' ') : '' };
   }
-  function startBeforeTurn() {
-    const pages = E.pages(E.parse(fullText()));
-    const k = pages.findIndex((p, i) => i > 0 && p.scene !== pages[i - 1].scene && !p.turn);
-    return k < 1 ? { page: 0 } : startAtEndOf(k - 1);
-  }
 
   function renderTune() {
     const s = st.settings;
@@ -758,13 +763,11 @@
       renderTune();
       refreshSide();
       playAt(start || st.lastStart || startAtCaret());
-      if (k === 'turn') toast('다음 쪽으로 넘기면 넘김이 보여요.');
     };
     drawMoods($('moods-t'), false);
     segment($('set-flow'), T.FLOW_NAMES, s.flow, (v) => set('flow', v));
     segment($('set-scene'), Object.keys(T.GROUNDS), s.scene, (v) => set('scene', v, { page: 0 }));
     segment($('set-ground'), T.GROUNDS[s.scene], s.ground, (v) => set('ground', v, { page: 0 }));
-    segment($('set-turn'), T.SCENE_TURNS, s.turn, (v) => set('turn', v, startBeforeTurn()));
     segment($('set-dry'), T.DRY_NAMES, s.dry, (v) => set('dry', v));
     segment($('set-font'), T.FONT_NAMES, s.font, (v) => { set('font', v); T.useFont(document, st.settings); });
     $('set-speed').value = String(Math.round(s.speed * 100));
@@ -816,14 +819,13 @@
     const pages = E.pages(E.parse(full));
     const srcBlocks = S.blocks(st.source);
     const used = new Set();
-    const sugg = S.suggestions(st.source);
     const here = st.lastStart ? st.lastStart.page || 0 : -1;
 
     pages.forEach((pg, i) => {
       const tags = [];
       const prev = pages[i - 1];
-      if (i === 0) tags.push({ on: true, name: `${pg.scene === 'night' ? '밤' : '낮'} · ${groundName(pg.ground)}`, why: '처음 장면' });
-      else if (prev.scene !== pg.scene) tags.push({ on: true, name: `→ ${pg.scene === 'night' ? '밤' : '낮'} · ${groundName(pg.ground)}`, why: '반전', act: () => playAt(startAtEndOf(i - 1)) });
+      if (i === 0) tags.push({ on: true, name: `${SCENE_WORD[pg.scene]} · ${groundName(pg.ground)}`, why: '처음 장면' });
+      else if (prev.scene !== pg.scene) tags.push({ on: true, name: `→ ${SCENE_WORD[pg.scene]} · ${groundName(pg.ground)}`, why: '반전', act: () => playAt(Object.assign(startAtEndOf(i - 1), { next: true })) });
 
       const blocks = [];
       let dripRun = 0;
@@ -864,19 +866,6 @@
       rests.forEach((g) => tags.push({ on: true, name: `쉼 ${g - 1}칸`, why: `띄어쓰기 ${g}` }));
       if (shortN) tags.push({ on: true, name: '천천히', why: `짧은 줄 ${shortN}` });
       if (indent) tags.push({ on: true, name: '들여쓰기', why: `${indent}칸` });
-      sugg.forEach((s) => {
-        if (pageAt(full, head().length + s.start) !== i) return;
-        tags.push({
-          on: false,
-          name: `${s.fx} · ${clip(s.text)}`,
-          why: s.why,
-          act: () => {
-            const r = S.wrap(st.source, s.start, s.end, s.fx);
-            setSource(r.text, [r.start, r.start]);
-            playAt(startAtRange(r.start, r.end));
-          }
-        });
-      });
 
       const li = document.createElement('li');
       if (i === here) li.classList.add('is-here');
@@ -893,7 +882,8 @@
       const top = document.createElement('span');
       top.className = 'pg-top';
       top.append(headEl);
-      if (i > 0) top.append(turnSelect(i, pg, prev));
+      if (i > 0 && prev.scene !== pg.scene) top.append(turnSelect(i, pg));
+      top.append(placeSelect(i));
       const tg = document.createElement('span');
       tg.className = 'tags';
       tags.forEach((t) => {
@@ -916,27 +906,44 @@
     });
   }
 
-  /* 쪽 i로 들어올 때의 넘김. 비워 두면 장면이 바뀔 때는 조판의 넘김, 같으면 스밈 */
-  function turnSelect(i, pg, prev) {
+  function select(label, options, current, onChange) {
     const sel = document.createElement('select');
     sel.className = 'tsel';
-    sel.setAttribute('aria-label', `${i + 1}쪽으로 넘어갈 때`);
-    const own = S.pageTurn(st.source, i) || '';
-    const auto = pg.scene !== prev.scene ? st.settings.turn : '스밈';
-    [['', `넘김 ${auto}`]].concat(T.TURN_NAMES.map((n) => [n, n])).forEach(([v, label]) => {
+    sel.setAttribute('aria-label', label);
+    options.forEach(([v, text]) => {
       const o = document.createElement('option');
       o.value = v;
-      o.textContent = label;
-      o.selected = v === own;
+      o.textContent = text;
+      o.selected = v === current;
       sel.append(o);
     });
-    sel.addEventListener('change', () => {
-      const caret = ta.selectionStart;
-      setSource(S.setPageTurn(st.source, i, sel.value || null), [caret, caret]);
-      playAt(startAtEndOf(i - 1));
-      toast('다음 쪽으로 넘기면 넘김이 보여요.');
-    });
+    sel.addEventListener('change', () => onChange(sel.value || null));
     return sel;
+  }
+
+  /*
+   * 장면이 바뀌는 쪽 i로 들어올 때의 넘김. 비워 두면 심상(온도)이 정한 넘김.
+   * 고르면 바로 앞 쪽 끝부터 미리보기를 쓰고 저절로 넘겨 그 넘김을 보여 준다.
+   */
+  function turnSelect(i, pg) {
+    const own = S.pageMark(st.source, i, 'turn') || '';
+    const opts = [['', `${SCENE_WORD[pg.scene]}로 · ${st.settings.turn}`]].concat(T.SCENE_TURNS.map((n) => [n, `${SCENE_WORD[pg.scene]}로 · ${n}`]));
+    return select(`${i + 1}쪽, ${SCENE_WORD[pg.scene]}로 넘어갈 때`, opts, own, (v) => {
+      const caret = ta.selectionStart;
+      setSource(S.setPageMark(st.source, i, 'turn', v), [caret, caret]);
+      playAt(Object.assign(startAtEndOf(i - 1), { next: true }));
+    });
+  }
+
+  /* 쪽 i의 글 자리. 비워 두면 저절로(강조가 있으면 가운데) */
+  function placeSelect(i) {
+    const own = S.pageMark(st.source, i, 'place') || '';
+    const opts = [['', '자리 · 저절로'], ['왼쪽', '자리 · 왼쪽'], ['가운데', '자리 · 가운데'], ['오른쪽', '자리 · 오른쪽']];
+    return select(`${i + 1}쪽 글 자리`, opts, own, (v) => {
+      const caret = ta.selectionStart;
+      setSource(S.setPageMark(st.source, i, 'place', v), [caret, caret]);
+      playAt({ page: i });
+    });
   }
 
   $('copy-mask').addEventListener('click', () => {

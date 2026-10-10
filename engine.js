@@ -83,23 +83,26 @@
   const EM_OPEN = '{{';
   const EM_CLOSE = '}}';
   /*
-   * 쪽 표시 줄: 장면(밤·낮)·바탕·넘김을 :로 이어 적는다. [[밤]] · [[밤:오로라]] · [[밤:영사광:깨짐]] · [[조리개]]
-   * 이 줄에서 새 쪽이 시작되고, 적지 않은 것은 앞 쪽을 따른다(장면이 바뀌고 바탕이 없으면 그 장면의 기본 바탕).
+   * 쪽 표시 줄: 장면(라이트·다크, 예전 이름 낮·밤도 읽음)·바탕·넘김·글 자리를 :로 이어 적는다.
+   * [[다크]] · [[다크:오로라]] · [[다크:영사광:조리개]] · [[가운데]]
+   * 이 줄에서 새 쪽이 시작되고, 장면·바탕은 적지 않으면 앞 쪽을 따른다(장면이 바뀌고 바탕이 없으면 그 장면의 기본 바탕).
+   * 넘김과 자리는 그 쪽에만 걸린다.
    */
-  const SCENES = { '밤': 'night', '낮': 'day' };
+  const SCENES = { '밤': 'night', '낮': 'day', '라이트': 'day', '다크': 'night' };
   const GROUNDS = { '창빛': 'window', '한지': 'hanji', '영사광': 'projector', '오로라': 'aurora', '물빛': 'caustic' };
-  const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '깨짐': 'shatter', '섬광': 'flash' };
+  const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash' };
+  const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };
-  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS)].join('|');
+  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES)].join('|');
   const MARK_BODY = `(?:${MARK_WORD})(?:\\s*[:·]\\s*(?:${MARK_WORD}))*`;
   const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(${MARK_BODY})\\]\\][^\\S\\n]*$`);
   const SCENE_LINES_RE = new RegExp(`^[^\\S\\n]*\\[\\[${MARK_BODY}\\]\\][^\\S\\n]*$`, 'gm');
 
-  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn}으로 읽는다(없는 것은 null) */
+  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn, place}로 읽는다(없는 것은 null) */
   function readMark(body) {
     const parts = String(body).split(/\s*[:·]\s*/);
     const pick = (map) => { const k = parts.find((x) => map[x]); return k ? map[k] : null; };
-    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS) };
+    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS), place: pick(PLACES) };
   }
   const NAME_ALT = BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const PREFIX_RE = new RegExp(`^(${NAME_ALT}):`);
@@ -451,7 +454,7 @@
           const mk = readMark(m[1]);
           scene = mk.scene;
           ground = mk.ground;
-          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, text: m[0].trim() });
+          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, place: mk.place, text: m[0].trim() });
           return;
         }
         const line = parseLine(rl);
@@ -472,7 +475,8 @@
   }
 
   /*
-   * 문단을 페이지로 묶는다. 페이지마다 장면(day·night)·바탕(ground)·이 쪽으로 들어올 때의 넘김(turn, 없으면 null)을 정한다.
+   * 문단을 페이지로 묶는다. 페이지마다 장면(day·night)·바탕(ground)·이 쪽으로 들어올 때의 넘김(turn)·글 자리(place)를 정한다
+   * (넘김·자리는 적지 않으면 null). 한 문단에 쪽 표시 줄이 여럿이면 차례로 합친다(뒤의 것이 앞의 것을 덮는다).
    * 쪽 표시가 없으면 앞 페이지의 장면과 바탕을 이어받고, 장면을 바꾸며 바탕 이름이 없으면 그 장면의 기본 바탕을 쓴다.
    */
   function pages(parsed) {
@@ -482,23 +486,28 @@
     let ground = DEFAULT_GROUND.day;
     let pending = null;
     parsed.paragraphs.forEach((para) => {
-      const mark = para.rows.filter((r) => r.sceneMark).pop();
-      if (mark) pending = { scene: mark.scene, ground: mark.ground, turn: mark.turn };
+      const marks = para.rows.filter((r) => r.sceneMark);
+      const mark = marks.length ? marks.reduce((a, r) => ({
+        scene: r.scene || a.scene, ground: r.ground || a.ground, turn: r.turn || a.turn, place: r.place || a.place
+      }), {}) : null;
+      if (mark) pending = mark;
       if (para.sceneOnly) {
         if (cur && cur.paragraphs.length) cur = null;
         return;
       }
       if (!cur || para.pageStart || mark) {
         let turn = null;
+        let place = null;
         if (pending) {
           if (pending.scene) {
             ground = pending.ground || (pending.scene !== scene ? DEFAULT_GROUND[pending.scene] : ground);
             scene = pending.scene;
           } else if (pending.ground) ground = pending.ground;
-          turn = pending.turn;
+          turn = pending.turn || null;
+          place = pending.place || null;
           pending = null;
         }
-        cur = { paragraphs: [], scene, ground, turn, count: 0 };
+        cur = { paragraphs: [], scene, ground, turn, place, count: 0 };
         out.push(cur);
       }
       cur.paragraphs.push(para);
@@ -550,7 +559,7 @@
 
   global.Geulgyeol = {
     RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
-    SCENES, GROUNDS, TURNS, DEFAULT_GROUND, SCENE_LINE_RE, readMark,
+    SCENES, GROUNDS, TURNS, PLACES, DEFAULT_GROUND, SCENE_LINE_RE, readMark,
     graphemes, isPunct, trimSource, stripMarks, parse, pages, stats, mask
   };
 })(typeof window !== 'undefined' ? window : globalThis);

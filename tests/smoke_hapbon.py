@@ -55,9 +55,9 @@ try:
                   '| sample', pg.evaluate("() => document.querySelectorAll('#sample-line .ch:not(.pending)').length + '/' + document.querySelectorAll('#sample-line .ch').length"))
             print(tag, '  prepared', pg.evaluate("() => { const v = document.getElementById('src').value; return [(v.match(/\\[\\[/g)||[]).length, (v.match(/\\{\\{/g)||[]).length]; }"), '| toast', pg.text_content('#toast'))
             pg.screenshot(path=str(OUT / f'hb-{tag}-2q1.png'))
-            pg.locator('#moods button', has_text='새벽').click(); pg.wait_for_timeout(200)
-            pg.locator('#moods button', has_text='한낮').click(); pg.wait_for_timeout(200)
-            pg.locator('#moods button', has_text='새벽').click(); pg.wait_for_timeout(300)
+            pg.locator('#moods button', has_text='숨찬').click(); pg.wait_for_timeout(200)
+            pg.locator('#moods button', has_text='고요한').click(); pg.wait_for_timeout(200)
+            pg.locator('#moods button', has_text='차가운').click(); pg.wait_for_timeout(300)
             print(tag, '  axes one each', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"), '| mix', pg.text_content('#mix'))
             pg.click('#ask-next'); pg.wait_for_timeout(500)
             print(tag, 'Q2', pg.text_content('#turn-line'), '| card top', pg.evaluate("() => Math.round(document.getElementById('ask-card').getBoundingClientRect().top)"), '| seg ok', pg.evaluate("() => [...document.querySelectorAll('#turn-seg button')].every(b => b.scrollWidth <= b.clientWidth + 1)"))
@@ -65,6 +65,8 @@ try:
             pg.evaluate("""() => { const t = document.getElementById('src'); const i = t.value.indexOf('그리고 잉크'); t.focus(); t.setSelectionRange(i + 2, i + 2); t.dispatchEvent(new PointerEvent('pointerup')); }""")
             pg.wait_for_timeout(300)
             print(tag, '  turn now', pg.text_content('#turn-line'))
+            pg.locator('#turn-fx button', has_text='막').click(); pg.wait_for_timeout(200)
+            print(tag, '  turn fx', pg.evaluate("() => document.getElementById('src').value.split('\\n').filter(l => l.startsWith('[[')).join(' ')"))
             pg.screenshot(path=str(OUT / f'hb-{tag}-3q2.png'))
             pg.click('#ask-next'); pg.wait_for_timeout(500)
             # 두 줄에 걸쳐 끌어 고르기
@@ -94,23 +96,35 @@ try:
             pg.screenshot(path=str(OUT / f'hb-{tag}-6tune.png'))
             if tag == 'phone':
                 pg.click('#tabs [data-tab="set"]'); pg.wait_for_timeout(200)
-            pg.click('#set-turn button:nth-child(2)'); pg.wait_for_timeout(300)
             pg.locator('#set-font button', has_text='함렛').click(); pg.wait_for_timeout(300)
             print(tag, '  font', pg.evaluate("() => getComputedStyle(document.getElementById('mirror')).fontFamily.split(',')[0]"))
-            pg.select_option('#pagelist li:nth-child(2) select', '깨짐'); pg.wait_for_timeout(400)
-            print(tag, '  page turn', pg.evaluate("() => document.getElementById('src').value.split('\\n').filter(l => l.startsWith('[[')).join(' ')"), '| where', pg.text_content('#pv-where'))
-            print(tag, '  turn set', pg.text_content('#toast'), '| tags', pg.evaluate("() => document.querySelectorAll('#pagelist .tag').length"), 'sugg', pg.evaluate("() => [...document.querySelectorAll('#pagelist .tag')].filter(t => !t.querySelector('.box.on')).length"))
-            sug = pg.locator('#pagelist button.tag:not(:has(.box.on))').first
-            if sug.count():
-                sug.click(); pg.wait_for_timeout(300)
-                print(tag, '  accepted ->', pg.evaluate("() => (document.getElementById('src').value.match(/\\{\\{/g) || []).length"))
+            pg.select_option('#pagelist li:nth-child(2) select', '가운데'); pg.wait_for_timeout(400)
+            if tag == 'phone':
+                pg.click('#tabs [data-tab="set"]'); pg.wait_for_timeout(200)
+            tsel = pg.locator('#pagelist select[aria-label*="넘어갈 때"]').first
+            tsel.select_option('섬광'); pg.wait_for_timeout(300)
+            print(tag, '  page marks', pg.evaluate("() => document.getElementById('src').value.split('\\n').filter(l => l.startsWith('[[')).join(' ')"), '| where', pg.text_content('#pv-where'))
+            if tag == 'phone':
+                pg.click('#tabs [data-tab="look"]'); pg.wait_for_timeout(300)
+            pg.wait_for_timeout(9000)
+            print(tag, '  auto next shows turn', frame(pg, '#pv').evaluate(written))
+            if tag == 'phone':
+                pg.click('#tabs [data-tab="set"]'); pg.wait_for_timeout(200)
+            print(tag, '  tags', pg.evaluate("() => document.querySelectorAll('#pagelist .tag').length"), 'suggestions shown', pg.evaluate("() => [...document.querySelectorAll('#pagelist .tag')].filter(t => !t.querySelector('.box.on')).length"),
+                  '| preview fixed', pg.evaluate("() => getComputedStyle(document.querySelector('.set-pane')).overflowY"))
             pg.screenshot(path=str(OUT / f'hb-{tag}-7set.png'), full_page=True)
 
             # 긴 쪽에서 기다리기: 전체 화면으로 열어 2쪽에서 쓰는 자리를 지켜본다
             pg.click('#open-full'); pg.wait_for_timeout(1200)
             fr = frame(pg, '#pv-full-frame')
             fr.evaluate("() => document.getElementById('next').click()"); pg.wait_for_timeout(300)
-            fr.evaluate("() => document.getElementById('next').click()"); pg.wait_for_timeout(8000)
+            print(tag, 'skip guard', fr.evaluate(written), fr.evaluate("() => document.querySelector('.cue.busy').classList.contains('is-on')"))
+            fr.evaluate("() => document.getElementById('next').click()"); pg.wait_for_timeout(300)
+            print(tag, '  second press', fr.evaluate(written))
+            fr.evaluate("() => document.getElementById('next').click()"); pg.wait_for_timeout(2500)
+            fr.evaluate("() => document.getElementById('again').click()"); pg.wait_for_timeout(600)
+            print(tag, '  again (this page only)', fr.evaluate(written))
+            pg.wait_for_timeout(6000)
             print(tag, 'gate', fr.evaluate("() => { const s = document.querySelector('.sheet.is-current'); return [s.classList.contains('fits') ? 'fits' : 'overflow', Math.round(s.querySelector('.scroll').scrollTop), document.querySelector('.cue').classList.contains('is-on')]; }"), fr.evaluate(written))
             pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
             print(tag, 'esc closes', pg.evaluate("() => document.getElementById('pv-layer').hidden"))

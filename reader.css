@@ -188,6 +188,8 @@ body {
   white-space: nowrap;
 }
 .cue.is-on { opacity: .6; }
+.cue.busy { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.4rem); }
+.cue.busy.is-on { opacity: .85; }
 .ops .turn { margin-left: auto; display: flex; gap: 1.1rem; }
 
 .dots { display: flex; gap: .3rem; }
@@ -201,7 +203,13 @@ body {
   opacity: .3;
   cursor: pointer;
 }
-.dot[aria-current="true"] { opacity: 1; background-size: 100% 2px; }
+/* 지금 장은 써 나간 만큼(--p) 굵은 선이 찬다 */
+.dot[aria-current="true"] {
+  opacity: 1;
+  background:
+    linear-gradient(currentColor, currentColor) left center / calc(var(--p, 1) * 100%) 2px no-repeat,
+    linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
+}
 
 .tbtn {
   font: inherit;

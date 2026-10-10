@@ -166,8 +166,11 @@ h1 { font-family: var(--f-body); font-weight: 400; font-size: 32px; line-height:
 
 /* ---------- 미리보기·조판 ---------- */
 
-.look-pane { gap: 8px; }
-.pv-box { position: relative; height: min(62vh, 640px); background: #0E1317; }
+/* 다듬기 오른쪽: 미리보기는 붙박이, 조판만 스크롤한다. 스크롤 막대 앞에 여백을 둔다 */
+body[data-mode="tune"] .side { overflow: hidden; padding-bottom: 0; }
+.look-pane { flex: none; gap: 8px; }
+.set-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 18px 24px 0; scrollbar-gutter: stable; scrollbar-width: thin; }
+.pv-box { position: relative; height: min(48vh, 520px); background: #0E1317; }
 .pv { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
 .pv-ops { display: flex; align-items: center; gap: 16px; }
 
@@ -310,6 +313,8 @@ body[data-mode="ask"] .ed-input { cursor: text; }
   .intro { flex-direction: column; align-items: flex-start; gap: 8px; margin: 8px 0 14px; }
   .side { flex: none; overflow: visible; }
   .pv-box { height: 64vh; }
+  body[data-mode="tune"] .side { overflow: visible; }
+  .set-pane { overflow: visible; padding-right: 0; }
 
   body[data-mode="tune"] .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 16px 10px; border: 1px solid var(--ink); flex: none; }
   .tabs button { height: 40px; background: transparent; border: 0; border-left: 1px solid var(--ink); }

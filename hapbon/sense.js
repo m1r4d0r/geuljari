@@ -1,10 +1,10 @@
 /*
  * 글결 합본 글 읽기
  * 가리지 않은 원문을 이 브라우저 안에서만 읽어 1차 안의 재료를 만든다. 글은 어디로도 보내지 않는다.
- * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김), 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
- * 반전은 장면이 적힌 첫 쪽 표시 줄이다.
+ * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김·자리), 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
+ * 반전은 장면이 적힌 첫 쪽 표시 줄이다. 장면 이름은 라이트·다크로 쓴다.
  * - 짐작: 심상 낱말, 반전 자리, 남기고 싶은 곳 후보, 문장별 효과 제안.
- * - 고치기: 반전 줄 옮기기, 쪽마다 넘김 정하기, 남기고 싶은 곳 바꾸기, 효과 감싸기·벗기기, 긴 쪽 나누기.
+ * - 고치기: 반전 줄 옮기기, 쪽마다 넘김·자리 정하기, 남기고 싶은 곳 바꾸기, 효과 감싸기·벗기기, 긴 쪽 나누기.
  * 전역 GeulSense.
  */
 (function (global) {
@@ -19,13 +19,7 @@
     '젖은': /젖|축축|번지|번진|번져|스미|스며|잉크|눈물|빗/g,
     '마른': /마르|말라|마른|바삭|건조/g,
     '고요한': /고요|조용|적막|숨을 고르|지워진|느린|천천히/g,
-    '숨찬': /급하|서둘|빨리|즉시|숨차|헐떡|달려/g,
-    '먼': /멀리|먼 |오래|기억|아득|그때/g,
-    '가까운': /곁에|가까|손안|손바닥|닿/g,
-    '새벽': /밤|새벽|어둠|어두|자정|별빛/g,
-    '한낮': /한낮|햇빛|햇볕|오후|정오|아침/g,
-    '물': /빗물|물방울|강물|바다|파도|방울|물결/g,
-    '종이': /종이|편지|펜|연필|만년필|봉투|우표|글자|문장/g
+    '숨찬': /급하|서둘|빨리|즉시|숨차|헐떡|달려/g
   };
   const NIGHT = /밤|새벽|어둠|어두|자정|별빛|불을 끄/;
   const DAY = /아침|햇빛|햇볕|한낮|오후|정오|해가 뜨|날이 밝/;
@@ -44,6 +38,7 @@
   const SCENE_NAME = NAMES(E.SCENES);
   const GROUND_NAME = NAMES(E.GROUNDS);
   const TURN_NAME = NAMES(E.TURNS);
+  const PLACE_NAME = NAMES(E.PLACES);
   const NAME_ALT = E.BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   const TOKEN_RE = new RegExp(`\\{\\{(?:(${NAME_ALT}):)?|\\}\\}`, 'g');
 
@@ -147,7 +142,7 @@
    * 그런 낱말이 없으면 세 쪽 이상일 때 가운데 쪽의 첫 줄. 돌려주는 값은 줄 번호(없으면 null).
    */
   function turnCandidate(text, scene) {
-    const re = scene === '밤' ? DAY : NIGHT;
+    const re = scene === '다크' ? DAY : NIGHT;
     const ls = lines(text).filter((l) => !l.empty && !l.scene);
     const firstOf = (p) => { const l = ls.find((x) => x.page === p); return l ? l.i : null; };
     const hit = ls.find((l) => l.page > 0 && re.test(l.text));
@@ -254,16 +249,16 @@
     return blocks(text).filter((k) => !k.named).map((k) => text.slice(k.oe, k.cs)).join(' ');
   }
 
-  /* 쪽 표시 줄 → {scene, ground, turn}(한글 이름, 없으면 null) */
+  /* 쪽 표시 줄 → {scene, ground, turn, place}(한글 이름, 없으면 null) */
   function readMarkLine(textLine) {
     const m = textLine.match(SCENE_RE);
     if (!m) return null;
     const k = E.readMark(m[1]);
-    return { scene: SCENE_NAME[k.scene] || null, ground: GROUND_NAME[k.ground] || null, turn: TURN_NAME[k.turn] || null };
+    return { scene: SCENE_NAME[k.scene] || null, ground: GROUND_NAME[k.ground] || null, turn: TURN_NAME[k.turn] || null, place: PLACE_NAME[k.place] || null };
   }
-  /* {scene, ground, turn} → 쪽 표시 줄(다 비면 빈 문자열) */
+  /* {scene, ground, turn, place} → 쪽 표시 줄(다 비면 빈 문자열) */
   function markLine(mk) {
-    const parts = [mk.scene, mk.ground, mk.turn].filter(Boolean);
+    const parts = [mk.scene, mk.ground, mk.turn, mk.place].filter(Boolean);
     return parts.length ? `[[${parts.join(':')}]]` : '';
   }
 
@@ -281,18 +276,21 @@
   }
 
   /*
-   * 반전을 line 줄 앞으로 옮긴다. line이 null이면 지우기만. scene은 넣을 장면(밤·낮).
-   * 옛 반전 줄에 넘김이 함께 적혀 있으면 장면만 빼고 넘김은 남긴다. 새 자리가 이미 쪽 표시 줄이면 거기에 장면을 더한다.
+   * 반전을 line 줄 앞으로 옮긴다. line이 null이면 지우기만. scene은 넣을 장면(라이트·다크).
+   * 넘김은 장면이 바뀌는 자리의 것이므로 반전과 함께 옮긴다. 옛 줄에 자리 표시가 있으면 그것만 남긴다.
+   * 새 자리가 이미 쪽 표시 줄이면 거기에 장면과 넘김을 더한다.
    */
   function setTurn(text, line, scene) {
     let t = text;
     let target = line;
+    let carry = null;
     const old = turnLine(t);
     if (old != null) {
       if (old === target || old + 1 === target) target = target === old ? null : target;
       const ln = lines(t)[old];
       const mk = readMarkLine(ln.text);
-      const rest = markLine({ scene: null, ground: null, turn: mk.turn });
+      carry = mk.turn;
+      const rest = markLine({ scene: null, ground: null, turn: null, place: mk.place });
       t = setLine(t, ln, rest);
       if (!rest && target != null && target > old) target--;
       if (old + 1 === line && rest) target = old;
@@ -304,29 +302,33 @@
     const prevMark = at.scene ? at : (ls[target - 1] && ls[target - 1].scene ? ls[target - 1] : null);
     if (prevMark) {
       const mk = readMarkLine(prevMark.text);
-      return setLine(t, prevMark, markLine({ scene, ground: null, turn: mk.turn }));
+      return setLine(t, prevMark, markLine({ scene, ground: null, turn: carry || mk.turn, place: mk.place }));
     }
-    return t.slice(0, at.start) + `[[${scene}]]\n` + t.slice(at.start);
+    return t.slice(0, at.start) + markLine({ scene, turn: carry }) + '\n' + t.slice(at.start);
   }
 
-  /* 쪽 page(0부터)의 넘김을 정한다. turn이 null이면 그 쪽의 넘김 표시를 걷는다. 첫 쪽은 넘김이 없다. */
-  function setPageTurn(text, page, turn) {
-    if (page < 1) return text;
+  /*
+   * 쪽 page(0부터)의 쪽 표시 하나(key: turn·place)를 value로 정한다. value가 null이면 걷는다.
+   * 그 쪽 첫 줄이 쪽 표시 줄이면 거기에 적고, 아니면 새 쪽 표시 줄을 넣는다. 첫 쪽에는 넘김이 없다.
+   */
+  function setPageMark(text, page, key, value) {
+    if (key === 'turn' && page < 1) return text;
     const ls = lines(text);
     const first = ls.find((l) => !l.empty && l.page === page);
     if (!first) return text;
     if (first.scene) {
       const mk = readMarkLine(first.text);
-      return setLine(text, first, markLine({ scene: mk.scene, ground: mk.ground, turn }));
+      mk[key] = value;
+      return setLine(text, first, markLine(mk));
     }
-    if (!turn) return text;
-    return text.slice(0, first.start) + `[[${turn}]]\n` + text.slice(first.start);
+    if (!value) return text;
+    return text.slice(0, first.start) + `[[${value}]]\n` + text.slice(first.start);
   }
 
-  /* 쪽 page(0부터)에 적힌 넘김 이름. 없으면 null */
-  function pageTurn(text, page) {
+  /* 쪽 page(0부터)에 적힌 쪽 표시 하나(key: turn·place). 없으면 null */
+  function pageMark(text, page, key) {
     const first = lines(text).find((l) => !l.empty && l.page === page);
-    return first && first.scene ? readMarkLine(first.text).turn : null;
+    return first && first.scene ? readMarkLine(first.text)[key] : null;
   }
 
   /*
@@ -396,6 +398,6 @@
 
   global.GeulSense = {
     SCENE_RE, lines, sentences, blocks, guessMoods, emphasisCandidates, turnCandidate, suggestions,
-    unwrap, wrap, setFocus, focusText, readMarkLine, turnLine, setTurn, setPageTurn, pageTurn, autoBreaks, letters
+    unwrap, wrap, setFocus, focusText, readMarkLine, turnLine, setTurn, setPageMark, pageMark, autoBreaks, letters
   };
 })(typeof window !== 'undefined' ? window : globalThis);

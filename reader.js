@@ -9,7 +9,10 @@
  * 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 거기서 기다린다. 읽는 사람이 내리면 이어 쓴다.
  * 휠은 조금 굴리면 넘김이 걸리고, 걸린 뒤로는 손을 멈출 때까지 더 굴러도 한 장만 휙 넘긴다.
  * 쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(기본 쓸기), 같으면 스밈.
- * 미리 보기로 열렸을 때 sessionStorage의 geulgyeol.start({page, needle})가 있으면 그 장의 그 글귀 조금 앞부터 쓴다.
+ * 미리 보기로 열렸을 때 sessionStorage의 geulgyeol.start({page, needle, next})가 있으면 그 장의 그 글귀 조금 앞부터 쓴다.
+ *   next가 있으면 그 장을 다 쓴 뒤 다음 장으로 저절로 넘겨 넘김을 보여 준다.
+ * 쓰는 중에 넘기려 하면 처음 한 번은 '아직 쓰는 중'이라고 알리기만 하고, 곧이어 한 번 더 하면 그 장을 다 쓴다.
+ *   아래 눈금의 지금 장은 써 나간 만큼 찬다. '이 쪽 다시'(#again)는 지금 장만 처음부터 다시 쓴다.
  * 길게 누르면 그 줄에 머물러 나머지가 가라앉고 바탕도 느려진다. 다 쓴 어절에 손을 대면 잠깐 다시 젖는다.
  */
 (function () {
@@ -39,6 +42,8 @@
   const WHEEL_KICK = 40;      // 휠을 이만큼(px) 굴리면 넘김이 걸린다
   const WHEEL_REST = 260;     // 휠이 이만큼 멈추면 다음 넘김을 받는다
   const HOLD_LINE = 0.86;     // 쓰는 자리가 화면 높이의 이 비율 아래로 내려가면 기다린다
+  const SKIP_WINDOW = 1800;   // 쓰는 중에 넘기려 한 뒤 이 안에 한 번 더 하면 다 쓴다
+  const AUTO_NEXT = 700;      // 다 쓰고 저절로 넘길 때 기다림
   const LAND_WAIT = 320;      // 장에 도착한 뒤 쓰기 시작까지
   const HOLD_MS = 480;        // 이만큼 누르고 있으면 머무르기
 
@@ -68,17 +73,20 @@
 
   /*
    * 페이지마다 글 기둥의 폭·가로 자리·세로 자리를 정한다. 글이 짧을수록 좁고 한쪽으로 치우치며,
-   * 길수록 넓고 가운데에 가깝다. 바로 앞 장과 같은 자리는 피한다.
+   * 길수록 넓고 가운데에 가깝다. 바로 앞 장과 같은 자리는 피하고, 양 끝까지는 가지 않는다(0.2~0.8).
+   * 쪽 표시에 자리(왼쪽·가운데·오른쪽)가 있으면 그대로, 없고 강조 블록이 있는 쪽은 가운데.
    */
+  const PLACE_X = { left: 0.2, center: 0.5, right: 0.8 };
   function layoutFor(page, i, prev) {
     const n = page.count;
     const short = n < 70;
     const mid = n < 240;
     const measure = short ? 15 : mid ? 22 : 29;
-    const xs = short ? [0.12, 0.88, 0.5, 1, 0] : mid ? [0, 1, 0.5, 0.25, 0.75] : [0.5, 0.15, 0.85];
+    const marked = page.paragraphs.some((p) => p.lines.some((l) => l.tokens.some((t) => t.cells.some((c) => c.em))));
+    const xs = short ? [0.22, 0.78, 0.5] : mid ? [0.28, 0.72, 0.5] : [0.5, 0.36, 0.64];
     let k = (i * 3 + Math.round(n / 37)) % xs.length;
     if (prev && Math.abs(xs[k] - prev.x) < 0.2) k = (k + 1) % xs.length;
-    const x = xs[k];
+    const x = page.place ? PLACE_X[page.place] : marked ? 0.5 : xs[k];
     const ys = short ? [0.42, 0.62, 0.3, 0.5] : mid ? [0.38, 0.45, 0.32] : [0.28, 0.34];
     const y = ys[(i * 5 + n) % ys.length];
     const align = short && x > 0.7 ? 'right' : 'left';
@@ -207,16 +215,60 @@
     };
   }
 
+  /* 쓰는 중에 넘기려 할 때의 알림 */
+  const busy = document.createElement('div');
+  busy.className = 'ui cue busy';
+  busy.textContent = '아직 쓰고 있어요. 한 번 더 넘기면 다 보여 줘요.';
+  busy.setAttribute('aria-live', 'polite');
+  document.body.append(busy);
+  let busyTimer = 0;
+
+  /* 쓰는 중이면 처음 한 번은 알리기만 하고 true(넘기지 않음), 곧이어 한 번 더면 다 쓰고 true. 쓰는 중이 아니면 false */
+  function holdSkip(P) {
+    if (!writing(P)) return false;
+    const now = performance.now();
+    if (P.skipAt && now - P.skipAt < SKIP_WINDOW) {
+      P.skipAt = 0;
+      busy.classList.remove('is-on');
+      finish(P);
+      return true;
+    }
+    P.skipAt = now;
+    busy.classList.add('is-on');
+    clearTimeout(busyTimer);
+    busyTimer = setTimeout(() => busy.classList.remove('is-on'), SKIP_WINDOW);
+    return true;
+  }
+
+  /* 아래 눈금: 지금 장은 써 나간 만큼 찬다 */
+  function progress(P, n) {
+    const k = pages.indexOf(P);
+    const dot = dotsBox.children[k];
+    if (dot) dot.style.setProperty('--p', String(n));
+  }
+
   function play(P, wait, from) {
     if (P.state !== 'idle') return;
     if (!S.on) { finish(P); return; }
     P.state = 'waiting';
+    const total = P.items.filter((it) => !it.keep).length || 1;
+    let shown = 0;
+    progress(P, 0);
     P.start = setTimeout(() => {
       P.state = 'playing';
       P.tl = G.timeline(P.items, {
         from: from || 0,
         gate: gateFor(P),
-        onDone() { P.tl = null; P.state = 'done'; P.held = false; cue.classList.remove('is-on'); }
+        onReveal(it) { if (!it.keep) progress(P, ++shown / total); },
+        onDone() {
+          P.tl = null;
+          P.state = 'done';
+          P.held = false;
+          cue.classList.remove('is-on');
+          busy.classList.remove('is-on');
+          progress(P, 1);
+          if (P.after) { const f = P.after; P.after = null; setTimeout(f, AUTO_NEXT); }
+        }
       });
     }, wait);
   }
@@ -341,8 +393,7 @@
   }
 
   function next() {
-    const P = pages[S.cur];
-    if (writing(P)) { finish(P); return; }
+    if (holdSkip(pages[S.cur])) return;
     goTo(S.cur + 1);
   }
 
@@ -470,7 +521,7 @@
     clearTimeout(wheel.timer);
     wheel.timer = setTimeout(() => { wheel = null; }, WHEEL_REST);
     if (wheel.locked || !d) return;
-    if (d > 0 && writing(P)) { finish(P); wheel.locked = true; return; }
+    if (d > 0 && holdSkip(P)) { wheel.locked = true; return; }
     if (wheel.acc && Math.sign(wheel.acc) !== Math.sign(d)) wheel.acc = 0;
     wheel.acc += d;
     if (Math.abs(wheel.acc) < WHEEL_KICK) return;
@@ -496,7 +547,7 @@
     if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
       e.preventDefault();
       if (writing(P) && P.held && scrollPage(1)) return;
-      if (writing(P)) { finish(P); return; }
+      if (holdSkip(P)) return;
       if (!scrollPage(1)) next();
     } else if (['ArrowRight', 'Enter'].includes(e.key)) {
       e.preventDefault();
@@ -560,6 +611,15 @@
     replay();
   });
 
+  /* 이 쪽 다시: 지금 장만 처음부터 다시 쓴다 */
+  const againBtn = document.getElementById('again');
+  if (againBtn) againBtn.addEventListener('click', () => {
+    if (!S.on) setMotion(true, true);
+    const P = pages[S.cur];
+    reset(P);
+    play(P, LAND_WAIT);
+  });
+
   G.touchable(stage);
 
   window.addEventListener('resize', () => {
@@ -604,6 +664,7 @@
       }
     }
     if (k || from) S.firstShown = true;
+    if (at && at.next && k < pages.length - 1) pages[k].after = () => goTo(k + 1);
     spring.set(k);
     render(k);
     land(k, from);

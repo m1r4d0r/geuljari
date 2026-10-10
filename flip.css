@@ -1,9 +1,9 @@
 /* 글결 반전 그림 요소
    flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail)·조리개 고리(.flip-ring)·막 끝 빛줄(.flip-edge)
-   ·해 빛띠(.flip-sun)·섬광(.flip-flash)·금(.flip-crack)과 깨짐 조각(.flip-shard).
+   ·해 빛띠(.flip-sun)·섬광(.flip-flash).
    무대 안에서 장(.sheet)보다 위에 놓인다. 읽기 틀과 반전 시험이 함께 쓴다. */
 
-.flip-hand, .flip-axis, .flip-glow, .flip-trail, .flip-ring, .flip-edge, .flip-sun, .flip-flash, .flip-crack {
+.flip-hand, .flip-axis, .flip-glow, .flip-trail, .flip-ring, .flip-edge, .flip-sun, .flip-flash {
   position: absolute;
   pointer-events: none;
   opacity: 0;
@@ -76,7 +76,3 @@
 }
 /* 섬광: 찰칵 하고 번쩍이는 흰 면 */
 .flip-flash { inset: 0; z-index: 6; background: #fffdf8; }
-/* 깨짐: 맞은 자리에서 뻗는 금과 쏟아지는 조각 */
-.flip-crack { inset: 0; width: 100%; height: 100%; z-index: 6; overflow: visible; }
-.flip-crack path { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.2; stroke-linejoin: bevel; filter: drop-shadow(0 0 2px rgba(255, 255, 255, .7)); }
-.flip-shard { z-index: 3 !important; visibility: visible; pointer-events: none; will-change: transform, opacity; }

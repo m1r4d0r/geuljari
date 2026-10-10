@@ -1,9 +1,9 @@
 /*
  * 글결 합본 조판값
  * 편집실(index.js)·심상 검수(simsang.js)·읽기 틀(read.js)이 같은 조판값을 같은 방식으로 엔진에 건다.
- * 조판값: 흐름, 속도, 쉼, 처음 장면, 바탕, 마름, 넘김(장면이 바뀔 때의 기본), 글꼴.
- * 심상은 반대말 여섯 쌍(축)이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
- *   온도 → 넘김·마름 / 물기 → 흐름 / 숨 → 속도·쉼 / 거리 → 글꼴 / 때 → 처음 장면 / 결 → 바탕
+ * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 마름, 넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때), 글꼴.
+ * 심상은 반대말 세 쌍(축)이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
+ *   온도 → 넘김·마름 / 물기 → 흐름 / 숨 → 속도·쉼
  * 속도는 흐름·블록·효과 움직임의 시간을 함께 늘이고 줄인다(docs/효과-규칙.md). 넘김은 속도와 상관없다.
  * 전역 GeulTune.
  */
@@ -13,27 +13,18 @@
   const AXES = [
     { name: '온도', words: ['따뜻한', '차가운'] },
     { name: '물기', words: ['젖은', '마른'] },
-    { name: '숨', words: ['고요한', '숨찬'] },
-    { name: '거리', words: ['먼', '가까운'] },
-    { name: '때', words: ['새벽', '한낮'] },
-    { name: '결', words: ['물', '종이'] }
+    { name: '숨', words: ['고요한', '숨찬'] }
   ];
   const WORDS = AXES.flatMap((a) => a.words);
 
-  /* 낱말마다 조판값에 주는 영향과 고를 때 보이는 짧은 풀이. ground는 장면별로 고른다. */
+  /* 낱말마다 조판값에 주는 영향과 고를 때 보이는 짧은 풀이 */
   const MOOD = {
     '따뜻한': { turn: '조리개', dry: '느리게', note: '천천히 마르고, 빛이 열리듯 넘겨요' },
     '차가운': { turn: '셔터', dry: '빨리', note: '빨리 마르고, 짧게 끊어 넘겨요' },
     '젖은': { flow: '번짐', note: '글자가 번지며 나타나요' },
     '마른': { flow: '이어 쓰기', note: '번짐 없이 또박또박 나타나요' },
     '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 쉼은 길게' },
-    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 쉼은 짧게' },
-    '먼': { font: '고운바탕', note: '가늘고 옅은 글꼴' },
-    '가까운': { font: '함렛', note: '또렷하고 굵은 글꼴' },
-    '새벽': { scene: '밤', note: '어둔 바탕에서 시작해요' },
-    '한낮': { scene: '낮', note: '밝은 바탕에서 시작해요' },
-    '물': { ground: { '낮': '창빛', '밤': '물빛' }, note: '빛이 물결처럼 일렁여요' },
-    '종이': { ground: { '낮': '한지', '밤': '영사광' }, note: '종이 결과 영사 빛' }
+    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 쉼은 짧게' }
   };
 
   /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로 */
@@ -43,8 +34,9 @@
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
   const DRY = { '빨리': 0.9, '보통': 1.8, '느리게': 3.2 };
   const DRY_NAMES = Object.keys(DRY);
-  const GROUNDS = { '낮': ['창빛', '한지'], '밤': ['영사광', '오로라', '물빛'] };
-  /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀔 때의 기본으로는 스밈을 빼고 고른다. */
+  const GROUNDS = { '라이트': ['창빛', '한지'], '다크': ['영사광', '오로라', '물빛'] };
+  const OLD_SCENE = { '낮': '라이트', '밤': '다크' };
+  /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀌는 쪽에는 스밈을 빼고 고른다. */
   const TURNS = (global.Geulgyeol && global.Geulgyeol.TURNS) || { '쓸기': 'sweep' };
   const TURN_NAMES = Object.keys(TURNS);
   const SCENE_TURNS = TURN_NAMES.filter((n) => n !== '스밈');
@@ -64,7 +56,7 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   function defaults() {
-    return { flow: '이어 쓰기', speed: 1, rest: 1, scene: '낮', ground: '창빛', dry: '보통', turn: '쓸기', font: '송명' };
+    return { flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', dry: '보통', turn: '쓸기', font: '송명' };
   }
 
   /* 빠진 값·어긋난 값을 기본값으로 메운다 */
@@ -74,7 +66,8 @@
     if (!(o.flow in FLOWS)) o.flow = d.flow;
     o.speed = clamp(Number(o.speed) || 1, 0.5, 1.6);
     o.rest = clamp(Math.round(Number(o.rest)), 0, REST_MS.length - 1);
-    if (!GROUNDS[o.scene]) o.scene = '낮';
+    if (OLD_SCENE[o.scene]) o.scene = OLD_SCENE[o.scene];
+    if (!GROUNDS[o.scene]) o.scene = '라이트';
     if (!GROUNDS[o.scene].includes(o.ground)) o.ground = GROUNDS[o.scene][0];
     if (!(o.dry in DRY)) o.dry = '보통';
     if (!SCENE_TURNS.includes(o.turn)) o.turn = '쓸기';
@@ -95,16 +88,16 @@
     return AXES.flatMap((a) => out.filter((w) => a.words.includes(w)));
   }
 
-  /* 축 차례대로 값을 정한다. 바탕은 장면이 정해진 뒤에 고른다. */
-  function fromMoods(words) {
+  /*
+   * 심상에서 조판값을 만든다. 심상이 맡지 않는 값(장면·바탕·글꼴)은 keep(지금 조판값)을 그대로 둔다.
+   */
+  function fromMoods(words, keep) {
     const s = defaults();
-    const list = oneEach(words);
-    list.forEach((w) => {
+    if (keep) ['scene', 'ground', 'font'].forEach((k) => { s[k] = keep[k]; });
+    oneEach(words).forEach((w) => {
       const m = MOOD[w];
-      ['flow', 'speed', 'rest', 'scene', 'dry', 'turn', 'font'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
+      ['flow', 'speed', 'rest', 'dry', 'turn'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
     });
-    s.ground = GROUNDS[s.scene][0];
-    list.forEach((w) => { if (MOOD[w].ground) s.ground = MOOD[w].ground[s.scene]; });
     return normalize(s);
   }
 

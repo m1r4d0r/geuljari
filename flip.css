@@ -1,6 +1,6 @@
 /* 글결 반전 그림 요소
-   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail)·조리개 고리(.flip-ring)·막 끝 빛줄(.flip-edge)
-   ·해 빛띠(.flip-sun)·섬광(.flip-flash).
+   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail)·조리개 고리(.flip-ring, 피어남에서는 바닥 가운데의 빛테)
+   ·막 끝 빛줄(.flip-edge)·해 빛띠(.flip-sun)·섬광(.flip-flash).
    무대 안에서 장(.sheet)보다 위에 놓인다. 읽기 틀과 반전 시험이 함께 쓴다. */
 
 .flip-hand, .flip-axis, .flip-glow, .flip-trail, .flip-ring, .flip-edge, .flip-sun, .flip-flash {
@@ -50,6 +50,11 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgba(255, 248, 232, .9), 0 0 18px 2px rgba(255, 236, 200, .45);
+}
+/* 피어남 빛테: 바닥 가운데에서 부푸는 원의 가장자리. 얇은 선 바깥으로 빛이 번지고 안쪽으로도 조금 스민다 */
+.flip-ring.is-low {
+  top: 100%;
+  box-shadow: 0 0 0 1px rgba(255, 248, 232, .78), 0 0 24px 3px rgba(255, 236, 200, .3), inset 0 0 28px 3px rgba(255, 236, 200, .14);
 }
 /* 막 끝 빛줄: 내려오는 스크린의 아랫단 */
 .flip-edge {

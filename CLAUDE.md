@@ -36,19 +36,21 @@
 - `engine.js` — 글 분석. 글자 단위 셀, 어절 역할(flow·short·drip), 시간표(`schedule`), 문단·페이지 나누기(`parse`, `pages`), 집계(`stats`), 가리기(`mask`). 전역 `Geulgyeol`.
 - `fx.js` — 효과 실행. `FX`(fade·soft·rise·bleed·focus·gather·tremble·fall·type·strike·spread·drift·spot), `timeline`(rAF 시간표), `buildParagraph`(문단을 .ln/.tk/.ch로 그림), `focusBand`, `touchable`. 전역 `GeulFx`.
 - `motion.js` — `spring`, `spring2`, `tween`, `bezier`, `ease`. 전역 `GeulMotion`.
-- `flip.js` — 두 장 사이 넘김 그리기. `sweep`(쓸기)·`disc`(회전)·`drift`(스밈). 전역 `GeulFlip`.
+- `flip.js` — 두 장 사이 넘김 그리기. `sweep`(쓸기)·`iris`(조리개)·`blinds`(셔터)·`curtain`(막)·`disc`(회전)·`drift`(스밈). 전역 `GeulFlip`.
 - `backdrop.js` — 바탕 그리기. `window`(창빛)·`hanji`(한지)·`projector`(영사광)·`aurora`(오로라)·`caustic`(물빛). WebGL1 셰이더와 Canvas2D, 캔버스는 쓰는 장만 만든다. 전역 `GeulBackdrop`.
-- `reader.js` + `reader.css` + `index.html` — 읽기 틀 2판. 페이지마다 장(.sheet), 끌기·휠·키·단추 넘김, 길게 누르기, 페이지별 폭·자리. 예시 글은 `index.html`의 `#glog-text`.
+- `reader.js` + `reader.css` + `index.html` — 읽기 틀 2판. 페이지마다 장(.sheet), 끌기·휠·키·단추 넘김, 길게 누르기, 페이지별 폭·자리. 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 기다림. 휠은 한 번 걸리면 한 장을 휙 넘김. `window.GeulReaderOpts.turn`으로 넘김 고르기, 미리 보기에서는 `sessionStorage`의 `geulgyeol.start`({page, needle}) 자리부터 씀. 예시 글은 `index.html`의 `#glog-text`.
 - `glyph.css` — 글자 상태(.pending·.wet·.drying)와 효과 모양. 읽기 틀과 효과 견본이 같이 쓴다.
 - `flip.css` — 넘김 오버레이(바늘·축·빛·자취).
 - `mask.html/js/css` + `sample.js` — 가림판. 원문을 ■로 가리고 효과·장면·페이지 표시만 남긴다. 드래그 뒤 효과 메뉴로 블록 지정.
 - `effects.html/js/css` — 효과 견본. `base.css`는 가림판과 견본이 쓰는 1판 토큰(편집실을 만들 때 교정쇄 토큰으로 바꾼다).
 - `flip-lab.html/js/css` — 반전·바탕 시험 페이지.
 - `design/교정쇄-편집실.html` — 편집실 시안(정적). 구현의 기준.
+- `hapbon/` — 합본(2단계 편집실의 기준). 먹지판 + Codex 판의 짜임. 한 화면·한 본문에서 쓰기(결 보기·규칙 불) → 묻기(글 위 오버레이 세 문항, 글에서 누르고 끌어 고름) → 1차 안(전체 화면 미리보기) → 다듬기(효과 감싸기, 바뀐 자리부터 미리보기, 조판·심상 바꾸기). 반전·남길 곳·효과는 모두 본문 안 표시로 들어가 언제든 되돌아가 바꿀 수 있음. `tune.js`(조판값·넘김), `sense.js`(짐작·제안·긴 쪽 나누기·표시 넣고 빼기), `gyeol.js`(결 보기), `index.*`, `read.*`. 스모크는 `tests/smoke_hapbon.py`.
+- `codex-proposals/` — Codex 시안(비교용, 손대지 않음).
 - `meokji/` — 먹지판(편집실 재구성 시험판). 쓰기 → 세 가지 묻기(심상 낱말·반전 자리·한 문장) → 1차 안 → 다듬기. 루트의 `engine.js`·`fx.js`·`reader.js` 등을 그대로 불러 쓰고, 색은 복사지 바탕에 남보라 `#2C2F6B` 한 색. `tune.js`(조판값→엔진), `sense.js`(원문을 브라우저 안에서 읽어 짐작·제안·표시 넣기), `index.*`(편집실), `read.*`(읽기 틀 덮개). 스모크는 `tests/smoke_meokji.py`.
 - `tests/smoke.py` — 읽기 틀 스모크(PC·폰 크기, 쓰기→넘김→쓸기→끌기→휠→길게 누르기→처음부터).
 
 ## 지금 상태와 다음 일
 - 1단계(읽기 틀 2판, 가림판, 효과 견본, 바탕·반전) 완료.
-- 2단계: 편집실. `docs/단계-계획.md`의 순서대로. 가림판의 역할은 편집실 안의 "가린 글 복사"로 흡수한다.
+- 2단계: 편집실. `hapbon/`에서 이어 간다(색은 먹지, 짜임은 Codex 판). 가림판의 역할은 "결 보기"와 "가린 글 복사"로 흡수했다.
 - 3단계: 발행·불러오기·읽기 링크·관리실·문의. 서버는 Netlify Functions + Firestore, 암호화는 브라우저(WebCrypto).

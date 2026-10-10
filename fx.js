@@ -151,6 +151,8 @@
   /*
    * 시간표 재생기. items: [{ el, t(ms), fx, keep?, k?, n? }]
    * keep이 있는 항목(줄 긋기·줄 움직임·조명)은 글자를 숨기지 않고 그 시각에 효과만 건다.
+   * opts.gate(item)가 false를 돌려주면 그 글자 앞에서 시간을 멈추고, true가 될 때까지 기다렸다가 이어 간다.
+   * opts.from(ms)을 주면 그 시각 앞의 글자는 다 쓴 모습으로 바로 놓고 그 시각부터 재생한다.
    * 화면 갱신마다 흐른 시간을 더하되 한 번에 64ms까지만 더해서, 탭이 가려졌다 돌아와도 밀린 글자가 한꺼번에 쏟아지지 않는다.
    */
   function timeline(items, opts) {
@@ -164,6 +166,11 @@
     let ended = false;
 
     list.forEach((it) => { if (!it.keep) it.el.classList.add('pending'); });
+    if (o.from > 0) {
+      while (i < list.length && list[i].t < o.from) i++;
+      show(list.slice(0, i));
+      elapsed = o.from;
+    }
 
     function reveal(it) {
       if (!it.keep) it.el.classList.remove('pending');
@@ -184,7 +191,10 @@
       if (last === null) last = now;
       elapsed += Math.min(now - last, 64);
       last = now;
-      while (i < list.length && list[i].t <= elapsed) reveal(list[i++]);
+      while (i < list.length && list[i].t <= elapsed) {
+        if (o.gate && !list[i].keep && !o.gate(list[i])) { elapsed = list[i].t; break; }
+        reveal(list[i++]);
+      }
       if (i < list.length) raf = requestAnimationFrame(frame);
       else end();
     }

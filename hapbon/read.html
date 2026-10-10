@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글결</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Noto+Serif+KR:wght@400&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="../glyph.css">
+<link rel="stylesheet" href="../flip.css">
+<link rel="stylesheet" href="../reader.css">
+<link rel="stylesheet" href="read.css">
+<script src="../engine.js" defer></script>
+<script src="../motion.js" defer></script>
+<script src="../fx.js" defer></script>
+<script src="../flip.js" defer></script>
+<script src="../backdrop.js" defer></script>
+<script src="../sample.js" defer></script>
+<script src="tune.js" defer></script>
+<script src="read.js" defer></script>
+<script src="../reader.js" defer></script>
+</head>
+<body>
+<main class="stage" id="stage" aria-hidden="true"></main>
+
+<nav class="ui view" aria-label="보기">
+  <button class="tbtn" type="button" id="motion">움직임 끄기</button>
+  <button class="tbtn" type="button" id="replay">처음부터</button>
+</nav>
+
+<footer class="ui ops">
+  <span class="dots" id="dots"></span>
+  <p class="hint" id="hint">옆으로 끌거나 휠·방향키로 넘겨요.</p>
+  <span class="turn">
+    <button class="tbtn" type="button" id="prev">이전</button>
+    <button class="tbtn" type="button" id="next">다음</button>
+  </span>
+</footer>
+
+<div class="sr-only" id="glog-sr"></div>
+
+<!-- 편집실에서 넘어온 글이 없으면 read.js가 예시 글(sample.js)을 넣는다 -->
+<script type="text/plain" id="glog-text"></script>
+</body>
+</html>

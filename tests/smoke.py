@@ -2,7 +2,7 @@
 저장소 루트를 정적 서버로 띄우고 PC·폰 크기에서 쓰기 → 넘김(스밈) → 쓸기 → 끌기 → 휠 → 길게 누르기 → 처음부터를 차례로 밟는다.
 쓰임: python3 tests/smoke.py [찍은 그림을 둘 폴더]   (Playwright Chromium 필요: pip install playwright && playwright install chromium)
 """
-import sys, subprocess, time, pathlib
+import sys, subprocess, time, pathlib, glob
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -16,7 +16,11 @@ errors = []
 state = """() => [...document.querySelectorAll('.sheet')].map(s => (s.classList.contains('is-current')?'C':'') + (s.classList.contains('fits')?'f':'s') + ':' + s.querySelectorAll('.ch:not(.pending)').length + '/' + s.querySelectorAll('.ch').length).join('  ')"""
 try:
     with sync_playwright() as p:
-        b = p.chromium.launch(args=['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'])
+        args = ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist']
+        try:
+            b = p.chromium.launch(args=args)
+        except Exception:
+            b = p.chromium.launch(executable_path=(glob.glob('/opt/pw-browsers/chromium-*/chrome-linux*/chrome') or [None])[0], args=args)
         for (W, H, tag) in [(1280, 800, 'desk'), (390, 844, 'phone')]:
             ctx = b.new_context(viewport={'width': W, 'height': H})
             ctx.route('**/fonts.g*', lambda r: r.abort())

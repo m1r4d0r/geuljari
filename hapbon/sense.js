@@ -1,0 +1,345 @@
+/*
+ * 글결 합본 글 읽기
+ * 가리지 않은 원문을 이 브라우저 안에서만 읽어 1차 안의 재료를 만든다. 글은 어디로도 보내지 않는다.
+ * 본문 하나가 모든 것을 담는다: 반전은 [[밤]]·[[낮]] 줄, 남기고 싶은 곳은 이름 없는 {{…}}, 효과는 {{이름:…}}.
+ * - 짐작: 심상 낱말, 반전 자리, 남기고 싶은 곳 후보, 문장별 효과 제안.
+ * - 고치기: 반전 줄 옮기기, 남기고 싶은 곳 바꾸기, 효과 감싸기·벗기기, 긴 쪽 나누기.
+ * 전역 GeulSense.
+ */
+(function (global) {
+  'use strict';
+
+  const E = global.Geulgyeol;
+
+  /* 심상 낱말마다 글에서 세는 말 */
+  const LEX = {
+    '따뜻한': /따뜻|데워|데운|온기|햇살|불빛|포근/g,
+    '차가운': /차갑|차가|식었|식어|얼어|얼음|서늘|겨울/g,
+    '젖은': /젖|축축|번지|번진|번져|스미|스며|잉크|눈물|빗/g,
+    '마른': /마르|말라|마른|바삭|건조/g,
+    '고요한': /고요|조용|적막|숨을 고르|지워진|느린|천천히/g,
+    '숨찬': /급하|서둘|빨리|즉시|숨차|헐떡|달려/g,
+    '먼': /멀리|먼 |오래|기억|아득|그때/g,
+    '가까운': /곁에|가까|손안|손바닥|닿/g,
+    '새벽': /밤|새벽|어둠|어두|자정|별빛/g,
+    '한낮': /한낮|햇빛|햇볕|오후|정오|아침/g,
+    '물': /빗물|물방울|강물|바다|파도|방울|물결/g,
+    '종이': /종이|편지|펜|연필|만년필|봉투|우표|글자|문장/g
+  };
+  const NIGHT = /밤|새벽|어둠|어두|자정|별빛|불을 끄/;
+  const DAY = /아침|햇빛|햇볕|한낮|오후|정오|해가 뜨|날이 밝/;
+  /* 낱말로 고르는 효과 제안. 앞에 있는 것부터 본다. */
+  const SUGGEST = [
+    { fx: '번짐', re: /번지|번진|번져|스미|스며|젖은|젖어|흐려/ },
+    { fx: '흘러내림', re: /떨어지|떨어졌|흘러|쏟아|무너|내려앉/ },
+    { fx: '떨림', re: /떨리|떨렸|흔들|두근|덜컥/ }
+  ];
+  const PAGE_LIMIT = 240;    // 공백 빼고 이보다 긴 쪽은 1차 안에서 나눈다
+  const PAGE_MIN = 50;       // 나눈 뒤 한쪽이 이보다 짧아지면 나누지 않는다
+  const MARK_RE = /\{\{|\}\}|\[\[|\]\]/;
+  const SENT_RE = /[^.?!…。]*[.?!…。]+["'”’」』)\]]*|[^.?!…。]+$/g;
+  const SCENE_RE = /^[^\S\n]*\[\[(밤|낮)(?:[:·]\s*[^\]\n]+)?\]\][^\S\n]*$/;
+  const NAME_ALT = E.BLOCK_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const TOKEN_RE = new RegExp(`\\{\\{(?:(${NAME_ALT}):)?|\\}\\}`, 'g');
+
+  const letters = (s) => s.replace(/\s/g, '').length;
+  const plain = (s) => E.stripMarks(s);
+
+  /*
+   * 줄마다 {i, start, text, empty, scene, page, para}.
+   * 쪽은 빈 줄 둘 이상이나 장면 줄에서 넘어가고, 문단은 빈 줄에서 넘어간다.
+   */
+  function lines(text) {
+    const out = [];
+    let o = 0;
+    let page = 0;
+    let para = 0;
+    let blank = 0;
+    let seen = false;
+    let sceneOpen = false;
+    String(text).split('\n').forEach((t, i) => {
+      const empty = !t.trim();
+      const scene = !empty && SCENE_RE.test(t);
+      if (empty) blank++;
+      else {
+        if (seen) {
+          if ((blank >= 2 || scene) && !sceneOpen) page++;
+          if (blank >= 1 || scene) para++;
+        }
+        sceneOpen = scene;
+        if (!scene) seen = true;
+        blank = 0;
+      }
+      out.push({ i, start: o, text: t, empty, scene, page, para });
+      o += t.length + 1;
+    });
+    return out;
+  }
+
+  function sentences(text) {
+    const out = [];
+    lines(text).forEach((ln) => {
+      if (ln.empty || ln.scene) return;
+      SENT_RE.lastIndex = 0;
+      let m;
+      while ((m = SENT_RE.exec(ln.text))) {
+        const lead = m[0].match(/^\s*/)[0].length;
+        const raw = m[0].slice(lead).replace(/\s+$/, '');
+        if (raw) {
+          const start = ln.start + m.index + lead;
+          out.push({ start, end: start + raw.length, text: raw, line: ln.i, page: ln.page, para: ln.para });
+        }
+      }
+    });
+    return out;
+  }
+
+  /* 본문 안의 블록 {os, oe, cs, ce, fx, named}. 문단 끝에서 닫히지 않은 블록은 빼고 센다. */
+  function blocks(text) {
+    const out = [];
+    let open = null;
+    let m;
+    TOKEN_RE.lastIndex = 0;
+    while ((m = TOKEN_RE.exec(text))) {
+      if (m[0] === '}}') {
+        if (open) out.push(Object.assign(open, { cs: m.index, ce: m.index + 2 }));
+        open = null;
+      } else {
+        open = { os: m.index, oe: m.index + m[0].length, fx: m[1] || E.BLOCK_DEFAULT, named: !!m[1] };
+      }
+    }
+    return out.filter((b) => !/\n[^\S\n]*\n/.test(text.slice(b.os, b.ce)));
+  }
+
+  function guessMoods(text) {
+    const t = plain(text);
+    const counts = Object.keys(LEX).map((w, k) => ({ w, k, n: (t.match(LEX[w]) || []).length }));
+    return counts.filter((c) => c.n > 0).sort((a, b) => b.n - a.n || a.k - b.k).slice(0, 3).map((c) => c.w);
+  }
+
+  /*
+   * 남기고 싶은 곳 후보: 긴 문장 바로 뒤에 오는 짧은 문장, 문단을 닫는 짧은 문장일수록 앞에 둔다.
+   * 표시가 이미 들어 있는 문장은 고르지 않는다.
+   */
+  function emphasisCandidates(text) {
+    const ss = sentences(text);
+    const out = [];
+    ss.forEach((s, k) => {
+      const n = letters(s.text);
+      if (n < 3 || n > 14 || MARK_RE.test(s.text)) return;
+      const prev = k > 0 && ss[k - 1].para === s.para ? ss[k - 1] : null;
+      const next = ss[k + 1];
+      const closes = !next || next.para !== s.para;
+      let score = prev ? letters(prev.text) / n : 0;
+      if (closes) score = score * 1.3 + 0.5;
+      if (score >= 2) out.push(Object.assign({ score }, s));
+    });
+    return out.sort((a, b) => b.score - a.score);
+  }
+
+  /*
+   * 반전 자리 후보: 처음 장면과 반대되는 시간의 낱말이 처음 나오는 쪽(첫 쪽 빼고)의 첫 줄.
+   * 그런 낱말이 없으면 세 쪽 이상일 때 가운데 쪽의 첫 줄. 돌려주는 값은 줄 번호(없으면 null).
+   */
+  function turnCandidate(text, scene) {
+    const re = scene === '밤' ? DAY : NIGHT;
+    const ls = lines(text).filter((l) => !l.empty && !l.scene);
+    const firstOf = (p) => { const l = ls.find((x) => x.page === p); return l ? l.i : null; };
+    const hit = ls.find((l) => l.page > 0 && re.test(l.text));
+    if (hit) return firstOf(hit.page);
+    const pages = ls.length ? ls[ls.length - 1].page + 1 : 0;
+    return pages >= 3 ? firstOf(Math.floor(pages / 2)) : null;
+  }
+
+  /* 낱말로 찾은 효과 제안. 쪽마다 하나, 모두 다섯까지. 이미 표시가 걸친 문장은 뺀다. */
+  function suggestions(text) {
+    const out = [];
+    const used = new Set();
+    const bl = blocks(text);
+    sentences(text).forEach((s) => {
+      if (out.length >= 5 || used.has(s.page) || MARK_RE.test(s.text)) return;
+      if (bl.some((b) => s.start < b.ce && b.os < s.end)) return;
+      let fx = null;
+      let why = '';
+      const words = s.text.split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}]/gu, '')).filter((w) => w.length > 1);
+      const rep = words.find((w) => words.filter((x) => x === w).length >= 3);
+      const commas = (s.text.match(/,/g) || []).length;
+      if (rep) { fx = '숨가쁨'; why = `“${rep}” 세 번`; }
+      else if (commas >= 3) { fx = '숨가쁨'; why = `쉼표 ${commas}`; }
+      else {
+        const hit = SUGGEST.find((r) => r.re.test(s.text));
+        if (hit) { fx = hit.fx; why = `“${s.text.match(hit.re)[0]}”`; }
+      }
+      if (!fx) return;
+      used.add(s.page);
+      out.push({ start: s.start, end: s.end, text: s.text, fx, why, page: s.page });
+    });
+    return out;
+  }
+
+  /* ---------- 고치기: 모두 새 본문을 돌려준다 ---------- */
+
+  function cut(text, a, b) { return text.slice(0, a) + text.slice(b); }
+
+  /* 블록 표시만 걷어 낸다(안의 글은 남김) */
+  function unwrap(text, blk) {
+    return cut(cut(text, blk.cs, blk.ce), blk.os, blk.oe);
+  }
+
+  /*
+   * start~end를 fx 효과로 감싼다(fx가 없으면 이름 없는 {{…}} = 남기고 싶은 곳).
+   * 걸치는 블록은 먼저 걷고, 빈 줄을 넘는 범위는 문단마다 따로 감싼다. 감싼 뒤 범위 {text, start, end}.
+   */
+  function wrap(text, start, end, fx) {
+    let t = text;
+    let a = start;
+    let b = end;
+    blocks(t).filter((k) => k.os < b && a < k.ce).sort((x, y) => y.os - x.os).forEach((k) => {
+      const lenO = k.oe - k.os;
+      const lenC = k.ce - k.cs;
+      t = unwrap(t, k);
+      const shift = (p) => p - (p > k.cs ? Math.min(lenC, p - k.cs) : 0) - (p > k.os ? Math.min(lenO, p - k.os) : 0);
+      a = shift(a);
+      b = shift(b);
+    });
+    const open = '{{' + (fx ? fx + ':' : '');
+    const segs = [];
+    const re = /\n[^\S\n]*\n/g;
+    let from = a;
+    let m;
+    re.lastIndex = a;
+    while ((m = re.exec(t)) && m.index < b) {
+      segs.push([from, m.index]);
+      from = m.index + m[0].length;
+      re.lastIndex = from;
+    }
+    segs.push([from, b]);
+    const ranges = segs.map(([s, e]) => {
+      while (s < e && /\s/.test(t[s])) s++;
+      while (e > s && /\s/.test(t[e - 1])) e--;
+      return [s, e];
+    }).filter(([s, e]) => e > s);
+    if (!ranges.length) return { text, start, end };
+    for (let k = ranges.length - 1; k >= 0; k--) {
+      const [s, e] = ranges[k];
+      t = t.slice(0, s) + open + t.slice(s, e) + '}}' + t.slice(e);
+    }
+    const last = ranges[ranges.length - 1];
+    return { text: t, start: ranges[0][0], end: last[1] + (open.length + 2) * ranges.length };
+  }
+
+  /* 남기고 싶은 곳(이름 없는 블록)을 모두 걷고 start~end에 새로 감싼다. start가 null이면 걷기만. */
+  function setFocus(text, start, end) {
+    let t = text;
+    let a = start;
+    let b = end;
+    blocks(t).filter((k) => !k.named).sort((x, y) => y.os - x.os).forEach((k) => {
+      t = unwrap(t, k);
+      if (a != null) {
+        const shift = (p) => p - (p > k.cs ? Math.min(2, p - k.cs) : 0) - (p > k.os ? Math.min(k.oe - k.os, p - k.os) : 0);
+        a = shift(a);
+        b = shift(b);
+      }
+    });
+    return a == null ? t : wrap(t, a, b, null).text;
+  }
+
+  /* 지금 남기고 싶은 곳의 글(띄어쓰기 그대로, 여러 조각이면 이어서) */
+  function focusText(text) {
+    return blocks(text).filter((k) => !k.named).map((k) => text.slice(k.oe, k.cs)).join(' ');
+  }
+
+  /* 첫 장면 줄(반전)의 줄 번호. 없으면 null */
+  function turnLine(text) {
+    const l = lines(text).find((x) => x.scene);
+    return l ? l.i : null;
+  }
+
+  /* 반전 줄을 옮긴다. line이 null이면 지우기만. scene은 넣을 장면(밤·낮) */
+  function setTurn(text, line, scene) {
+    const ls = lines(text);
+    const old = ls.find((x) => x.scene);
+    const target = line != null ? ls[line] : null;
+    let t = text;
+    let at = target ? target.start : null;
+    if (old) {
+      const s = old.start;
+      const e = Math.min(text.length, old.start + old.text.length + 1);
+      t = cut(t, s, e);
+      if (at != null && at > s) at -= e - s;
+      if (target && target.i === old.i) at = null;
+    }
+    if (at != null) t = t.slice(0, at) + `[[${scene}]]\n` + t.slice(at);
+    return t;
+  }
+
+  /*
+   * 긴 쪽 나누기: 공백 빼고 PAGE_LIMIT자를 넘는 쪽을 가운데에 가까운 줄 경계(문단 경계를 조금 더 좋아함)에서 나눈다.
+   * 줄 경계가 없으면 가운데에 가까운 문장 끝에서 줄을 바꿔 나눈다. 블록 안은 나누지 않는다. {text, count}
+   */
+  function autoBreaks(text) {
+    let t = text;
+    let count = 0;
+    for (let guard = 0; guard < 24; guard++) {
+      const ls = lines(t);
+      const pages = new Map();
+      ls.forEach((l) => {
+        if (l.empty || l.scene) return;
+        if (!pages.has(l.page)) pages.set(l.page, []);
+        pages.get(l.page).push(l);
+      });
+      let edit = null;
+      for (const [, pl] of pages) {
+        const sizes = pl.map((l) => letters(plain(l.text)));
+        const total = sizes.reduce((a, b) => a + b, 0);
+        if (total <= PAGE_LIMIT) continue;
+        let best = null;
+        let before = 0;
+        pl.forEach((l, k) => {
+          if (k > 0 && !insideBlock(t, l.start)) {
+            const prevBlank = ls[l.i - 1] && ls[l.i - 1].empty;
+            const score = Math.min(before, total - before) * (prevBlank ? 1.15 : 1);
+            if (Math.min(before, total - before) >= PAGE_MIN && (!best || score > best.score)) best = { score, at: l.start, line: l.i };
+          }
+          before += sizes[k];
+        });
+        if (best) {
+          let blanks = 0;
+          for (let i = best.line - 1; i >= 0 && ls[i].empty; i--) blanks++;
+          edit = { at: best.at, s: '\n'.repeat(Math.max(0, 2 - blanks)) };
+          if (!edit.s) edit = null;
+        } else {
+          const longest = pl[sizes.indexOf(Math.max(...sizes))];
+          const ss = sentences(t).filter((s) => s.line === longest.i && !insideBlock(t, s.end));
+          const half = letters(plain(longest.text)) / 2;
+          let acc = 0;
+          let pick = null;
+          ss.forEach((s, k) => {
+            acc += letters(plain(s.text));
+            if (k < ss.length - 1 && acc >= PAGE_MIN && (!pick || Math.abs(acc - half) < Math.abs(pick.acc - half))) pick = { acc, end: s.end };
+          });
+          if (pick) {
+            let e = pick.end;
+            while (t[e] === ' ') e++;
+            edit = { at: pick.end, s: '\n\n\n', del: e - pick.end };
+          }
+        }
+        if (edit) break;
+      }
+      if (!edit) break;
+      t = t.slice(0, edit.at) + edit.s + t.slice(edit.at + (edit.del || 0));
+      count++;
+    }
+    return { text: t, count };
+  }
+
+  /* offset 자리가 블록 안인지 */
+  function insideBlock(text, offset) {
+    return blocks(text).some((b) => b.oe <= offset && offset < b.cs);
+  }
+
+  global.GeulSense = {
+    SCENE_RE, lines, sentences, blocks, guessMoods, emphasisCandidates, turnCandidate, suggestions,
+    unwrap, wrap, setFocus, focusText, turnLine, setTurn, autoBreaks, letters
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

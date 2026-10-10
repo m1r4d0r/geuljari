@@ -1,0 +1,32 @@
+/* 글결 합본 읽기 틀
+   루트 reader.css 위에 덮는다. 본문은 송명, 조작은 노토 산스.
+   낮 장면의 먹은 복사지의 남보라이고, 젖은 글자는 옅은 남보라로 나와 마르며 진해진다.
+   마르는 시간(--dry)은 read.js가 조판값에서 정한다. */
+
+:root {
+  --f-display: 'Song Myung', 'Noto Serif KR', serif;
+  --f-body: 'Song Myung', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Batang', serif;
+}
+
+[data-scene="day"] {
+  --paper: #ECEDF0;
+  --ink: #2C2F6B;
+  --ink-soft: #4F5280;
+  --wet: #9A9CC2;
+}
+[data-scene="night"] {
+  --wet: #6E7099;
+}
+
+.column { font-weight: 400; letter-spacing: 0; }
+[data-scene="day"] .column { text-shadow: .6px .45px 0 rgba(44, 47, 107, .22); }
+.ch.em { font-weight: 400; }
+.drying { transition: color var(--dry, 1.8s) ease-in-out; }
+
+.ui { font-family: 'Noto Sans KR', sans-serif; }
+
+/* 편집실 안에 들어간 작은 미리보기 */
+.embed .ops .hint { display: none; }
+.embed .view { top: .5rem; right: .75rem; font-size: .78rem; }
+.embed .ops { padding: .5rem .75rem .6rem; font-size: .78rem; }
+.embed .scroll { padding-top: 3rem; padding-bottom: 3.6rem; }

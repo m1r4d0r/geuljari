@@ -4,6 +4,9 @@
  * - sweep(쓸기): 바닥에 누워 있던 바늘이 축을 중심으로 180도를 휙 쓸고, 바늘이 지나간 자리부터 새 장이 보인다. 장 자체는 움직이지 않는다.
  * - disc(회전): 두 장이 한 몸처럼 축을 중심으로 180도 돈다. 새 장은 처음에 바닥 아래에 거꾸로 붙어 있다가 돌아 올라온다.
  *   돌아가는 동안 장이 비운 자리로 무대 뒤의 어둠이 잠깐 드러난다.
+ * - iris(조리개): 영사기 조리개가 열리듯 화면 가운데에서 둥근 구멍이 넓어지며 새 장이 드러난다. 가장자리에 빛 고리가 돈다.
+ * - blinds(셔터): 가로 살이 한꺼번에 벌어지며 새 장이 드러난다. 스위치를 내린 듯 짧고 또렷하다.
+ * - curtain(막): 영사 스크린이 위에서 내려오듯 새 장이 위에서부터 덮고, 아랫단에 빛줄이 따라 내려온다.
  * - drift(스밈): 장면이 같은 페이지끼리. 새 장이 위에서 옅게 겹쳐 오고, 글은 넘기는 방향으로 조금 밀리며 바뀐다.
  * dir=1이면 시계방향(앞으로), dir=-1이면 반시계방향(되돌아가기).
  * 장(.sheet)은 무대 크기 그대로 겹쳐 있어야 하고, 무대는 position이 있는 요소여야 한다.
@@ -22,8 +25,13 @@
     hand.className = 'flip-hand';
     const axis = document.createElement('i');
     axis.className = 'flip-axis';
-    [trail, glow, hand, axis].forEach((n) => n.setAttribute('aria-hidden', 'true'));
-    stage.append(trail, glow, hand, axis);
+    const ring = document.createElement('i');
+    ring.className = 'flip-ring';
+    const edge = document.createElement('i');
+    edge.className = 'flip-edge';
+    const lights = [trail, glow, hand, axis, ring, edge];
+    lights.forEach((n) => n.setAttribute('aria-hidden', 'true'));
+    stage.append(...lights);
 
     let pair = null;
     let g = null;
@@ -85,7 +93,37 @@
           pair.fromText.style.transform = mv(-shift * e);
         }
         if (pair.toText) pair.toText.style.transform = mv(shift * (1 - e));
-        [hand, axis, trail, glow].forEach((n) => { n.style.opacity = '0'; });
+        lights.forEach((n) => { n.style.opacity = '0'; });
+      } else if (mode === 'iris') {
+        const e = q * q * (3 - 2 * q);
+        const R = Math.hypot(g.W, g.H) * 0.56 * e;
+        to.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
+        to.style.clipPath = q >= 0.9995 ? '' : `circle(${R.toFixed(1)}px at 50% 50%)`;
+        to.style.transform = q >= 0.9995 ? '' : `scale(${(1.04 - 0.04 * e).toFixed(4)})`;
+        ring.style.width = ring.style.height = (R * 2).toFixed(1) + 'px';
+        ring.style.opacity = String(mid * lit);
+        glow.style.opacity = String(0.4 * mid * lit);
+        [hand, axis, trail, edge].forEach((n) => { n.style.opacity = '0'; });
+      } else if (mode === 'blinds') {
+        const e = q * q * (3 - 2 * q);
+        const band = Math.max(28, g.H / 9);
+        const open = (band * e).toFixed(2);
+        const m = q >= 0.9995 ? '' : `repeating-linear-gradient(to bottom, #000 0, #000 ${open}px, transparent ${open}px, transparent ${band.toFixed(2)}px)`;
+        to.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
+        to.style.webkitMaskImage = m;
+        to.style.maskImage = m;
+        trail.style.background = `repeating-linear-gradient(to bottom, rgba(255,244,222,0) 0, rgba(255,244,222,0) ${open}px, rgba(255,244,222,.5) ${open}px, rgba(255,244,222,0) ${(+open + 2).toFixed(2)}px, rgba(255,244,222,0) ${band.toFixed(2)}px)`;
+        trail.style.opacity = String(mid * lit);
+        [hand, axis, glow, ring, edge].forEach((n) => { n.style.opacity = '0'; });
+      } else if (mode === 'curtain') {
+        const e = q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
+        const y = g.H * e;
+        to.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
+        to.style.clipPath = q >= 0.9995 ? '' : `inset(0 0 ${(g.H - y).toFixed(1)}px 0)`;
+        from.style.transform = `translate3d(0, ${(y * 0.06).toFixed(1)}px, 0)`;
+        edge.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`;
+        edge.style.opacity = String(lit * (q < 0.98 ? 1 : 0));
+        [hand, axis, trail, glow, ring].forEach((n) => { n.style.opacity = '0'; });
       } else if (mode === 'sweep') {
         from.style.transform = '';
         to.style.transform = '';
@@ -110,6 +148,8 @@
           : `conic-gradient(from ${conic}deg at 50% 100%, rgba(255,244,222,.16) 0deg, rgba(255,244,222,0) 16deg)`;
         trail.style.opacity = String(mid * lit);
         axis.style.opacity = '0';
+        ring.style.opacity = '0';
+        edge.style.opacity = '0';
         glow.style.opacity = String(0.6 * mid * lit);
       } else {
         to.style.clipPath = '';
@@ -121,6 +161,8 @@
         axis.style.opacity = String(lit);
         hand.style.opacity = '0';
         trail.style.opacity = '0';
+        ring.style.opacity = '0';
+        edge.style.opacity = '0';
         glow.style.opacity = String(mid * lit);
       }
     }
@@ -145,6 +187,8 @@
           s.style.zIndex = '';
           s.style.visibility = '';
           s.style.opacity = '';
+          s.style.webkitMaskImage = '';
+          s.style.maskImage = '';
         });
         [pair.fromText, pair.toText].forEach((t) => {
           if (!t) return;
@@ -153,7 +197,7 @@
         });
       }
       pair = null;
-      [hand, axis, trail, glow].forEach((n) => { n.style.opacity = '0'; });
+      lights.forEach((n) => { n.style.opacity = '0'; });
     }
 
     window.addEventListener('resize', () => { if (pair) measure(); });

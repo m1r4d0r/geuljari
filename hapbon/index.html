@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글결</title>
+<meta name="description" content="글이 써지는 속도와 숨을 그대로 보여 주는 글 틀">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='12' height='12' fill='%232C2F6B'/%3E%3Crect x='17.5' y='9.5' width='11' height='11' fill='none' stroke='%232C2F6B'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Noto+Serif+KR:wght@400&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="../glyph.css">
+<link rel="stylesheet" href="index.css">
+<script src="../engine.js" defer></script>
+<script src="../motion.js" defer></script>
+<script src="../fx.js" defer></script>
+<script src="../sample.js" defer></script>
+<script src="tune.js" defer></script>
+<script src="sense.js" defer></script>
+<script src="gyeol.js" defer></script>
+<script src="index.js" defer></script>
+</head>
+<body data-mode="write">
+
+<header class="top">
+  <button type="button" class="logo" id="home" aria-label="글결, 쓰기로">
+    <span class="logo-mark" aria-hidden="true"><i></i><i></i></span>
+    <span class="logo-name">글결</span>
+  </button>
+  <nav class="crumbs" aria-label="단계">
+    <button type="button" data-go="write">쓰기</button>
+    <button type="button" data-go="ask">묻기</button>
+    <button type="button" data-go="tune">다듬기</button>
+  </nav>
+  <span class="private k">글은 이 브라우저에만 머물러요.</span>
+</header>
+
+<div class="tabs" role="group" aria-label="보기" id="tabs">
+  <button type="button" data-tab="paper" aria-pressed="true">글</button>
+  <button type="button" data-tab="look" aria-pressed="false">미리보기</button>
+  <button type="button" data-tab="set" aria-pressed="false">조판</button>
+</div>
+
+<main class="work" id="work">
+
+  <section class="paper-col" id="paper-col" aria-label="글">
+    <div class="intro" id="intro">
+      <div>
+        <p class="eyebrow">글 한 편으로 시작해요.</p>
+        <h1>어떻게 읽히면 좋을까요.</h1>
+      </div>
+      <div class="intro-links">
+        <button type="button" class="link" id="sample">예시 글 넣기</button>
+        <button type="button" class="link" id="clear">새로 쓰기</button>
+      </div>
+    </div>
+    <input id="title" class="title" type="text" placeholder="제목 (선택)" aria-label="제목" autocomplete="off">
+    <div class="ed" id="ed">
+      <div class="ed-mirror" id="mirror" aria-hidden="true"></div>
+      <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
+        placeholder="여기에 글을 놓아 주세요.&#10;&#10;빈 줄 둘은 새 쪽, 띄어쓰기 두 번은 쉼이 돼요."></textarea>
+    </div>
+    <div class="fxbar" id="fxbar" role="group" aria-label="효과" hidden>
+      <span class="k">고른 자리</span>
+      <span class="fx-list" id="fx-list"></span>
+      <button type="button" class="link" id="fx-off">빼기</button>
+    </div>
+  </section>
+
+  <aside class="side" id="side">
+
+    <!-- 쓰기: 결 보기 -->
+    <section class="pane gyeol-pane" data-for="write" aria-label="결">
+      <div class="rules" id="rules">
+        <span class="rule" data-rule="page"><i class="sw sw-page"></i>빈 줄 둘<b>새 쪽</b><em class="n"></em></span>
+        <span class="rule" data-rule="rest"><i class="sw sw-rest"></i>띄어쓰기 두 번<b>쉼</b><em class="n"></em></span>
+        <span class="rule" data-rule="para"><i class="sw sw-para"></i>빈 줄 하나<b>문단</b><em class="n"></em></span>
+        <span class="rule" data-rule="mark"><i class="sw sw-mark"></i>끌어서 고르기<b>강조</b><em class="n"></em></span>
+      </div>
+      <div class="gyeol" id="gyeol" aria-label="글의 결: 글자는 네모로, 쪽과 쉼은 표시로"></div>
+    </section>
+
+    <!-- 다듬기: 미리보기와 조판 -->
+    <section class="pane look-pane" data-for="tune" data-tab="look" aria-label="미리보기">
+      <div class="pv-box"><iframe class="pv" id="pv" title="미리보기"></iframe></div>
+      <div class="pv-ops">
+        <span class="k" id="pv-where"></span>
+        <button type="button" class="link push" id="pv-again">이 자리 다시</button>
+        <button type="button" class="link" id="pv-full">전체 화면</button>
+      </div>
+    </section>
+
+    <section class="pane set-pane" data-for="tune" data-tab="set" aria-label="조판">
+      <div class="ctl">
+        <span class="ctl-name">결</span>
+        <div class="moods small" id="moods-t"></div>
+        <p class="mix" id="mix-t"></p>
+      </div>
+      <div class="ctl"><span class="ctl-name">흐름</span><div class="seg wide" role="group" aria-label="흐름" id="set-flow"></div></div>
+      <div class="ctl-row">
+        <div class="ctl"><span class="ctl-name">처음 장면</span><div class="seg" role="group" aria-label="처음 장면" id="set-scene"></div></div>
+        <div class="ctl"><span class="ctl-name">바탕</span><div class="seg wide" role="group" aria-label="바탕" id="set-ground"></div></div>
+      </div>
+      <div class="ctl"><span class="ctl-name">넘김</span><div class="seg wide" role="group" aria-label="넘김" id="set-turn"></div></div>
+      <div class="ctl">
+        <label class="ctl-name split" for="set-speed"><span>쓰는 속도</span><span class="k" id="speed-v"></span></label>
+        <input type="range" id="set-speed" min="50" max="160" step="5">
+      </div>
+      <div class="ctl">
+        <label class="ctl-name split" for="set-rest"><span>쉼 길이</span><span class="k" id="rest-v"></span></label>
+        <input type="range" id="set-rest" min="0" max="3" step="1">
+      </div>
+      <div class="ctl"><span class="ctl-name">마름</span><div class="seg wide" role="group" aria-label="마름" id="set-dry"></div></div>
+
+      <div class="read-list">
+        <div class="rp-head"><h2>이렇게 읽었어요</h2><span class="legend k push"><i class="box on"></i>붙임<i class="box"></i>제안</span></div>
+        <ol class="pagelist" id="pagelist"></ol>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<footer class="bar">
+  <span class="k" id="count"></span>
+  <span class="bar-act" data-for="write">
+    <button type="button" class="btn fill" id="go-ask">결 짜기</button>
+  </span>
+  <span class="bar-act" data-for="tune">
+    <button type="button" class="link" id="copy-mask">가린 글 복사</button>
+    <button type="button" class="btn line" id="open-full">미리보기</button>
+    <button type="button" class="btn fill" disabled title="발행은 3단계에서 붙여요.">발행</button>
+  </span>
+</footer>
+
+<!-- 묻기: 글 위에 하나씩 -->
+<div class="ask-layer" id="ask" hidden>
+  <div class="veil" id="veil"></div>
+  <section class="ask-card" id="ask-card" role="dialog" aria-labelledby="ask-title">
+    <div class="ask-head">
+      <span class="steps" id="ask-steps" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="k" id="ask-n"></span>
+      <button type="button" class="link push" id="ask-close">닫기</button>
+    </div>
+    <h2 id="ask-title"></h2>
+
+    <div class="q" data-q="1">
+      <div class="moods" id="moods"></div>
+      <p class="notes" id="notes"></p>
+      <p class="mix" id="mix"></p>
+      <div class="sample" id="sample-line" aria-label="견본"></div>
+    </div>
+
+    <div class="q" data-q="2">
+      <div class="q-row">
+        <div class="seg" role="group" aria-label="반전" id="turn-seg">
+          <button type="button" data-v="off">없음</button><button type="button" data-v="on">있음</button>
+        </div>
+        <span class="quote" id="turn-line"></span>
+      </div>
+      <p class="hint" id="turn-hint">글에서 바뀌기 시작할 줄을 눌러요.</p>
+    </div>
+
+    <div class="q" data-q="3">
+      <div class="q-row">
+        <span class="quote em" id="focus-line"></span>
+        <button type="button" class="link push" id="focus-off">빼기</button>
+      </div>
+      <p class="hint">글에서 끌어서 골라요. 한 문장도, 짧은 문단도 돼요.</p>
+    </div>
+
+    <div class="ask-foot">
+      <button type="button" class="link" id="ask-prev">이전</button>
+      <button type="button" class="btn fill push" id="ask-next">다음</button>
+    </div>
+  </section>
+</div>
+
+<!-- 전체 화면 미리보기 -->
+<div class="pv-layer" id="pv-layer" hidden>
+  <iframe class="pv" id="pv-full-frame" title="미리보기"></iframe>
+  <div class="pv-bar">
+    <button type="button" class="pv-btn" id="pv-ask">다시 묻기</button>
+    <button type="button" class="pv-btn" id="pv-tune">다듬기로</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

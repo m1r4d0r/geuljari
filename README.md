@@ -182,6 +182,7 @@ R-0. 글결은 천 자 안팎의 한국어 글을 "써지는 속도와 숨"으�
 
 - 지금 올라간 코드: 읽기 틀 2판(`index.html` + `reader.js` 등), 가림판(`mask.html`), 효과 견본(`effects.html`), 반전 시험(`flip-lab.html`). 편집실·발행·관리실은 아직 없고 시안만 있다.
 - 작업 규칙과 파일 구조: `CLAUDE.md`. 디자인 명세: `docs/디자인-교정쇄.md`. 단계 계획: `docs/단계-계획.md`. 교정쇄 시안을 브라우저로 열어 보기: `design/교정쇄-편집실.html`.
+- 합본(지금 이어 가는 편집실): `hapbon/index.html`. 먹지판의 색·흐름과 Codex 판의 짜임을 합치고, 2026-10-10 검토 의견(묻기 오버레이, 드래그 강조, 되돌아가 바꾸기, 바뀐 자리부터 미리보기, 결 보기, 긴 쪽 나누기, 넘김 세 가지, 휠·스크롤 손보기)을 반영했다.
 - 먹지판(편집실 재구성 시험판): `meokji/index.html`. 원안(루트의 읽기 틀·가림판·시안)은 그대로 두고 따로 만들었다.
 - 열어 보기: 폴더에서 `python3 -m http.server 8000` 뒤 `http://localhost:8000/index.html`.
 - 점검: `python3 tests/smoke.py` (Playwright Chromium 필요).

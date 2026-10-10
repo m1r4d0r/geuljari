@@ -42,7 +42,7 @@
    * unit이 있으면 글자 단위가 아니라 문장(또는 줄) 단위로 한꺼번에 나오고, 단위 사이를 unitGap만큼 쉰다.
    */
   const BLOCKS = {
-    '떠오름': { fx: 'rise', unit: true, before: 500, unitGap: 600, char: 0, group: 0, line: 600, after: 350 },
+    '떠오름': { fx: 'rise', unit: true, before: 500, unitGap: 900, char: 0, group: 0, line: 900, after: 350 },
     '번짐': { fx: 'bleed', before: 500, char: 85, group: 200, line: 500, after: 500 },
     '타자': { fx: 'type', before: 400, char: 'type', group: 160, line: 400, after: 700 },
     '초점': { fx: 'focus', before: 500, char: 0, group: 0, line: 0, after: 1900 },
@@ -50,7 +50,7 @@
     '떨림': { fx: 'tremble', before: 400, char: 70, group: 140, line: 300, after: 600 },
     '흘러내림': { fx: 'fall', before: 380, char: 150, group: 220, line: 300, after: 450 },
     '크게': { fx: 'rise', cls: 'fx-big', before: 700, char: 90, group: 500, line: 700, after: 700 },
-    '조명': { fx: 'rise', cls: 'lit', spot: true, unit: true, before: 500, unitGap: 600, char: 0, group: 0, line: 600, after: 350 },
+    '조명': { fx: 'rise', cls: 'lit', spot: true, unit: true, before: 500, unitGap: 900, char: 0, group: 0, line: 900, after: 350 },
     '숨가쁨': { fx: 'fade', before: 150, char: 'rush', group: 'rush', line: 40, after: 300 },
     '벌어짐': { fx: 'fade', lines: 'spread', before: 300, char: 40, group: 40, line: 160, after: 800 },
     '어긋남': { fx: 'fade', lines: 'drift', before: 300, char: 40, group: 40, line: 160, after: 800 },
@@ -65,6 +65,9 @@
 
   /* 글자가 다 자리 잡을 때까지 걸리는 시간(ms) */
   const SETTLE = { fade: 700, soft: 1000, rise: 2000, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 4000, fall: 820 };
+  /* 글자가 다 나타날 때까지 걸리는 시간(ms). 다음 글은 앞 글자가 다 나타난 뒤에 온다. 떨림은 나타난 뒤에도 흔들리므로 나타나는 데까지만 센다. */
+  const ENTER = { fade: 700, soft: 1000, rise: 750, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 820 };
+  const AFTER_GAP = 120;
 
   const MASK = '■';
   const EM_OPEN = '{{';
@@ -275,6 +278,10 @@
     let bi = 0;
     let end = 0;
     let unitBreak = false;
+    let emEnd = 0;          // 강조 글자가 다 나타나는 가장 늦은 시각
+    let flowEnd = 0;        // 보통 글자가 다 나타나는 가장 늦은 시각
+    /* 블록에서 빠져나올 때: 블록의 뒤 뜸만큼 쉬되, 블록 글자가 다 나타나기 전에는 다음 글을 시작하지 않는다 */
+    const leave = (fx) => { t = Math.max(t + BLOCKS[fx].after, emEnd + AFTER_GAP); };
 
     para.lines.forEach((line, li) => {
       const cells = line.tokens.flatMap((tk) => tk.cells);
@@ -307,13 +314,13 @@
                        (tk.afterRest && j < EASE_OUT_OF_REST.length ? EASE_OUT_OF_REST[j] : 1);
           const cfg = em ? BLOCKS[c.fx] : null;
           if (em && (!prev || prev.block !== c.block)) {
-            if (prev) t += BLOCKS[prev.fx].after;
-            t += cfg.before;
+            if (prev) leave(prev.fx);
+            t = Math.max(t + cfg.before, flowEnd);
             bi = 0;
             unitBreak = false;
             blocks[c.block] = { cfg, start: t, end: t, lines: [], old: [] };
           } else if (!em && prev) {
-            t += BLOCKS[prev.fx].after;
+            leave(prev.fx);
           } else if (em && cfg.unit && unitBreak && tk.letters > 0) {
             t += cfg.unitGap;
           }
@@ -345,6 +352,8 @@
           else { t += rate * (1 + TIME.flowEase * Math.exp(-flowIndex / 5)) * (nearRest ? slow : 1); flowIndex++; }
 
           end = Math.max(end, c.t + SETTLE[c.anim]);
+          if (em) emEnd = Math.max(emEnd, c.t + ENTER[c.anim]);
+          else flowEnd = Math.max(flowEnd, c.t + ENTER[c.anim]);
           prev = em ? c : null;
         });
 
@@ -359,7 +368,7 @@
 
       if (short && !lastEm) t += TIME.shortAfter;
     });
-    if (prev) t += BLOCKS[prev.fx].after;
+    if (prev) leave(prev.fx);
 
     para.events = [];
     Object.values(blocks).forEach((B) => {

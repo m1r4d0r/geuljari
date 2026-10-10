@@ -1,8 +1,8 @@
 /* 글결 반전 그림 요소
-   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail).
+   flip.js가 무대에 붙이는 바늘(.flip-hand)·축(.flip-axis)·영사기 빛(.flip-glow)·잔광(.flip-trail)·조리개 고리(.flip-ring)·막 끝 빛줄(.flip-edge).
    무대 안에서 장(.sheet)보다 위에 놓인다. 읽기 틀과 반전 시험이 함께 쓴다. */
 
-.flip-hand, .flip-axis, .flip-glow, .flip-trail {
+.flip-hand, .flip-axis, .flip-glow, .flip-trail, .flip-ring, .flip-edge {
   position: absolute;
   pointer-events: none;
   opacity: 0;
@@ -42,3 +42,21 @@
 }
 /* 바늘 뒤에 남는 잔광 */
 .flip-trail { inset: 0; z-index: 4; }
+/* 조리개 고리: 열리는 구멍의 가장자리 */
+.flip-ring {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 248, 232, .9), 0 0 18px 2px rgba(255, 236, 200, .45);
+}
+/* 막 끝 빛줄: 내려오는 스크린의 아랫단 */
+.flip-edge {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(to right, rgba(255, 244, 222, 0), rgba(255, 248, 232, .95) 20%, rgba(255, 248, 232, .95) 80%, rgba(255, 244, 222, 0));
+  box-shadow: 0 0 14px 1px rgba(255, 236, 200, .5);
+}

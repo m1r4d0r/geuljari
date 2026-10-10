@@ -6,6 +6,10 @@
  * 두 장의 장면(낮·밤)이 다르면 바닥 가운데를 축으로 쓸어 넘기고(같이 넘김: 글도 장과 함께 쓸림), 같으면 스며들듯 겹쳐 넘긴다.
  * 장에 도착하면 그 장의 글을 엔진 시간표대로 써 내려간다. 쓰는 중에 넘기려 하면 먼저 그 장을 다 쓴다.
  * 글이 화면보다 긴 장은 안에서 위아래로 스크롤되고, 그때만 화면 가운데 줄이 또렷한 초점 띠가 켜진다.
+ * 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 거기서 기다린다. 읽는 사람이 내리면 이어 쓴다.
+ * 휠은 조금 굴리면 넘김이 걸리고, 걸린 뒤로는 손을 멈출 때까지 더 굴러도 한 장만 휙 넘긴다.
+ * window.GeulReaderOpts.turn으로 장면이 바뀔 때의 넘김(sweep·iris·blinds·curtain)을 고른다.
+ * 미리 보기로 열렸을 때 sessionStorage의 geulgyeol.start({page, needle})가 있으면 그 장의 그 글귀 조금 앞부터 쓴다.
  * 길게 누르면 그 줄에 머물러 나머지가 가라앉고 바탕도 느려진다. 다 쓴 어절에 손을 대면 잠깐 다시 젖는다.
  */
 (function () {
@@ -29,7 +33,12 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
+  const OPTS = window.GeulReaderOpts || {};
+  const TURN = ['sweep', 'iris', 'blinds', 'curtain'].includes(OPTS.turn) ? OPTS.turn : 'sweep';
   const PARA_GAP = 650;       // 한 장 안에서 문단과 문단 사이(ms)
+  const WHEEL_KICK = 40;      // 휠을 이만큼(px) 굴리면 넘김이 걸린다
+  const WHEEL_REST = 260;     // 휠이 이만큼 멈추면 다음 넘김을 받는다
+  const HOLD_LINE = 0.86;     // 쓰는 자리가 화면 높이의 이 비율 아래로 내려가면 기다린다
   const LAND_WAIT = 320;      // 장에 도착한 뒤 쓰기 시작까지
   const HOLD_MS = 480;        // 이만큼 누르고 있으면 머무르기
 
@@ -123,12 +132,9 @@
       stage.append(sheet);
       B.mount(sheet, pg.ground);
 
-      const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, state: 'idle', tl: null, start: 0, fits: true, userScrollAt: 0, autoScrolling: false };
+      const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, state: 'idle', tl: null, start: 0, fits: true, held: false };
       P.lines = [...column.querySelectorAll('.ln')];
-      scroll.addEventListener('scroll', () => {
-        if (!P.autoScrolling) P.userScrollAt = performance.now();
-        if (P === pages[S.cur]) band();
-      }, { passive: true });
+      scroll.addEventListener('scroll', () => { if (P === pages[S.cur]) band(); }, { passive: true });
       return P;
     });
   }
@@ -182,31 +188,46 @@
     return E.TIME.firstDelay;
   }
 
-  /* 쓰는 자리가 화면 아래로 내려가면, 읽는 사람이 막 스크롤하지 않은 때에만 글 층을 살짝 올려 준다 */
-  function follow(P, it) {
-    if (P.fits) return;
-    const now = performance.now();
-    if (now - P.userScrollAt < 2500 || now - (P.followAt || 0) < 500) return;
-    const r = it.el.getBoundingClientRect();
-    const h = window.innerHeight;
-    if (r.bottom < h * 0.78) return;
-    P.followAt = now;
-    P.autoScrolling = true;
-    P.scroll.scrollBy({ top: r.bottom - h * 0.5, behavior: 'smooth' });
-    setTimeout(() => { P.autoScrolling = false; }, 700);
+  /* 아래로 내려 이어 읽으라는 표시 */
+  const cue = document.createElement('div');
+  cue.className = 'ui cue';
+  cue.textContent = '내려서 이어 읽어요';
+  cue.setAttribute('aria-hidden', 'true');
+  document.body.append(cue);
+
+  /* 쓰는 자리가 화면 아래에 닿았는지. 닿았으면 그 장은 읽는 사람이 내릴 때까지 기다린다. */
+  function gateFor(P) {
+    return (it) => {
+      if (P.fits) return true;
+      const r = it.el.getBoundingClientRect();
+      const open = r.top < window.innerHeight * HOLD_LINE;
+      P.held = !open;
+      cue.classList.toggle('is-on', P.held && P === pages[S.cur]);
+      return open;
+    };
   }
 
-  function play(P, wait) {
+  function play(P, wait, from) {
     if (P.state !== 'idle') return;
     if (!S.on) { finish(P); return; }
     P.state = 'waiting';
     P.start = setTimeout(() => {
       P.state = 'playing';
       P.tl = G.timeline(P.items, {
-        onReveal: (it) => { if (!it.keep) follow(P, it); },
-        onDone() { P.tl = null; P.state = 'done'; }
+        from: from || 0,
+        gate: gateFor(P),
+        onDone() { P.tl = null; P.state = 'done'; P.held = false; cue.classList.remove('is-on'); }
       });
     }, wait);
+  }
+
+  /* 장 안에서 needle(띄어쓰기 뺀 글귀)이 시작하는 글자. 없으면 null */
+  function findNeedle(P, needle) {
+    const n = String(needle || '').replace(/\s+/g, '');
+    if (!n) return null;
+    const chars = P.items.filter((it) => !it.keep);
+    const idx = chars.map((it) => it.el.textContent).join('').indexOf(n);
+    return idx >= 0 ? chars[idx] : null;
   }
 
   const writing = (P) => P && (P.state === 'playing' || P.state === 'waiting');
@@ -234,23 +255,24 @@
       const b = pages[Math.min(N - 1, i + 1)];
       if (writing(a)) finish(a);
       if (writing(b) && b === pages[S.cur]) finish(b);
-      const mode = a.scene !== b.scene ? 'sweep' : 'drift';
+      const mode = a.scene !== b.scene ? TURN : 'drift';
       flip.begin(a.el, b.el, mode, 1, axis || S.axis || 'x');
       flip.render(f, light);
       B.setActive([a.el, b.el], keepAround(i).concat(keepAround(i + 1)));
     }
   }
 
-  /* 장 k에 멈췄다 */
-  function land(k) {
+  /* 장 k에 멈췄다. from을 주면 그 시각부터 쓴다 */
+  function land(k, from) {
     if (!pages.length) return;
     S.cur = clamp(k, 0, pages.length - 1);
     pages.forEach((P, j) => {
       if (j !== S.cur && writing(P)) finish(P);
       if (j !== S.cur) P.el.classList.remove('lingering');
     });
+    cue.classList.toggle('is-on', !!pages[S.cur].held);
     const P = pages[S.cur];
-    play(P, firstWait());
+    play(P, firstWait(), from);
     band();
     syncPager();
   }
@@ -274,13 +296,13 @@
   }
 
   /* 단추·키: 장면이 바뀌는 넘김이면 바닥선에 불이 먼저 들어온 뒤 휙, 아니면 스며들 듯 넘긴다 */
-  function goTo(target) {
+  function goTo(target, axis) {
     const N = pages.length;
     const to = clamp(target, 0, N - 1);
     if (to === S.cur && Math.abs(S.pos - to) < 0.001) return;
     stopAll();
     noteTurn();
-    S.axis = 'x';
+    S.axis = axis || 'x';
     if (Math.abs(to - S.cur) > 1) { jump(to); return; }
     if (!S.on || reduce.matches) { spring.set(to); land(to); return; }
     const from = S.pos;
@@ -420,44 +442,35 @@
 
   /* ---------- 휠 ---------- */
 
+  /*
+   * 휠: 장 안에 내릴 글이 남았으면 그대로 스크롤한다. 끝에 닿은 뒤 WHEEL_KICK만큼 더 굴리면 넘김이 걸려
+   * 단추로 넘길 때처럼 끝까지 휙 넘어간다. 걸린 뒤 WHEEL_REST 동안 휠이 멈추지 않으면 그 몸짓은 다 한 번으로 친다.
+   */
   let wheel = null;
   stage.addEventListener('wheel', (e) => {
     if (e.ctrlKey) return;
-    const unit = e.deltaMode === 1 ? 33 : 1;
+    const unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 800 : 1;
     const horiz = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     const d = (horiz ? e.deltaX : e.deltaY) * unit;
     const P = pages[S.cur];
-    if (!horiz && !wheel) {
+    if (!horiz && !(wheel && wheel.locked)) {
       const sc = P.scroll;
       const canDown = sc.scrollTop + sc.clientHeight < sc.scrollHeight - 2;
       const canUp = sc.scrollTop > 2;
       if ((d > 0 && canDown) || (d < 0 && canUp)) return;
     }
     e.preventDefault();
-    stopAll();
-    if (!wheel) {
-      wheel = { from: S.cur, used: false };
-      if (d > 0 && writing(P)) { finish(P); wheel.used = true; }
-    }
+    if (!wheel) wheel = { acc: 0, locked: false };
     clearTimeout(wheel.timer);
-    if (!wheel.used) {
-      S.axis = horiz ? 'x' : 'y';
-      const lo = Math.max(0, wheel.from - 1);
-      const hi = Math.min(pages.length - 1, wheel.from + 1);
-      render(clamp(S.pos + d / 900, lo, hi), 1, S.axis);
-    }
-    wheel.timer = setTimeout(() => {
-      const w = wheel;
-      wheel = null;
-      if (w.used) return;
-      const off = S.pos - w.from;
-      const target = off > 0.28 ? w.from + 1 : off < -0.28 ? w.from - 1 : w.from;
-      const t = clamp(target, 0, pages.length - 1);
-      if (t !== w.from) noteTurn();
-      if (!S.on || reduce.matches) { spring.set(t); land(t); return; }
-      spring.set(S.pos);
-      spring.to(t);
-    }, 140);
+    wheel.timer = setTimeout(() => { wheel = null; }, WHEEL_REST);
+    if (wheel.locked || !d) return;
+    if (d > 0 && writing(P)) { finish(P); wheel.locked = true; return; }
+    if (wheel.acc && Math.sign(wheel.acc) !== Math.sign(d)) wheel.acc = 0;
+    wheel.acc += d;
+    if (Math.abs(wheel.acc) < WHEEL_KICK) return;
+    wheel.locked = true;
+    const to = clamp(S.cur + Math.sign(wheel.acc), 0, pages.length - 1);
+    if (to !== S.cur) goTo(to, horiz ? 'x' : 'y');
   }, { passive: false });
 
   /* ---------- 키 ---------- */
@@ -476,6 +489,7 @@
     const P = pages[S.cur];
     if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
       e.preventDefault();
+      if (writing(P) && P.held && scrollPage(1)) return;
       if (writing(P)) { finish(P); return; }
       if (!scrollPage(1)) next();
     } else if (['ArrowRight', 'Enter'].includes(e.key)) {
@@ -561,9 +575,31 @@
   const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
   Promise.race([fonts, new Promise((r) => setTimeout(r, 1500))]).then(start, start);
 
+  function readStart() {
+    if (location.hash !== '#preview') return null;
+    const raw = store.get('sessionStorage', 'geulgyeol.start');
+    store.del('sessionStorage', 'geulgyeol.start');
+    try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+
   function start() {
     measureFits();
-    render(0);
-    land(0);
+    const at = readStart();
+    const k = at ? clamp(Number(at.page) || 0, 0, pages.length - 1) : 0;
+    let from = 0;
+    if (at && at.needle) {
+      const it = findNeedle(pages[k], at.needle);
+      if (it) {
+        from = Math.max(0, it.t - 700);
+        if (!pages[k].fits) {
+          const r = it.el.getBoundingClientRect();
+          pages[k].scroll.scrollTop += r.top - window.innerHeight * 0.4;
+        }
+      }
+    }
+    if (k || from) S.firstShown = true;
+    spring.set(k);
+    render(k);
+    land(k, from);
   }
 })();

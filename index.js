@@ -178,14 +178,48 @@
     });
   }
 
-  /* 처음 들어오면 편집창을 흐리게 가리고 안내를 띄운다 */
+  /*
+   * 처음 들어오면 편집창을 흐리게 가리고 안내를 띄운다. 다섯 장을 한 장씩 넘기며, 장마다 그 기능이 움직이는 작은 장면을 보인다.
+   * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
+   */
+  const GUIDE = [
+    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '오른쪽 칸에서 축마다 하나씩 골라요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
+    { title: '줄 사이를 누르면', body: '거기서부터 다음 쪽으로 넘어가요. 한 쪽에 한 호흡씩 담아 보세요.', tip: '줄 사이에 마우스를 올리면 점선이 보여요. 띠 어디를 눌러도 돼요.' },
+    { title: '쪽 사이에서 반전', body: '이 쪽부터 배경이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '분위기가 바뀌는 자리는 반전 단추가 점선으로 먼저 알려 줘요.' },
+    { title: '두 번 띄어 쓰면 쉼', body: '띄어쓰기를 두 번 한 곳은 잠깐 쉬었다가 이어서 써요. 화면에는 한 칸으로 보여요.', tip: '편집창에는 쉬는 자리가 호박색으로 표시돼요.' },
+    { title: '끌어 고르면 강조', body: '남기고 싶은 곳을 끌어 고르고 강조를 눌러요. 미리보기에서는 효과와 글자 꾸밈도 더할 수 있어요.', tip: '여러 곳을 강조하면 조금씩 다른 움직임으로 나와요.' }
+  ];
+  let guideAt = 0;
+  function guideTo(k) {
+    guideAt = Math.max(0, Math.min(GUIDE.length - 1, k));
+    const g = GUIDE[guideAt];
+    document.querySelectorAll('.g-scene').forEach((sc) => { sc.hidden = Number(sc.dataset.n) !== guideAt; });
+    $('g-count').textContent = String(guideAt + 1).padStart(2, '0') + ' / ' + String(GUIDE.length).padStart(2, '0');
+    $('g-title').textContent = g.title;
+    $('g-body').textContent = g.body;
+    $('g-tip').textContent = g.tip;
+    $('g-prev').hidden = guideAt === 0;
+    $('g-next').textContent = guideAt === GUIDE.length - 1 ? '시작하기' : '다음';
+    $('g-dots').replaceChildren(...GUIDE.map((x, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = String(i + 1);
+      b.setAttribute('aria-label', `${i + 1}번째 장: ${x.title}`);
+      if (i === guideAt) b.setAttribute('aria-current', 'step');
+      else if (i < guideAt) b.classList.add('seen');
+      b.addEventListener('click', () => guideTo(i));
+      return b;
+    }));
+  }
   function showGuide(on) {
     $('guide').hidden = !on;
     document.body.classList.toggle('guided', on);
-    if (on) $('guide-ok').focus();
+    if (on) { guideTo(0); $('g-next').focus(); }
     else { store.set('geul.guide', true); ta.focus({ preventScroll: true }); }
   }
-  $('guide-ok').addEventListener('click', () => showGuide(false));
+  $('g-next').addEventListener('click', () => { if (guideAt === GUIDE.length - 1) showGuide(false); else guideTo(guideAt + 1); });
+  $('g-prev').addEventListener('click', () => guideTo(guideAt - 1));
+  $('g-skip').addEventListener('click', () => showGuide(false));
   $('guide-open').addEventListener('click', () => showGuide(true));
 
   /* ---------- 단계 ---------- */
@@ -604,6 +638,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    if (!$('guide').hidden && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { guideTo(guideAt + (e.key === 'ArrowRight' ? 1 : -1)); return; }
     if (e.key !== 'Escape') return;
     if (!$('guide').hidden) { showGuide(false); return; }
     if (st.step === 'write') compose.hidePop();

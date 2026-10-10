@@ -111,6 +111,7 @@
         return { ln, top, bottom };
       });
       if (pos.some((p) => p.top == null)) return;
+      watch(lines.map((ln) => ln.start), pos.map((p) => Math.round(p.top)));
       const candidate = S.turnCandidate(text, ctx.scene());
 
       /* 쪽마다 면 */
@@ -218,6 +219,21 @@
         inner.append(div);
       });
       scroll();
+    }
+
+    /*
+     * 그린 뒤에 글줄 자리가 바뀌면(늦게 들어온 글꼴, 폭이 바뀐 표시 등) 면·구분선이 글과 어긋난다.
+     * 그린 직후와 조금 뒤에 글줄 첫 글자 자리를 다시 재서 달라졌으면 다시 그린다.
+     */
+    let watchTimers = [];
+    function watch(offsets, tops) {
+      watchTimers.forEach(clearTimeout);
+      const check = () => {
+        if (!box.isConnected || box.offsetParent === null) return;
+        const R = ruler();
+        if (offsets.some((o, i) => { const t = R.top(o); return t != null && Math.abs(Math.round(t) - tops[i]) > 1; })) ed.draw();
+      };
+      watchTimers = [60, 400, 1500].map((ms) => setTimeout(check, ms));
     }
 
     /* 쪽 사이·줄 사이 자리(a~b)에는 빈 줄과 쪽 표시 줄만 있어야 한다. 그 사이 글이 바뀌었으면 다시 그리고 손대지 않는다 */

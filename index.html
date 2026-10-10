@@ -110,18 +110,54 @@
   </section>
 </main>
 
-<!-- 처음 들어왔을 때: 편집창을 흐리게 가리고 위에 짧은 안내 -->
-<div class="guide" id="guide" role="dialog" aria-modal="true" aria-labelledby="guide-title" hidden>
-  <section class="guide-sheet">
-    <h2 id="guide-title">글결은 이렇게 써요</h2>
-    <ol class="guide-list">
-      <li><b>분위기를 고르면</b> 그 결에 맞는 움직임을 기본으로 입혀요.</li>
-      <li><b>줄 사이를 누르면</b> 거기서부터 다른 쪽으로 넘겨 보여요.</li>
-      <li><b>쪽 사이의 반전</b>으로 중간에 배경을 밝게, 어둡게 바꿀 수 있어요.</li>
-      <li><b>띄어쓰기를 두 번 한 곳</b>은 잠깐 쉬었다가 이어서 보여 줘요. 편집창에는 호박색으로 표시돼요.</li>
-      <li><b>끌어 고르면</b> 그 부분을 강조할 수 있어요.</li>
-    </ol>
-    <div class="guide-foot"><button type="button" class="btn fill" id="guide-ok">확인</button></div>
+<!-- 처음 들어왔을 때: 편집창을 흐리게 가리고, 기능 다섯 가지를 한 장씩 넘기며 움직이는 장면으로 보인다 -->
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-labelledby="g-title" hidden>
+  <section class="g-sheet">
+    <div class="g-stage" aria-hidden="true">
+      <div class="g-scene" data-n="0">
+        <div class="g-moods">
+          <span class="ax">온도</span><span class="g-chip g-on">따뜻한</span><span class="g-chip">차가운</span>
+          <span class="ax">물기</span><span class="g-chip">젖은</span><span class="g-chip">마른</span>
+        </div>
+        <p class="g-paper"><span class="g-rise" style="--d:.7s">밤</span><span class="g-rise" style="--d:.82s">이</span> <span class="g-rise" style="--d:1s">깊</span><span class="g-rise" style="--d:1.12s">어</span><span class="g-rise" style="--d:1.24s">지</span><span class="g-rise" style="--d:1.36s">면</span><br><span class="g-rise" style="--d:1.7s">소</span><span class="g-rise" style="--d:1.82s">리</span><span class="g-rise" style="--d:1.94s">가</span> <span class="g-rise" style="--d:2.12s">지</span><span class="g-rise" style="--d:2.24s">워</span><span class="g-rise" style="--d:2.36s">진</span><span class="g-rise" style="--d:2.48s">다</span><span class="g-rise" style="--d:2.6s">.</span></p>
+      </div>
+      <div class="g-scene" data-n="1">
+        <div class="g-split">
+          <div class="g-page one"><i class="g-pn">1</i><span>그날도 그랬다.</span><span class="g-leave">편지를 썼다.</span>
+            <span class="g-hint"><b>여기서 나누기</b></span>
+            <i class="g-cursor"></i>
+          </div>
+          <span class="g-rule"></span>
+          <div class="g-page two"><i class="g-pn">2</i><span>편지를 썼다.</span></div>
+        </div>
+      </div>
+      <div class="g-scene" data-n="2">
+        <div class="g-pair">
+          <div class="g-mini">펜을 내려놓고<br>창문을 열었다.</div>
+          <div class="g-mini"><span>그리고 잉크<br>한 방울이</span><span class="g-iris">그리고 잉크<br>한 방울이</span></div>
+        </div>
+        <span class="g-toggle"><i></i>반전 · 다크로</span>
+      </div>
+      <div class="g-scene" data-n="3">
+        <p class="g-paper g-line">손을 뻗었다가<span class="g-rest"></span>멈췄다.</p>
+        <p class="g-typed"><span class="g-type" style="--d:.2s">손</span><span class="g-type" style="--d:.36s">을</span> <span class="g-type" style="--d:.52s">뻗</span><span class="g-type" style="--d:.68s">었</span><span class="g-type" style="--d:.84s">다</span><span class="g-type" style="--d:1s">가</span> <span class="g-type" style="--d:3.4s">멈</span><span class="g-type" style="--d:3.56s">췄</span><span class="g-type" style="--d:3.72s">다</span><span class="g-type" style="--d:3.88s">.</span></p>
+        <div class="g-wait"><span><i></i></span><em>쉼</em></div>
+      </div>
+      <div class="g-scene" data-n="4">
+        <p class="g-paper g-mark"><span class="g-pick"><i class="g-sweep"></i><b class="g-pop">강조</b><span class="g-wavy">보고 싶다고</span></span> 쓰는 것은 너무 무거웠다.</p>
+      </div>
+    </div>
+    <div class="g-text">
+      <div class="g-top"><span class="g-count" id="g-count"></span><button type="button" class="link" id="g-skip">건너뛰기</button></div>
+      <h2 id="g-title"></h2>
+      <p class="g-body" id="g-body"></p>
+      <p class="g-tip" id="g-tip"></p>
+      <div class="g-nav">
+        <div class="g-dots" id="g-dots" role="group" aria-label="안내 장"></div>
+        <button type="button" class="btn" id="g-prev">이전</button>
+        <button type="button" class="btn fill" id="g-next">다음</button>
+      </div>
+    </div>
   </section>
 </div>
 

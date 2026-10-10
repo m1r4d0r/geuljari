@@ -1,6 +1,6 @@
 """글결 편집실 스모크.
 저장소 루트를 정적 서버로 띄우고 PC·폰 크기에서
-글(처음 안내, 예시 글, 쪽 면·구분선, 줄 사이 띠로 쪽 나누기, 반전 켜고 넘김 고르고 끄기, 잇기, 치고 나서 반전해도 글자가 그대로인지,
+글(처음 안내 다섯 장 넘기기, 예시 글, 쪽 면·구분선, 줄 사이 띠로 쪽 나누기, 반전 켜고 넘김 고르고 끄기, 잇기, 치고 나서 반전해도 글자가 그대로인지,
 끌어 고르면 강조, 분위기, 주색)
 → 미리보기(두 장 번갈아 쓰는 틀, 오른쪽 책갈피, 글씨는 다시 쓰지 않고 바로, 움직임은 다시 보기로, 배경의 바탕·넘김만 보기,
 글 상자를 눌러 그 자리에서 고치고 굵게·색·효과, 글 상자 끌어 붙이기, 확대, PC·폰·병렬, 숨기기, 쓰는 중 넘기기 막기)
@@ -95,7 +95,11 @@ try:
             pg.goto(f'http://127.0.0.1:{PORT}/'); pg.wait_for_timeout(600)
             print(tag, 'root opens studio', pg.evaluate("() => document.body.dataset.step"), '| guide', pg.is_visible('#guide'))
             pg.screenshot(path=str(OUT / f'st-{tag}-0guide.png'))
-            pg.click('#guide-ok'); pg.wait_for_timeout(200)
+            steps = []
+            for i in range(5):
+                steps.append(pg.evaluate("() => document.querySelector('.g-scene:not([hidden])').dataset.n + ':' + document.getElementById('g-title').textContent"))
+                pg.click('#g-next'); pg.wait_for_timeout(250)
+            print(tag, '  guide steps', steps, '| closed', not pg.is_visible('#guide'))
             pg.click('#sample'); pg.wait_for_timeout(1200)
             n0 = pg.evaluate(pages)
             base = pg.evaluate(plain)

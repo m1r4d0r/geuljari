@@ -154,6 +154,11 @@
     });
     ta.addEventListener('scroll', () => { mirror.scrollTop = ta.scrollTop; if (o.onScroll) o.onScroll(); });
     new ResizeObserver(() => api.draw()).observe(ta);
+    /* 웹 글꼴이 늦게 들어오면 글줄 자리가 바뀌므로 다시 그린다(쪽 면·구분선이 글과 어긋나지 않게) */
+    if (document.fonts) {
+      document.fonts.ready.then(() => api.draw());
+      document.fonts.addEventListener('loadingdone', () => api.draw());
+    }
     return api;
   }
 

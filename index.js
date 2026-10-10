@@ -2,12 +2,16 @@
  * 글결 편집실
  * 글 → 미리보기 두 단계를 잇는다.
  * - 글: 입력창 하나. 그 위에 쪽 짜임을 얹어(compose.js) 줄 사이를 눌러 쪽을 나누고, 쪽 사이에서 반전·잇기를 하고,
- *   끌어 고른 곳을 강조한다. 오른쪽에서 분위기(심상 세 축)를 고른다. 고르기 전에는 글을 읽어 짐작한 분위기를 둔다.
+ *   끌어 고른 곳을 강조한다. 오른쪽 칸(폰은 위)에서 분위기(심상 세 축)와 테마(주색·글꼴·시작 장면)를 고르고, 그 아래에 쓰는 법 세 줄을 늘 둔다.
+ *   분위기는 고르기 전에는 글을 읽어 짐작한 것을 두고, '살펴보기'는 낱말마다 움직임을 견주어 보는 덮개(look.js)를 연다.
+ *   페이지 어디에서 휠을 굴려도 본문이 굴러간다.
  * - 미리보기: 읽기 틀이 화면을 채운다. 보는 기기와 같은 틀이면 실제 크기 그대로, 다른 틀(폰에서 PC 16:9, PC에서 폰)이면
  *   맞춰 줄이고, 병렬이면 PC와 폰을 나란히 둔다. 설정은 오른쪽 가장자리 책갈피(분위기·글씨·움직임·배경)로 하나씩 연다(panels.js).
  *   모양을 바꾸면 다시 쓰지 않고 바로 바뀌고, 움직임은 '다시 보기'로 본다. 글 상자를 누르면 그 자리에서 고치고 꾸민다(inplace.js).
  *   손가락 벌리기·Ctrl+휠로 확대하고, 글 상자를 끌면 왼쪽·가운데·오른쪽에 붙는다(view.js가 미리보기 안의 손짓을 알려 준다).
- * 상태는 이 브라우저의 localStorage에만 두고, 미리보기 글과 조판값은 sessionStorage로 view.html에 넘긴다.
+ * - 미리보기의 마지막 쪽 뒤에는 마지막 화면(제목·만든 날)이 한 장 더 있다. 그 화면에서 고친 제목을 받아 두고(geulgyeol:title),
+ *   배경 판에서는 그 화면의 장면·바탕을 고른다.
+ * 상태는 이 브라우저의 localStorage에만 두고, 미리보기 글({text, title, made, ending})과 조판값은 storage로 view.html에 넘긴다.
  * 반전·쪽 넘김·자리·강조·효과는 모두 본문 안 표시로 들어가 언제든 되돌아가 바꿀 수 있다.
  */
 (function () {
@@ -32,18 +36,39 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 저장할 수 없는 환경에서는 넘어간다 */ } }
   };
 
+  /* 오늘(이 기기의 날짜) YYYY-MM-DD */
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  /* 마지막 화면의 장면·바탕. 그 장면에 없는 바탕이면 편지지(없으면 그 장면의 첫 바탕) */
+  function normEnding(en) {
+    const o = Object.assign({ scene: '라이트', ground: '편지지' }, en || {});
+    if (!T.GROUNDS[o.scene]) o.scene = '라이트';
+    const list = T.GROUNDS[o.scene];
+    if (!list.includes(o.ground)) o.ground = list.includes('편지지') ? '편지지' : list[0];
+    return { scene: o.scene, ground: o.ground };
+  }
+
   const st = Object.assign({
     step: 'write',
     title: '',
+    made: '',
     source: '',
     moods: [],
     moodsTouched: false,
     settings: T.defaults(),
+    ending: normEnding(),
     device: null,
-    page: 0
+    page: 0,
+    atEnd: false
   }, store.get(KEY) || {});
   st.settings = T.normalize(st.settings);
   st.moods = T.oneEach(st.moods);
+  st.ending = normEnding(st.ending);
+  st.atEnd = false;
+  if (typeof st.title !== 'string') st.title = '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(st.made))) st.made = st.source.trim() ? today() : '';
   /* 열 때는 늘 글 화면에서 시작한다(미리보기는 글 화면에서 넘어간다) */
   st.step = 'write';
   if (st.device && !['pc', 'mobile', 'both'].includes(st.device)) st.device = null;
@@ -71,7 +96,7 @@
   const ta = $('src');
   let compose = null;
   const writeEd = ED.attach(ta, $('write-mirror'), {
-    onInput(v) { st.source = v; save(); countLine(); guessLater(); },
+    onInput(v) { st.source = v; stamp(); save(); countLine(); guessLater(); },
     nights: () => (compose ? compose.nights() : null),
     onDraw: () => { if (compose) compose.draw(); },
     onScroll: () => { if (compose) compose.scroll(); }
@@ -84,9 +109,13 @@
     turn: () => st.settings.turn
   });
 
+  /* 글이 처음 생긴 날을 적어 둔다(새로 쓰기·예시 글이면 다시) */
+  function stamp() { if (!st.made && st.source.trim()) st.made = today(); }
+
   /* 본문을 바꾼다. 글 화면이 보일 때만 입력창에 실행 취소가 남도록 갈아 끼운다. */
   function setSource(text, sel) {
     st.source = text;
+    stamp();
     if (st.step === 'write') writeEd.set(text, sel);
     else ta.value = text;
     save();
@@ -94,7 +123,7 @@
   }
 
   $('title').value = st.title;
-  $('title').addEventListener('input', (e) => { st.title = e.target.value; save(); });
+  $('title').addEventListener('input', (e) => { st.title = e.target.value; save(); handOff(); });
 
   function countLine() {
     if (!st.source.trim()) { $('count').textContent = ''; return; }
@@ -125,10 +154,39 @@
     save();
   }
 
+  /* 오른쪽 칸: 분위기(심상 세 축)와 테마(주색·글꼴·시작 장면) */
   function drawRail() {
     P.moodGrid($('moods'), st.moods, (list) => { st.moodsTouched = true; setMoods(list); drawRail(); });
-    P.mix($('mix'), st.settings);
+    P.themeSwatches($('themes'), st.settings.theme, (theme) => setSettings({ theme }));
+    const fonts = P.pieces(T.FONT_NAMES, st.settings.font, (font) => {
+      setSettings({ font });
+      drawRail();
+      requestAnimationFrame(() => writeEd.draw());
+    }, 'fonts');
+    fonts.querySelectorAll('.piece').forEach((b) => { b.style.fontFamily = `${T.FONTS[b.dataset.v].css}, var(--f-body)`; });
+    $('fonts').replaceChildren(fonts);
+    $('start-scene').replaceChildren(P.pieces(Object.keys(T.GROUNDS), st.settings.scene, (scene) => {
+      setSettings({ scene });
+      writeEd.draw();
+      drawRail();
+      countLine();
+    }, 'scenes'));
   }
+
+  /* 분위기 살펴보기: 낱말마다 움직임을 견주는 덮개(look.js). 거기서 고르면 이쪽 고름도 바뀐다 */
+  function openLook() {
+    if (!window.GeulLook) return;
+    window.GeulLook.open({
+      moods: st.moods.slice(),
+      pick(list) {
+        st.moodsTouched = true;
+        setMoods(list);
+        if (st.step === 'tune') { handOff(); $('replay').classList.add('due'); panels.refresh(); } else drawRail();
+      }
+    });
+  }
+  $('mood-look').hidden = !window.GeulLook;
+  $('mood-look').addEventListener('click', openLook);
 
   function sampleText() {
     return E.stripMarks(window.GeulgyeolSample ? window.GeulgyeolSample.text : '').replace(/\n{4,}/g, '\n\n\n');
@@ -136,6 +194,7 @@
   $('sample').addEventListener('click', () => {
     if (st.source.trim() && !window.confirm('지금 글을 예시 글로 바꿀까요?')) return;
     st.moodsTouched = false;
+    st.made = '';
     setStep('write');
     setSource(sampleText(), [0, 0]);
     ta.scrollTop = 0;
@@ -145,9 +204,11 @@
     if (st.source.trim() && !window.confirm('지금 글을 지우고 새로 쓸까요?')) return;
     st.title = '';
     $('title').value = '';
+    st.made = '';
     st.moods = [];
     st.moodsTouched = false;
     st.settings = T.defaults();
+    st.ending = normEnding();
     st.page = 0;
     setStep('write');
     setSource('', [0, 0]);
@@ -155,43 +216,6 @@
     ta.focus();
   });
   $('go-tune').addEventListener('click', () => { st.page = 0; setStep('tune'); });
-
-  /* 주색: 편집실과 라이트 장면의 글자색 */
-  function setTheme(theme) {
-    st.settings = T.normalize(Object.assign({}, st.settings, { theme }));
-    T.useTheme(document, st.settings);
-    save();
-  }
-  /* 주색: 이름 있는 다섯 가지와 마지막 칸의 색 고르기 */
-  function drawThemes() {
-    const box = $('themes');
-    box.replaceChildren();
-    const custom = T.HEX_RE.test(st.settings.theme);
-    const pick = document.createElement('label');
-    pick.className = 'swatch picker';
-    pick.title = '직접 고르기';
-    pick.setAttribute('aria-pressed', String(custom));
-    if (custom) pick.style.setProperty('--sw', st.settings.theme);
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.value = custom ? st.settings.theme : T.themeInk(st.settings.theme);
-    input.setAttribute('aria-label', '주색 직접 고르기');
-    input.addEventListener('input', () => { setTheme(input.value); pick.style.setProperty('--sw', input.value); });
-    input.addEventListener('change', () => drawThemes());
-    pick.append(input);
-    T.THEME_NAMES.forEach((name) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'swatch';
-      b.style.setProperty('--sw', T.THEMES[name]);
-      b.title = name;
-      b.setAttribute('aria-label', '주색 ' + name);
-      b.setAttribute('aria-pressed', String(st.settings.theme === name));
-      b.addEventListener('click', () => { setTheme(name); drawThemes(); });
-      box.append(b);
-    });
-    box.append(pick);
-  }
 
   /*
    * 처음 들어오면 편집창을 흐리게 가리고 안내를 띄운다. 다섯 장을 한 장씩 넘기며, 장마다 그 기능이 움직이는 작은 장면을 보인다.
@@ -237,6 +261,46 @@
   $('g-skip').addEventListener('click', () => showGuide(false));
   $('guide-open').addEventListener('click', () => showGuide(true));
 
+  /* 안내나 다른 덮개(살펴보기 등)가 열려 있는지 */
+  function overlayOpen() {
+    return [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].some((d) => !d.hidden && d.getClientRects().length > 0);
+  }
+
+  /*
+   * 글 화면에서는 페이지 어디에서 휠을 굴려도 본문이 굴러간다. 입력창 위에서는 원래대로 두고, 그 방향으로 스스로 굴러갈 수 있는 칸
+   * (넘친 오른쪽 칸 등) 안이나 Ctrl+휠(확대), 안내·덮개가 열려 있을 때는 손대지 않는다. 줄·쪽 단위 휠은 픽셀로 바꾼다.
+   * 휠 한 칸처럼 큰 걸음은 부드럽게, 트랙패드의 잔걸음은 그대로 따라간다.
+   */
+  function canScroll(node, dy) {
+    for (let n = node; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+      if (!/(auto|scroll)/.test(getComputedStyle(n).overflowY) || n.scrollHeight <= n.clientHeight + 1) continue;
+      if (dy > 0 ? n.scrollTop + n.clientHeight < n.scrollHeight - 1 : n.scrollTop > 0) return true;
+    }
+    return false;
+  }
+  let wheelGoal = null;
+  let wheelTimer = 0;
+  document.addEventListener('wheel', (e) => {
+    if (st.step !== 'write' || e.ctrlKey || e.defaultPrevented || overlayOpen()) return;
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t || t === ta || !t.closest('.top, #s-write')) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const unit = e.deltaMode === 1 ? (parseFloat(getComputedStyle(ta).lineHeight) || 36) : e.deltaMode === 2 ? ta.clientHeight : 1;
+    const dy = e.deltaY * unit;
+    if (!dy || canScroll(t, dy)) return;
+    e.preventDefault();
+    clearTimeout(wheelTimer);
+    if (Math.abs(dy) < 50) {
+      wheelGoal = null;
+      ta.scrollTop += dy;
+      return;
+    }
+    const max = Math.max(0, ta.scrollHeight - ta.clientHeight);
+    wheelGoal = Math.max(0, Math.min(max, (wheelGoal == null ? ta.scrollTop : wheelGoal) + dy));
+    ta.scrollTo({ top: wheelGoal, behavior: 'smooth' });
+    wheelTimer = setTimeout(() => { wheelGoal = null; }, 320);
+  }, { passive: false });
+
   /* ---------- 단계 ---------- */
 
   function setStep(step) {
@@ -266,8 +330,10 @@
   const MOTION = ['flow', 'speed', 'rest', 'dry', 'turn'];
   let pvN = 0;
 
+  /* 미리보기에 넘길 것: 글(첫 장 표시 줄 포함), 제목, 만든 날, 마지막 화면 */
   function handOff() {
-    const data = JSON.stringify({ text: head() + st.source });
+    stamp();
+    const data = JSON.stringify({ text: head() + st.source, title: st.title, made: st.made || today(), ending: st.ending });
     const tune = JSON.stringify(st.settings);
     try {
       sessionStorage.setItem('geulgyeol.preview', data);
@@ -312,11 +378,15 @@
   const screens = () => (mode() === 'both' ? [main, side] : [main]);
   const wide = () => mode() !== 'mobile';
 
-  /* 미리보기를 start({page, needle, next, done}) 자리부터 다시 그린다. done이면 다 쓴 모습으로 바로 */
+  /*
+   * 미리보기를 start({page, needle, next, done, ending}) 자리부터 다시 그린다. done이면 다 쓴 모습으로 바로,
+   * ending이면 마지막 화면에 바로 놓는다.
+   */
   function play(start) {
     if (st.step !== 'tune' || !st.source.trim()) return;
     const s = Object.assign({ page: st.page }, start);
     st.page = Math.max(0, Math.min(s.page || 0, allPages().length - 1));
+    st.atEnd = !!s.ending;
     handOff();
     const url = `view.html?v=${++pvN}&start=${encodeURIComponent(JSON.stringify(s))}#preview`;
     screens().forEach((sc) => sc.load(url));
@@ -325,6 +395,8 @@
   }
   const show = (start) => play(Object.assign({ page: st.page }, start, { done: true }));
   const replay = () => play({ page: st.page });
+  /* 지금 보는 자리(마지막 화면이면 그 화면) */
+  const here = () => (st.atEnd ? { page: st.page, ending: true } : { page: st.page });
 
   function post(sc, msg) { const w = sc.win(); if (w) w.postMessage(msg, location.origin); }
   function postAll(msg) { screens().forEach((sc) => post(sc, msg)); }
@@ -481,8 +553,12 @@
     if (d.type === 'geulgyeol:page') {
       if (i === sc.pending) { sc.swap(); if (sc === main) tellZoom(); }
       if (i !== sc.active) return;
-      if (sc === main && st.page !== d.page) {
-        st.page = d.page;
+      /* 마지막 화면이면 page는 글 쪽 수다. 쪽은 마지막 글 쪽에 두고 마지막 화면에 있다고 적는다 */
+      const end = d.ending === true;
+      const k = end ? Math.max(0, allPages().length - 1) : d.page;
+      if (sc === main && (st.page !== k || st.atEnd !== end)) {
+        st.page = k;
+        st.atEnd = end;
         save();
         panels.refresh();
         if (mode() === 'both') post(side, { type: 'geulgyeol:goto', page: d.page });
@@ -490,6 +566,14 @@
       return;
     }
     if (i !== sc.active) return;
+    if (d.type === 'geulgyeol:title') {
+      if (typeof d.title !== 'string') return;
+      st.title = d.title;
+      $('title').value = st.title;
+      save();
+      handOff();
+      return;
+    }
     if (d.type === 'geulgyeol:place') {
       setSource(S.setPageMark(st.source, d.page, 'place', d.place));
       handOff();
@@ -531,7 +615,7 @@
     view.k = 1;
     fit();
     tellZoom();
-    if (mode() === 'both' && before !== 'both') show({ page: st.page });
+    if (mode() === 'both' && before !== 'both') show(here());
     else if (before === 'both' && mode() !== 'both') side.clear();
     panels.refresh();
     save();
@@ -572,7 +656,15 @@
     if (st.step !== 'tune') return;
     if (keys.every((k) => LIVE.includes(k))) postAll({ type: 'geulgyeol:style', settings: st.settings });
     else if (keys.every((k) => MOTION.includes(k))) $('replay').classList.add('due');
-    else show({ page: st.page });
+    else show(here());
+  }
+
+  /* 마지막 화면의 장면·바탕을 바꾸고 그 화면을 바로 다시 보인다 */
+  function setEnding(part) {
+    st.ending = normEnding(Object.assign({}, st.ending, part));
+    save();
+    handOff();
+    show({ page: st.page, ending: true });
   }
 
   const panels = P.mount({
@@ -587,7 +679,11 @@
     show,
     play,
     replay,
-    wide
+    wide,
+    atEnd: () => st.atEnd,
+    ending: () => st.ending,
+    setEnding,
+    look: window.GeulLook ? openLook : null
   });
   panels.onChange = () => {
     document.querySelectorAll('.tab[data-panel]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.panel === panels.current())));
@@ -650,9 +746,12 @@
     main.clear();
     side.clear();
     editing = null;
+    st.atEnd = false;
   }
 
   document.addEventListener('keydown', (e) => {
+    /* 살펴보기 덮개가 열려 있으면 그 덮개가 키를 맡는다 */
+    if (e.defaultPrevented || (overlayOpen() && $('guide').hidden)) return;
     if (!$('guide').hidden && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { guideTo(guideAt + (e.key === 'ArrowRight' ? 1 : -1)); return; }
     if (e.key !== 'Escape') return;
     if (!$('guide').hidden) { showGuide(false); return; }
@@ -667,7 +766,6 @@
   ta.value = st.source;
   T.useFont(document, st.settings);
   T.useTheme(document, st.settings);
-  drawThemes();
   if (!store.get('geul.guide')) showGuide(true);
   setStep(st.step);
   if (!st.moodsTouched && st.source.trim() && !st.moods.length) guessLater();

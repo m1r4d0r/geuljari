@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>글결 · 글에서 첫 안까지</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<header class="artifact-bar">
+  <div class="artifact-name"><strong>글결</strong><span>첫 안을 만드는 흐름</span></div>
+  <div class="viewport-toggle" role="group" aria-label="화면 모드">
+    <button id="desktop-mode" aria-pressed="true">PC</button><button id="mobile-mode" aria-pressed="false">모바일</button>
+  </div>
+  <span class="artifact-meta" id="viewport-size">PC</span>
+</header>
+<div class="device-wrap">
+<div class="device" id="device" data-mode="desktop">
+<div class="application" id="application">
+  <header class="site-header">
+    <button class="brand" id="brand" aria-label="글 입력으로 돌아가기"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>글결</button>
+    <span class="header-caption">글이 가진 속도와 숨</span>
+    <span class="private-note">글은 이 화면 안에만 머물러요.</span>
+  </header>
+
+  <main id="intake" class="intake">
+    <div class="intake-heading"><div><p class="eyebrow">글 한 편으로 시작해요.</p><h1>어떻게 읽히면 좋을까요.</h1></div><button class="text-button sample-button" id="sample">예시 글 넣기 ↗</button></div>
+    <div class="input-paper">
+      <label class="sr-only" for="source">글 원문</label>
+      <textarea id="source" spellcheck="false" placeholder="여기에 글을 놓아 주세요.&#10;&#10;짧은 문장도, 아직 끝나지 않은 글도 좋아요."></textarea>
+      <div class="paper-edge"><span>빈 줄과 띄어쓰기도 호흡이 돼요.</span><span id="input-count">0자</span></div>
+    </div>
+    <div class="intention-row">
+      <div class="mood-label"><span>남기고 싶은 느낌</span><small>두 개까지, 건너뛰어도 좋아요.</small></div>
+      <div class="moods" id="moods" role="group" aria-label="글의 분위기, 최대 두 개">
+        <button data-mood="warm" aria-pressed="false">따뜻한</button><button data-mood="cool" aria-pressed="false">서늘한</button><button data-mood="quiet" aria-pressed="false">고요한</button><button data-mood="wistful" aria-pressed="false">아련한</button><button data-mood="tense" aria-pressed="false">팽팽한</button><button data-mood="light" aria-pressed="false">가벼운</button>
+      </div>
+    </div>
+    <div class="optional-intents"><button id="choose-focus" class="intent-link"><span>＋</span> 꼭 남기고 싶은 한 문장</button><button id="choose-turn" class="intent-link"><span>＋</span> 분위기가 바뀌는 곳</button></div>
+    <div class="intake-bottom"><p id="mood-caption">글의 생김새에 맞춰 첫 안을 만들어요.</p><button id="generate" class="primary" disabled>첫 안 보기 <span>↗</span></button></div>
+    <p class="intake-error" id="input-message" role="status" aria-live="polite"></p>
+  </main>
+
+  <main id="result" class="result" hidden>
+    <header class="draft-header"><div><p class="eyebrow">이 글의 첫 안</p><h1 id="draft-title">이런 호흡은 어때요.</h1><p class="draft-meta" id="draft-meta"></p></div><div class="draft-actions"><button id="back-input" class="text-button">원문으로</button><button id="refine-toggle" class="outline-button" aria-expanded="false" aria-controls="refine">다듬기 ＋</button></div></header>
+    <div class="result-workspace" id="result-workspace">
+      <section class="reading" aria-label="자동으로 만든 읽기 화면">
+        <div class="reading-stage" id="reading-stage" data-scene="day" data-effect="flow">
+          <div class="reading-top"><span id="scene-label">낮 · 창빛</span><span id="page-count">01 / 01</span></div>
+          <div class="reading-scroll" id="reading-scroll"><div id="reading-text" class="reading-text" tabindex="0" aria-label="현재 쪽의 글"></div></div>
+          <div class="reading-bottom"><button id="play" aria-label="일시 정지">잠깐 멈춤</button><button id="replay">다시 읽기</button><span class="page-controls"><button id="prev" aria-label="이전 쪽">←</button><button id="next" aria-label="다음 쪽">→</button></span></div>
+        </div>
+        <nav id="page-nav" class="page-nav" aria-label="글의 쪽"></nav>
+      </section>
+      <aside class="refine" id="refine" hidden aria-label="첫 안 다듬기">
+        <div class="refine-heading"><strong>조금만 다르게</strong><button id="close-refine" aria-label="다듬기 닫기">닫기</button></div>
+        <fieldset><legend>지금 쪽의 바탕</legend><div class="segments" id="scene-options"><button data-scene="day" aria-pressed="true">낮</button><button data-scene="night" aria-pressed="false">밤</button></div></fieldset>
+        <fieldset><legend>문장이 나타나는 방식</legend><div class="segments" id="effect-options"><button data-effect="flow" aria-pressed="true">이어 쓰기</button><button data-effect="rise" aria-pressed="false">떠오름</button><button data-effect="clear" aria-pressed="false">또렷하게</button></div></fieldset>
+        <label class="slider-label" for="speed">읽히는 속도 <output id="speed-output">1.0×</output></label><input id="speed" type="range" min="0.6" max="1.5" step="0.1" value="1">
+        <label class="slider-label" for="rest">쉼의 길이 <output id="rest-output">1.0×</output></label><input id="rest" type="range" min="0.5" max="2" step="0.1" value="1">
+        <div class="chosen-intents"><button id="refine-focus">강조할 문장 고르기 ↗</button><button id="refine-turn">전환할 곳 고르기 ↗</button></div>
+        <div class="suggestions"><p>글에서 찾은 작은 제안</p><div id="suggestion-list"></div></div>
+      </aside>
+    </div>
+    <details class="reasoning" id="reasoning"><summary>이렇게 읽히게 한 이유 <span>＋</span></summary><ul id="reason-list"></ul><p>분위기와 반전의 의미는 고른 의도를 따라요. 제안은 언제든 바꿀 수 있어요.</p></details>
+    <div class="draft-bottom"><span>첫 안이니까, 마음에 드는 부분만 남겨요.</span><button id="return-writing" class="text-button">글 더 고치기 ↗</button></div>
+  </main>
+
+  <div class="picker-layer" id="picker-layer" hidden>
+    <section role="dialog" aria-modal="true" aria-labelledby="picker-title" class="sentence-picker" tabindex="-1">
+      <div class="picker-top"><div><p class="eyebrow" id="picker-kicker">한 문장이면 충분해요.</p><h2 id="picker-title">어디에 머물까요.</h2></div><button id="close-picker" aria-label="문장 선택 닫기">닫기</button></div>
+      <p class="picker-description" id="picker-description"></p><div class="sentence-list" id="sentence-list"></div>
+      <div class="picker-bottom"><button id="clear-selection" class="text-button">따로 고르지 않기</button><span>문장은 그대로 두고 표현만 달라져요.</span></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <footer class="site-footer"><span>■ □</span><span>쓰는 사람의 뜻을, 읽는 사람의 시간으로.</span></footer>
+</div>
+</div>
+</div>
+<nav class="proposal-links" aria-label="시안 자료"><a href="layout-studies/">이전 레이아웃 세 가지</a><a href="downloads/geulgyeol-first-draft.html" download>오프라인 HTML 내려받기</a></nav>
+<footer class="artifact-footer">인터랙티브 디자인 시안 · 글 입력 → 의도 선택 → 첫 안 → 다듬기 <span>입력 내용은 저장하거나 전송하지 않아요.</span></footer>
+<script src="sample.js"></script>
+<script src="intent.js"></script>
+<script src="studio.js"></script>
+</body>
+</html>

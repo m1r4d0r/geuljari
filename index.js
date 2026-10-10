@@ -264,8 +264,9 @@
     const [w, h] = DEVICES[st.device];
     const W = stage.clientWidth;
     const ruler = $('ruler');
-    const bottom = ruler.hidden ? 16 : ruler.offsetHeight + 28;
-    stage.style.setProperty('--ruler-h', (ruler.hidden ? 0 : ruler.offsetHeight + 16) + 'px');
+    const rulerH = ruler.hidden ? 0 : stage.clientHeight - ruler.offsetTop;
+    const bottom = ruler.hidden ? 16 : rulerH + 12;
+    stage.style.setProperty('--ruler-h', rulerH + 'px');
     /* 폰에서 아래 판이 열려 있으면 판 위 빈자리에 맞춘다 */
     const sheet = phone.matches ? document.querySelector('.slip:not([hidden])') : null;
     const H = (sheet ? sheet.offsetTop - 8 : stage.clientHeight - bottom) - 16;
@@ -390,6 +391,10 @@
     syncRuler();
     wake();
     if (fresh) play({ page: st.page });
+    if (!store.get('geul.tuneHint')) {
+      store.set('geul.tuneHint', true);
+      toast('아래 띠의 ‘이 쪽’·‘전체’에서 쪽마다 다듬어요.');
+    }
   }
 
   function leaveTune() {

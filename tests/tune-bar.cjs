@@ -41,12 +41,17 @@ const fs = require('node:fs/promises');
       await pg.click('#s-tune .tb-val[data-key=ground]'); await pg.click('#tb-drop-ground .tb-li:has-text("원고지")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('원고지'));
 
-      // 바탕의 전환 속도: 글 전체 값, 다시 쓰지 않음
+      // 바탕의 전환 속도: 이 쪽으로 넘어올 때
       assert.equal(await pg.locator('#s-tune .tb-cat-item').count(), 1);
       await pg.click('#s-tune .tb-val[data-key=turnSpeed]');
       await pg.locator('#tb-drop-turnSpeed input').evaluate((n) => { n.value = '1.3'; n.dispatchEvent(new Event('input', { bubbles: true })); });
       await pg.keyboard.press('Escape');
-      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).settings.turnSpeed === 1.3);
+      // 전환 속도도 이 쪽에만(쪽 표시)
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('전환속도130'));
+      // 손을 멈추면 그 쪽으로 한 번 넘겨 보인다: 다시 둘째 쪽에 닿을 때까지 기다림
+      await pg.waitForTimeout(700);
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 1);
+      await pg.waitForTimeout(400);
       // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
       assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글']);
@@ -54,6 +59,9 @@ const fs = require('node:fs/promises');
       assert.equal(await pg.locator('#s-tune .tb-val[data-key=place], #s-tune .tb-val[data-key=font], #s-tune .tb-val[data-key=rest], #s-tune .tb-val[data-key=dry]').count(), 0);
       await pg.click('#s-tune .tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');
       assert.equal(await pg.textContent('#s-tune .tb-val[data-key=flow] .tb-label'), '바로');
+      // 결도 이 쪽에만
+      await pg.waitForFunction(() => /\[\[[^\]]*결바로/.test(JSON.parse(localStorage.getItem('geul.studio')).source));
+      assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('geul.studio')).settings.flow), '이어 쓰기');
       assert.ok(await pg.locator('#replay.due').count() === 1);
       // 넓은 화면은 하단바 오른쪽, 1000px 이하는 머리(안내 자리)의 다시 보기
       assert.ok(await pg.locator('#replay-top.due').count() === 1);

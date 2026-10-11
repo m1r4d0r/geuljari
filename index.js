@@ -695,15 +695,36 @@
     postAll({ type: 'geulgyeol:ending', ending: st.ending });
   }
 
-  /* 쪽마다 글자 크기·글 상자 폭: 그 쪽 표시에 적고, 미리보기 장에는 다시 쓰지 않고 바로 건다. 글 전체 값과 같으면 표시를 뺀다 */
+  /*
+   * 쪽마다 다듬기: 그 쪽 표시에 적는다. 글 전체 값과 같으면 표시를 뺀다.
+   * 크기(%)·폭(자)·정렬은 미리보기 장에 다시 쓰지 않고 바로 걸고, 결·속도는 '다시 보기'를 기다리며,
+   * 전환 속도는 손을 멈추면 그 쪽으로 한 번 넘겨 보인다. 속도·전환 속도는 글 전체 값에 대한 배율(%)로 적는다.
+   */
+  let turnTimer = 0;
   function setPageLook(k, part) {
+    const base = st.settings;
+    const ratio = (v, b) => { const f = Math.round((v / b) * 100); return f === 100 ? null : f; };
+    const MARK = {
+      size: (v) => (v && v !== Math.round(base.size * 100) ? v : null),
+      measure: (v) => (v && v !== base.measure ? v : null),
+      speed: (v) => ratio(v, base.speed),
+      turnSpeed: (v) => ratio(v, base.turnSpeed),
+      flow: (v) => (v === base.flow ? null : v),
+      align: (v) => (v === base.align ? null : v)
+    };
     let t = st.source;
-    if ('size' in part) t = S.setPageMark(t, k, 'size', part.size && part.size !== Math.round(st.settings.size * 100) ? part.size : null);
-    if ('measure' in part) t = S.setPageMark(t, k, 'measure', part.measure && part.measure !== st.settings.measure ? part.measure : null);
+    Object.keys(part).forEach((key) => { t = S.setPageMark(t, k, key, MARK[key](part[key])); });
     setSource(t);
     handOff();
-    const pg = allPages()[k] || {};
-    postAll({ type: 'geulgyeol:sheet', page: k, size: pg.size || null, measure: pg.measure || null });
+    if ('size' in part || 'measure' in part || 'align' in part) {
+      const pg = allPages()[k] || {};
+      postAll({ type: 'geulgyeol:sheet', page: k, size: pg.size || null, measure: pg.measure || null, align: pg.align || null });
+    }
+    if ('speed' in part || 'flow' in part) markDue(true);
+    if ('turnSpeed' in part) {
+      clearTimeout(turnTimer);
+      turnTimer = setTimeout(() => show({ page: k - 1, done: true, next: true }), 450);
+    }
   }
 
   const panels = P.mount($('tune-tools'), {

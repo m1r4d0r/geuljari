@@ -264,11 +264,13 @@
     if (!m) return null;
     const k = E.readMark(m[1]);
     return { scene: SCENE_NAME[k.scene] || null, ground: GROUND_NAME[k.ground] || null, turn: TURN_NAME[k.turn] || null, place: PLACE_NAME[k.place] || null,
-      size: k.size ? Math.round(k.size * 100) : null, measure: k.measure || null };
+      size: k.size ? Math.round(k.size * 100) : null, measure: k.measure || null, speed: k.speed ? Math.round(k.speed * 100) : null,
+      flow: k.flow ? (k.flow === '이어쓰기' ? '이어 쓰기' : k.flow) : null, align: k.align || null, turnSpeed: k.turnSpeed ? Math.round(k.turnSpeed * 100) : null };
   }
-  /* {scene, ground, turn, place, size(%), measure(자)} → 쪽 표시 줄(다 비면 빈 문자열) */
+  /* {scene, ground, turn, place, size(%), measure(자), speed(%), flow(이름), align(이름), turnSpeed(%)} → 쪽 표시 줄(다 비면 빈 문자열) */
   function markLine(mk) {
-    const parts = [mk.scene, mk.ground, mk.turn, mk.place, mk.size ? '크기' + mk.size : null, mk.measure ? '폭' + mk.measure : null].filter(Boolean);
+    const parts = [mk.scene, mk.ground, mk.turn, mk.place, mk.size ? '크기' + mk.size : null, mk.measure ? '폭' + mk.measure : null, mk.speed ? '속도' + mk.speed : null,
+      mk.flow ? '결' + mk.flow.replace(/\s/g, '') : null, mk.align ? '정렬' + mk.align : null, mk.turnSpeed ? '전환속도' + mk.turnSpeed : null].filter(Boolean);
     return parts.length ? `[[${parts.join(':')}]]` : '';
   }
 
@@ -335,7 +337,7 @@
     return text.slice(0, first.start) + markLine({ [key]: value }) + '\n' + text.slice(first.start);
   }
 
-  /* 쪽 page(0부터)에 적힌 쪽 표시 하나(key: turn·place·size·measure). 없으면 null */
+  /* 쪽 page(0부터)에 적힌 쪽 표시 하나(key: turn·place·size·measure·speed·flow·align·turnSpeed). 없으면 null */
   function pageMark(text, page, key) {
     const first = lines(text).find((l) => !l.empty && l.page === page);
     return first && first.scene ? readMarkLine(first.text)[key] : null;

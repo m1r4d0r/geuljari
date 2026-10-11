@@ -120,28 +120,33 @@
   const EM_OPEN = '{{';
   const EM_CLOSE = '}}';
   /*
-   * 쪽 표시 줄: 장면(라이트·다크, 예전 이름 낮·밤도 읽음)·바탕·넘김·글 자리·글자 크기(크기110 = 110%)·글 상자 폭(폭30 = 30자)을 :로 이어 적는다.
+   * 쪽 표시 줄: 장면(라이트·다크, 예전 이름 낮·밤도 읽음)·바탕·넘김·글 자리·글자 크기(크기110 = 110%)·글 상자 폭(폭30 = 30자)·속도(속도120 = 글 전체 속도의 1.2배)·나타나는 결(결번짐·결이어쓰기…)·정렬(정렬가운데…)·
+   * 전환 속도(전환속도120 = 이 쪽으로 넘어올 때 글 전체 전환 속도의 1.2배)를 :로 이어 적는다.
    * [[다크]] · [[다크:오로라]] · [[다크:영사광:조리개]] · [[가운데]] · [[크기120:폭24]]
    * 이 줄에서 새 쪽이 시작되고, 장면·바탕은 적지 않으면 앞 쪽을 따른다(장면이 바뀌고 바탕이 없으면 그 장면의 기본 바탕).
-   * 넘김·자리·크기·폭은 그 쪽에만 걸린다.
+   * 넘김·자리·크기·폭·속도·결·정렬·전환 속도는 그 쪽에만 걸린다.
    */
   const SCENES = { '밤': 'night', '낮': 'day', '라이트': 'day', '다크': 'night' };
   const GROUNDS = { '창빛': 'window', '원고지': 'wongoji', '잎그늘': 'leaf', '새벽': 'dawn', '편지지': 'letter', '오로라': 'aurora', '영사광': 'projector', '빛커튼': 'drape', '물빛': 'caustic', '타자': 'typing' };
   const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash', '잠수': 'dive', '먹자국': 'ink', '글리치': 'glitch', '피어남': 'bloom' };
   const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };
-  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES), '크기\\d{2,3}', '폭\\d{2}'].join('|');
+  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES), '크기\\d{2,3}', '폭\\d{2}', '속도\\d{2,3}', '전환속도\\d{2,3}', '결(?:바로|이어쓰기|번짐|떠오름|타자)', '정렬(?:저절로|왼쪽|가운데|오른쪽|양쪽)'].join('|');
   const MARK_BODY = `(?:${MARK_WORD})(?:\\s*[:·]\\s*(?:${MARK_WORD}))*`;
   const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(${MARK_BODY})\\]\\][^\\S\\n]*$`);
   const SCENE_LINES_RE = new RegExp(`^[^\\S\\n]*\\[\\[${MARK_BODY}\\]\\][^\\S\\n]*$`, 'gm');
 
-  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn, place, size(배율), measure(자)}로 읽는다(없는 것은 null) */
+  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn, place, size(배율), measure(자), speed(배율), flow(결 이름, 띄어쓰기 없이), align(정렬 이름), turnSpeed(배율)}로 읽는다(없는 것은 null) */
   function readMark(body) {
     const parts = String(body).split(/\s*[:·]\s*/);
     const pick = (map) => { const k = parts.find((x) => map[x]); return k ? map[k] : null; };
     const num = (re) => { const m = parts.map((x) => x.match(re)).find(Boolean); return m ? Number(m[1]) : null; };
     const size = num(/^크기(\d{2,3})$/);
-    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS), place: pick(PLACES), size: size ? size / 100 : null, measure: num(/^폭(\d{2})$/) };
+    const speed = num(/^속도(\d{2,3})$/);
+    const turnSpeed = num(/^전환속도(\d{2,3})$/);
+    const word = (re) => { const m = parts.map((x) => x.match(re)).find(Boolean); return m ? m[1] : null; };
+    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS), place: pick(PLACES), size: size ? size / 100 : null, measure: num(/^폭(\d{2})$/), speed: speed ? speed / 100 : null,
+      flow: word(/^결(\S+)$/), align: word(/^정렬(\S+)$/), turnSpeed: turnSpeed ? turnSpeed / 100 : null };
   }
   const PREFIX_RE = new RegExp(`^(${HEAD_SRC}):`);
   const MARKS_RE = new RegExp(`(\\{\\{(?:${HEAD_SRC}):|\\{\\{|\\}\\}|\\[\\[${MARK_BODY}\\]\\])`);
@@ -471,7 +476,7 @@
           const mk = readMark(m[1]);
           scene = mk.scene;
           ground = mk.ground;
-          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, place: mk.place, size: mk.size, measure: mk.measure, text: m[0].trim() });
+          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, place: mk.place, size: mk.size, measure: mk.measure, speed: mk.speed, flow: mk.flow, align: mk.align, turnSpeed: mk.turnSpeed, text: m[0].trim() });
           return;
         }
         const line = parseLine(rl);
@@ -496,6 +501,22 @@
    * (넘김·자리는 적지 않으면 null). 한 문단에 쪽 표시 줄이 여럿이면 차례로 합친다(뒤의 것이 앞의 것을 덮는다).
    * 쪽 표시가 없으면 앞 페이지의 장면과 바탕을 이어받고, 장면을 바꾸며 바탕 이름이 없으면 그 장면의 기본 바탕을 쓴다.
    */
+  /*
+   * 나타나는 결은 조판(tune.js)이 정한다. 쪽마다 그 쪽 표시의 결(없으면 null)로 한 번 부른다(setFlowHook).
+   */
+  let flowHook = null;
+  function setFlowHook(fn) { flowHook = fn; }
+
+  /* 쪽 표시의 속도: 그 쪽 문단의 시간표를 그 배율만큼 줄이고 늘인다(한 번만) */
+  function pace(para, k) {
+    if (para.paced) return;
+    para.paced = k;
+    para.lines.forEach((l) => l.tokens.forEach((tk) => tk.cells.forEach((c) => { c.t = Math.round(c.t / k); })));
+    para.lead = Math.round(para.lead / k);
+    para.span = Math.round(para.span / k);
+    (para.events || []).forEach((ev) => { if (typeof ev.t === 'number') ev.t = Math.round(ev.t / k); if (typeof ev.end === 'number') ev.end = Math.round(ev.end / k); if (ev.hold) ev.hold = Math.round(ev.hold / k); });
+  }
+
   function pages(parsed) {
     const out = [];
     let cur = null;
@@ -506,7 +527,8 @@
       const marks = para.rows.filter((r) => r.sceneMark);
       const mark = marks.length ? marks.reduce((a, r) => ({
         scene: r.scene || a.scene, ground: r.ground || a.ground, turn: r.turn || a.turn, place: r.place || a.place,
-        size: r.size || a.size, measure: r.measure || a.measure
+        size: r.size || a.size, measure: r.measure || a.measure, speed: r.speed || a.speed,
+        flow: r.flow || a.flow, align: r.align || a.align, turnSpeed: r.turnSpeed || a.turnSpeed
       }), {}) : null;
       if (mark) pending = mark;
       if (para.sceneOnly) {
@@ -518,6 +540,10 @@
         let place = null;
         let size = null;
         let measure = null;
+        let speed = null;
+        let flow = null;
+        let align = null;
+        let turnSpeed = null;
         if (pending) {
           if (pending.scene) {
             ground = pending.ground || (pending.scene !== scene ? DEFAULT_GROUND[pending.scene] : ground);
@@ -527,11 +553,17 @@
           place = pending.place || null;
           size = pending.size || null;
           measure = pending.measure || null;
+          speed = pending.speed || null;
+          flow = pending.flow || null;
+          align = pending.align || null;
+          turnSpeed = pending.turnSpeed || null;
           pending = null;
         }
-        cur = { paragraphs: [], scene, ground, turn, place, size, measure, count: 0 };
+        cur = { paragraphs: [], scene, ground, turn, place, size, measure, speed, flow, align, turnSpeed, count: 0 };
         out.push(cur);
       }
+      if (flowHook && !para.flowed) { para.flowed = true; flowHook(para, cur.flow); }
+      if (cur.speed) pace(para, cur.speed);
       cur.paragraphs.push(para);
       cur.count += para.count;
     });
@@ -580,6 +612,7 @@
   }
 
   global.Geulgyeol = {
+    setFlowHook,
     RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, DEFAULT_CYCLE, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
     KEEP, STYLES, COLORS, HEAD_SRC, parseHead, headText,
     SCENES, GROUNDS, TURNS, PLACES, DEFAULT_GROUND, SCENE_LINE_RE, readMark,

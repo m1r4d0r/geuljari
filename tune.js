@@ -199,14 +199,12 @@
     para.span = Math.max(em.length ? para.span - shift : 0, 700);
     return para;
   }
+  /* 쪽 표시의 결 이름(띄어쓰기 없음) → 흐름 이름 */
+  const flowName = (w) => FLOW_NAMES.find((n) => n.replace(/\s/g, '') === w) || null;
+  /* 쪽마다: 그 쪽 표시의 결이 있으면 그것, 없으면 글 전체 결 */
   function patchFlow(E, s) {
-    if (!FLOWS[s.flow]) return;
-    const parse = E.parse;
-    E.parse = function (text) {
-      const out = parse(text);
-      out.paragraphs.forEach((p) => flowCells(p, s));
-      return out;
-    };
+    if (!E.setFlowHook) return;
+    E.setFlowHook((para, w) => flowCells(para, { flow: flowName(w) || s.flow }));
   }
 
   /* 두 색을 t만큼 섞는다(#rrggbb) */
@@ -263,7 +261,7 @@
   global.GeulTune = {
     AXES, WORDS, MOOD, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
-    PACE, TURN_PACE, dryTime, turnPace,
+    PACE, TURN_PACE, dryTime, turnPace, flowName,
     defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
   };
 })(typeof window !== 'undefined' ? window : globalThis);

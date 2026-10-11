@@ -84,6 +84,7 @@
    * 짧은 글이 오른쪽에 놓이면 오른쪽 정렬이지만, 편지지 쪽은 종이 왼쪽부터 써 내려가도록 늘 왼쪽 정렬.
    */
   const PLACE_X = { left: 0.2, center: 0.5, right: 0.8 };
+  const PAGE_ALIGN = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right', '양쪽': 'justify' };
   function layoutFor(page, i, prev) {
     const n = page.count;
     const short = n < 70;
@@ -116,6 +117,11 @@
       /* 쪽 표시의 글자 크기·글 상자 폭(그 쪽에만) */
       if (pg.size) sheet.style.setProperty('--page-k', String(pg.size));
       if (pg.measure) sheet.style.setProperty('--page-m', pg.measure + 'em');
+      /* 쪽 표시의 속도는 마르는 시간도 같이 줄이고 늘인다 */
+      if (pg.speed) {
+        const dry = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dry'));
+        if (dry > 0) sheet.style.setProperty('--dry', (dry / pg.speed).toFixed(2) + 's');
+      }
       const scroll = document.createElement('div');
       scroll.className = 'scroll';
       const column = document.createElement('div');
@@ -125,6 +131,8 @@
       column.style.setProperty('--measure', lay.measure + 'em');
       column.style.setProperty('--x', String(lay.x));
       column.style.setProperty('--align', lay.align);
+      /* 쪽 표시의 정렬: 저절로면 이 쪽의 자리 정렬, 아니면 그 정렬(글 전체 정렬보다 먼저) */
+      if (pg.align) column.style.setProperty('--a-user', PAGE_ALIGN[pg.align] || 'var(--align)');
 
       const items = [];
       let at = 0;
@@ -137,7 +145,7 @@
         column.append(box);
         const built = G.buildParagraph(para, inner);
         built.items.forEach((it) => { it.t += at; items.push(it); });
-        at += para.lead + PARA_GAP;
+        at += para.lead + PARA_GAP / (pg.speed || 1);
 
         const sr = document.createElement('p');
         sr.textContent = para.lines.map((l) => l.tokens.map((t) => t.text).join(' ')).join('\n');
@@ -151,7 +159,7 @@
       if (window.GeulManuscript) window.GeulManuscript.attach(sheet);
       B.mount(sheet, pg.ground);
 
-      const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, turn: pg.turn, state: 'idle', tl: null, start: 0, fits: true, held: false };
+      const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, turn: pg.turn, turnSpeed: pg.turnSpeed || 1, state: 'idle', tl: null, start: 0, fits: true, held: false };
       P.lines = [...column.querySelectorAll('.ln')];
       scroll.addEventListener('scroll', () => { if (P === pages[S.cur]) band(); }, { passive: true });
       return P;
@@ -346,16 +354,16 @@
 
   /*
    * 넘김의 시간과 곡선. flip.js가 정한 값을 쓰고, 없으면 반전은 빛 170 · 휙 640 · 빛 빠짐 260, 스밈은 760.
-   * 시간은 전환 속도(GeulReaderOpts.turnPace, 클수록 빠름)로 나눈다. 편집실이 바꾸면 다음 넘김부터 따른다.
+   * 시간은 전환 속도(GeulReaderOpts.turnPace, 클수록 빠름)와 넘어갈 쪽의 쪽 표시 전환 속도(k)로 나눈다. 편집실이 바꾸면 다음 넘김부터 따른다.
    */
-  function timingOf(mode) {
+  function timingOf(mode, own) {
     const t = typeof F.timing === 'function' ? F.timing(mode) : null;
     const base = t && t.run > 0
       ? { lead: t.lead || 0, run: t.run, tail: t.tail || 0, ease: t.ease || M.ease.inOut }
       : mode === 'drift'
         ? { lead: 0, run: 760, tail: 0, ease: M.ease.inOut }
         : { lead: 170, run: 640, tail: 260, ease: M.ease.swing };
-    const k = Number(OPTS.turnPace) > 0 ? Number(OPTS.turnPace) : 1;
+    const k = (Number(OPTS.turnPace) > 0 ? Number(OPTS.turnPace) : 1) * (own > 0 ? own : 1);
     return { lead: base.lead / k, run: base.run / k, tail: base.tail / k, ease: base.ease };
   }
 
@@ -373,7 +381,8 @@
     if (!S.on) { spring.set(to); land(to); return; }
     const from = S.pos;
     const lo = Math.floor(Math.min(from, to));
-    const t = timingOf(modeOf(pages[lo], pages[Math.min(N - 1, lo + 1)]));
+    const into = pages[Math.min(N - 1, lo + 1)];
+    const t = timingOf(modeOf(pages[lo], into), into.turnSpeed);
     const lit = t.lead > 0 || t.tail > 0 ? 1 : undefined;
     const fwd = to > from;
     const a = fwd ? from : Math.max(to, from - 1e-4);

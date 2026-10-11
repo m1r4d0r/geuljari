@@ -147,18 +147,45 @@
     ['mood', 'type', 'motion', 'ground'].forEach((name) => { panels[name] = document.getElementById('panel-' + name); });
     let current = null;
     let onChange = () => {};
+    const closing = new Map();
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+    function disclose(name, on) {
+      const p = panels[name];
+      const item = p.closest('.index-item');
+      const trigger = document.querySelector('.tab[data-panel="' + name + '"]');
+      clearTimeout(closing.get(name));
+      closing.delete(name);
+      if (!on && p.contains(document.activeElement) && trigger) trigger.focus({ preventScroll: true });
+      p.inert = !on;
+      p.setAttribute('aria-hidden', String(!on));
+      if (!item) { p.hidden = !on; return; }
+      if (on) {
+        p.hidden = false;
+        /* 0fr의 크기를 먼저 재야 새로 연 판도 아래로 부드럽게 펼쳐진다. */
+        item.offsetHeight;
+        item.classList.add('is-open');
+      } else {
+        item.classList.remove('is-open');
+        if (p.hidden || reducedMotion.matches) p.hidden = true;
+        else closing.set(name, setTimeout(() => {
+          if (current !== name) p.hidden = true;
+          closing.delete(name);
+        }, 380));
+      }
+    }
 
     function pages() { return E.pages(E.parse(ctx.head() + ctx.get())); }
 
     function open(name) {
-      Object.entries(panels).forEach(([n, p]) => { p.hidden = n !== name; });
       current = name;
       render(name);
+      Object.keys(panels).forEach((n) => disclose(n, n === name));
       onChange();
     }
     function close() {
-      Object.values(panels).forEach((p) => { p.hidden = true; });
       current = null;
+      Object.keys(panels).forEach((n) => disclose(n, false));
       onChange();
     }
     const toggle = (name) => (current === name ? close() : open(name));

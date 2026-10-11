@@ -33,7 +33,7 @@
     <span class="logo-name">글결</span>
   </button>
   <nav class="steps" aria-label="단계">
-    <button type="button" data-go="write">글</button>
+    <button type="button" data-go="write" id="back">편집</button>
     <button type="button" data-go="tune">미리보기</button>
   </nav>
   <span class="top-links">
@@ -80,48 +80,66 @@
     </footer>
   </section>
 
-  <!-- 미리보기: 화면을 채운 읽기 틀과, 오른쪽 가장자리 책갈피로 여는 판 -->
+  <!-- 미리보기: 화면을 채운 읽기 틀과, 오른쪽 여백 색인 아래로 펼치는 설정 -->
   <section class="step tune" id="s-tune" aria-label="미리보기" hidden>
     <div class="stage" id="stage">
       <div class="screen" id="screen-main"><iframe class="frame" title="미리보기"></iframe><iframe class="frame" title="미리보기" tabindex="-1"></iframe></div>
       <div class="screen" id="screen-side" hidden><iframe class="frame" title="폰 미리보기"></iframe><iframe class="frame" title="폰 미리보기" tabindex="-1"></iframe></div>
 
       <nav class="tabs" id="tabs" aria-label="다듬기">
-        <button type="button" class="tab-toggle" id="tab-toggle" aria-expanded="false">다듬기</button>
-        <div class="tab-list">
-          <button type="button" class="tab back" id="back">글로</button>
-          <button type="button" class="tab" data-panel="mood">분위기</button>
-          <button type="button" class="tab" data-panel="type">글씨</button>
-          <button type="button" class="tab" data-panel="motion">움직임</button>
-          <button type="button" class="tab" data-panel="ground">배경</button>
-          <button type="button" class="tab replay" id="replay" title="바꾼 움직임은 다시 보기를 눌러야 보여요.">다시 보기</button>
-          <span class="tab-dev" role="group" aria-label="미리보기 화면" id="device">
-            <button type="button" data-device="pc">PC</button><button type="button" data-device="mobile">폰</button><button type="button" data-device="both" class="wide-only">병렬</button>
-          </span>
-          <button type="button" class="tab" id="hide-all">숨기기</button>
+        <button type="button" class="tab-toggle" id="tab-toggle" aria-expanded="false" aria-controls="tab-list">다듬기</button>
+        <div class="tab-list" id="tab-list">
+          <div class="index-item">
+            <button type="button" class="tab" id="tab-mood" data-panel="mood" aria-expanded="false" aria-controls="panel-mood"><span class="tab-number" aria-hidden="true">01</span><span>분위기</span><span class="tab-sign" aria-hidden="true">+</span></button>
+            <div class="panel-fold"><div class="panel-clip">
+                <section class="panel" id="panel-mood" aria-labelledby="tab-mood" hidden inert>
+                  <header class="panel-head"><b>분위기</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-look">살펴보기</button><button type="button" class="link panel-x">닫기</button></header>
+                  <div class="panel-body"></div>
+                </section>
+            </div></div>
+          </div>
+          <div class="index-item">
+            <button type="button" class="tab" id="tab-type" data-panel="type" aria-expanded="false" aria-controls="panel-type"><span class="tab-number" aria-hidden="true">02</span><span>글씨</span><span class="tab-sign" aria-hidden="true">+</span></button>
+            <div class="panel-fold"><div class="panel-clip">
+                <section class="panel" id="panel-type" aria-labelledby="tab-type" hidden inert>
+                  <header class="panel-head"><b>글씨</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-x">닫기</button></header>
+                  <div class="panel-body"></div>
+                </section>
+            </div></div>
+          </div>
+          <div class="index-item">
+            <button type="button" class="tab" id="tab-motion" data-panel="motion" aria-expanded="false" aria-controls="panel-motion"><span class="tab-number" aria-hidden="true">03</span><span>움직임</span><span class="tab-sign" aria-hidden="true">+</span></button>
+            <div class="panel-fold"><div class="panel-clip">
+                <section class="panel" id="panel-motion" aria-labelledby="tab-motion" hidden inert>
+                  <header class="panel-head"><b>움직임</b><span class="panel-sub k">다시 보기로 확인</span><button type="button" class="link panel-x">닫기</button></header>
+                  <div class="panel-body"></div>
+                </section>
+            </div></div>
+          </div>
+          <div class="index-item">
+            <button type="button" class="tab" id="tab-ground" data-panel="ground" aria-expanded="false" aria-controls="panel-ground"><span class="tab-number" aria-hidden="true">04</span><span>배경</span><span class="tab-sign" aria-hidden="true">+</span></button>
+            <div class="panel-fold"><div class="panel-clip">
+                <section class="panel" id="panel-ground" aria-labelledby="tab-ground" hidden inert>
+                  <header class="panel-head"><b>배경</b><span class="panel-sub k"></span><button type="button" class="link panel-x">닫기</button></header>
+                  <div class="panel-body"></div>
+                </section>
+            </div></div>
+          </div>
         </div>
       </nav>
-
-      <section class="panel" id="panel-mood" aria-label="분위기" hidden>
-        <header class="panel-head"><b>분위기</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-look">살펴보기</button><button type="button" class="link panel-x">닫기</button></header>
-        <div class="panel-body"></div>
-      </section>
-      <section class="panel" id="panel-type" aria-label="글씨" hidden>
-        <header class="panel-head"><b>글씨</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-x">닫기</button></header>
-        <div class="panel-body"></div>
-      </section>
-      <section class="panel" id="panel-motion" aria-label="움직임" hidden>
-        <header class="panel-head"><b>움직임</b><span class="panel-sub k">다시 보기로 확인</span><button type="button" class="link panel-x">닫기</button></header>
-        <div class="panel-body"></div>
-      </section>
-      <section class="panel" id="panel-ground" aria-label="배경" hidden>
-        <header class="panel-head"><b>배경</b><span class="panel-sub k"></span><button type="button" class="link panel-x">닫기</button></header>
-        <div class="panel-body"></div>
-      </section>
 
       <div class="zoom" id="zoom" hidden><span class="k" id="zoom-k"></span><button type="button" class="link" id="zoom-fit">맞춤</button></div>
       <button type="button" class="peek" id="peek" aria-label="다듬기 꺼내기" hidden>■□</button>
     </div>
+    <footer class="preview-bar" aria-label="미리보기 도구">
+          <div class="tab-actions tab-tools">
+            <button type="button" class="tab replay" id="replay" title="바꾼 움직임은 다시 보기를 눌러야 보여요.">다시 보기</button>
+            <button type="button" class="tab" id="hide-all">숨기기</button>
+          </div>
+          <div class="tab-dev" role="group" aria-label="미리보기 화면" id="device">
+            <button type="button" data-device="pc">PC</button><button type="button" data-device="mobile">폰</button><button type="button" data-device="both" class="wide-only">병렬</button>
+          </div>
+    </footer>
   </section>
 </main>
 

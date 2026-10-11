@@ -6,7 +6,7 @@
  *   분위기는 고르기 전에는 글을 읽어 짐작한 것을 두고, '살펴보기'는 낱말마다 움직임을 견주어 보는 덮개(look.js)를 연다.
  *   페이지 어디에서 휠을 굴려도 본문이 굴러간다.
  * - 미리보기: 읽기 틀이 화면을 채운다. 보는 기기와 같은 틀이면 실제 크기 그대로, 다른 틀(폰에서 PC 16:9, PC에서 폰)이면
- *   맞춰 줄이고, 병렬이면 PC와 폰을 나란히 둔다. 설정은 오른쪽 가장자리 책갈피(분위기·글씨·움직임·배경)로 하나씩 연다(panels.js).
+ *   맞춰 줄이고, 병렬이면 PC와 폰을 나란히 둔다. 설정은 오른쪽 여백 색인(분위기·글씨·움직임·배경) 아래로 하나씩 펼친다(panels.js).
  *   모양을 바꾸면 다시 쓰지 않고 바로 바뀌고, 움직임은 '다시 보기'로 본다. 글 상자를 누르면 그 자리에서 고치고 꾸민다(inplace.js).
  *   손가락 벌리기·Ctrl+휠로 확대하고, 글 상자를 끌면 왼쪽·가운데·오른쪽에 붙는다(view.js가 미리보기 안의 손짓을 알려 준다).
  * - 미리보기의 마지막 쪽 뒤에는 마지막 화면(제목·만든 날)이 한 장 더 있다. 그 화면에서 고친 제목을 받아 두고(geulgyeol:title, 병렬이면 다른 틀에도 건넴),
@@ -126,6 +126,9 @@
   $('title').addEventListener('input', (e) => { st.title = e.target.value; save(); handOff(); });
 
   function countLine() {
+    document.querySelectorAll('.steps [data-go]').forEach((b) => {
+      b.disabled = b.dataset.go !== 'write' && !st.source.trim();
+    });
     if (!st.source.trim()) { $('count').textContent = ''; return; }
     const pgs = allPages();
     const chars = pgs.reduce((n, p) => n + p.count, 0);
@@ -408,14 +411,13 @@
 
   /*
    * 보는 기기와 같은 틀이면 무대 크기 그대로(실제 화면), 다른 틀(PC 16:9, 폰 390×844)이면 맞춰 줄인다.
-   * 병렬은 PC와 폰을 같은 배율로 나란히. 폰에서 아래 판이 열려 있으면 판 위 빈자리에 맞춘다.
+   * 병렬은 PC와 폰을 같은 배율로 나란히. 여백 색인을 펼쳐도 읽기 틀의 배율은 유지한다.
    */
   function fit() {
     const W = stage.clientWidth;
     const H = stage.clientHeight;
     if (W <= 0 || H <= 0) return;
-    const sheet = phone.matches ? stage.querySelector('.panel:not([hidden])') : null;
-    const room = sheet ? Math.max(120, sheet.offsetTop - 8) : H;
+    const room = H;
     const m = mode();
     side.box.hidden = m !== 'both';
     if (m === 'both') {
@@ -624,7 +626,6 @@
   }));
   const refit = new ResizeObserver(() => { if (st.step === 'tune') fit(); });
   refit.observe(stage);
-  document.querySelectorAll('.panel').forEach((p) => refit.observe(p));
 
   /* ---------- 판 ---------- */
 
@@ -688,26 +689,29 @@
     look: window.GeulLook ? openLook : null
   });
   panels.onChange = () => {
-    document.querySelectorAll('.tab[data-panel]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.panel === panels.current())));
+    document.querySelectorAll('.tab[data-panel]').forEach((b) => {
+      const on = b.dataset.panel === panels.current();
+      b.setAttribute('aria-expanded', String(on));
+      b.querySelector('.tab-sign').textContent = on ? '−' : '+';
+    });
     stage.classList.toggle('has-panel', !!panels.current());
-    if (phone.matches) fit();
   };
 
   const tabs = $('tabs');
   document.querySelectorAll('.tab[data-panel]').forEach((b) => b.addEventListener('click', () => {
     panels.toggle(b.dataset.panel);
-    if (phone.matches) openTabs(false);
   }));
   function openTabs(on) {
+    if (!on && phone.matches && panels.current()) panels.close();
     tabs.classList.toggle('open', on);
     $('tab-toggle').setAttribute('aria-expanded', String(on));
   }
   $('tab-toggle').addEventListener('click', () => openTabs(!tabs.classList.contains('open')));
-  $('back').addEventListener('click', () => setStep('write'));
   $('replay').addEventListener('click', () => { replay(); if (phone.matches) openTabs(false); });
 
   /* 숨기기: 책갈피와 판을 모두 거두고 미리보기만 남긴다. 구석의 작은 네모로 돌아온다 */
   function hideAll(on) {
+    document.body.classList.toggle('preview-clean', on);
     if (on) panels.close();
     tabs.hidden = on;
     $('peek').hidden = !on;
@@ -727,6 +731,7 @@
   ['pointermove', 'pointerdown', 'keydown', 'focusin'].forEach((t) => stage.addEventListener(t, wake));
 
   function enterTune(fresh) {
+    document.body.classList.remove('preview-clean');
     T.useFont(document, st.settings);
     tabs.hidden = false;
     $('peek').hidden = true;
@@ -738,12 +743,13 @@
     if (!store.get('geul.tuneHint3')) {
       store.set('geul.tuneHint3', true);
       toast(phone.matches
-        ? '글 상자를 누르면 그 자리에서 고치고 꾸며요. 설정은 왼쪽 위 ‘다듬기’에서요.'
-        : '글 상자를 누르면 그 자리에서 고치고 꾸며요. 설정은 오른쪽 책갈피에서요.', 4200);
+        ? '글 상자를 누르면 그 자리에서 고치고 꾸며요. 설정은 오른쪽 위 ‘다듬기’에서요.'
+        : '글 상자를 누르면 그 자리에서 고치고 꾸며요. 설정은 오른쪽 여백 색인에서요.', 4200);
     }
   }
 
   function leaveTune() {
+    document.body.classList.remove('preview-clean');
     panels.close();
     main.clear();
     side.clear();

@@ -81,12 +81,12 @@
 
 ## 지금 상태와 다음 일
 
-- 주소는 https://geuljari.netlify.app/ 로 확정. 초안은 주소별 localStorage라 글 파일(.txt)로 백업한다. JSON 백업은 두지 않는다.
+- 주소는 https://geuljari.netlify.app/ 로 확정. 초안은 주소별 localStorage라 글 파일(.txt)로 백업한다. JSON 백업·별도 관리 파일은 두지 않는다. 비밀번호는 4~128자, 그 밖의 제약·잠금 없음(사용자 결정).
 - 글자리 SVG 로고·원고지·타자 바탕을 여백 색인·발행 기능과 통합했다.
 - 편집·미리보기·발행 단계, 여백 색인, 암호화 발행·불러오기·수정·중단·삭제, `/t/` 읽기와 공개 제목 OG HTML을 구현했다.
 - 저장소: Netlify Blobs로 전환 완료. ETag 조건부 쓰기, 삭제 표식, 운영·미리보기·로컬 분리. Firebase는 제거했다.
 - 반응형 후속: 편집 설정 서랍·미리보기 가장자리 손잡이, 끝 장 카드 독립 문구·배치, 뷰어의 작성자 수정 진입을 구현했다. `tests/studio-refinement.cjs`로 확인한다.
 - 운영 미확인: 실제 Netlify Functions + Blobs를 연결한 통합 검증과 운영 배포.
 - 이후: OG 이미지, 문의·관리실, 소리, 상한·만료·신고 정책. Netlify 내부 구현을 먼저 검토하며 별도 외부 서비스는 기본 전제가 아니다.
-- 파일: `publish.js/css`, `publish-crypto.js`는 발행 UI·암호화, `geul-file.js`(`GeulFile`)는 사람이 읽는 글 파일(초안 백업: 제목·본문·글 전체 설정 줄)과 관리 파일(링크·비밀번호 두 줄)을 쓰고 읽는다(헤더 '글 파일 받기', '불러오기'에 놓기), `published.html/js/css`는 공개 뷰어, `server/`는 API·저장소·제목 HTML, `netlify/functions/`는 함수 진입점이다.
+- 파일: `publish.js/css`, `publish-crypto.js`는 발행 UI·암호화, `geul-file.js`(`GeulFile`)는 사람이 읽는 글 파일(제목·본문·글 전체 설정 줄, 발행 글이면 링크·비밀번호도. 이름은 `[초안] 제목 날짜`·`[발행] 제목 발행한 날`)과 보내기·복사용 세 줄을 만들고 예전 관리 파일도 읽는다(헤더·발행 뒤 '글 파일 받기', 발행 뒤 '보내기'·'텍스트 복사', '불러오기'에 놓기), `published.html/js/css`는 공개 뷰어, `server/`는 API·저장소·제목 HTML, `netlify/functions/`는 함수 진입점이다.
 - 다음 작업의 완료 조건은 `docs/단계-계획.md`와 `docs/발행.md`를 따른다. 문서만 수정한 작업에는 런타임 테스트를 반복하지 않고 내용·링크·차이 검토를 한다.

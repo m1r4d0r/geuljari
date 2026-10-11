@@ -1,7 +1,8 @@
 /*
- * 글 파일과 관리 파일을 사람이 읽을 수 있는 글로 쓰고 읽어요.
- * 글 파일: 제목·처음 쓴 날, 본문(표시 그대로), 글 전체 설정을 '이름: 값' 줄로 담아요. 본문만 남아도 글과 쪽별 연출은 그대로예요.
- * 관리 파일: 발행한 글의 전체 링크와 작성자 비밀번호 두 줄이에요. 예전 JSON 관리 파일도 읽어요.
+ * 글 파일을 사람이 읽을 수 있는 글로 쓰고 읽어요.
+ * 제목·처음 쓴 날(발행한 글이면 발행한 날·링크·비밀번호), 본문(표시 그대로), 글 전체 설정을 '이름: 값' 줄로 담아요.
+ * 본문만 남아도 글과 쪽별 연출은 그대로예요. 파일 이름은 '[초안] 제목 날짜' 또는 '[발행] 제목 발행한 날'.
+ * 링크·비밀번호만 든 예전 관리 파일(줄글·JSON)도 읽어요. 보내기·복사에 쓰는 짧은 글도 여기서 만들어요.
  * 전역 GeulFile.
  */
 (function () {
@@ -39,9 +40,12 @@
     ['카드 정렬', (d) => ALIGN[d.ending.align] || '가운데', (d, v) => { d.ending.align = ALIGN_BACK[v]; }]
   ];
 
+  // 파일 이름에 쓸 수 없는 글자는 빼고 앞 24자만 써요.
+  const safeName = (s) => oneLine(s).replace(/[\\/:*?"<>|#%{}\[\]]/g, '').slice(0, 24).trim();
   const oneLine = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
 
-  function writeDoc(d) {
+  // pub: 발행한 글이면 { url, password, date: 'YYYY-MM-DD', live }
+  function writeDoc(d, pub) {
     return [
       DOC_HEAD,
       '글자리 편집실의 ‘불러오기’에 이 파일을 놓으면 글과 설정이 그대로 돌아와요.',
@@ -49,6 +53,7 @@
       '',
       '제목: ' + oneLine(d.title),
       '처음 쓴 날: ' + oneLine(d.made),
+      ...(pub ? ['발행한 날: ' + pub.date + (pub.live ? ' (발행 중)' : ' (발행 중단)'), '링크: ' + pub.url, '비밀번호: ' + pub.password] : []),
       '',
       BODY,
       d.source.replace(/\r\n?/g, '\n'),
@@ -58,6 +63,16 @@
       ...LINES.map(([name, get]) => name + ': ' + oneLine(get(d))),
       ''
     ].join('\n');
+  }
+
+  function fileName(d, pub, today) {
+    const title = safeName(d.title) || '제목 없는 글';
+    return pub ? `[발행] ${title} ${pub.date}.txt` : `[초안] ${title} ${today}.txt`;
+  }
+
+  // 보내기·복사에 쓰는 글: 제목, 링크, 비밀번호 세 줄
+  function shareText(title, url, password) {
+    return ['글자리 · ' + (oneLine(title) || '제목 없는 글'), '링크: ' + url, '비밀번호: ' + password].join('\n');
   }
 
   function field(lines, name) {
@@ -73,16 +88,13 @@
     const tail = text.slice(b + BODY_END.length + 1).split('\n');
     const d = { version: 1, title: field(head, '제목') || '', made: field(head, '처음 쓴 날') || '',
       source: text.slice(a + BODY.length + 2, b), settings: {}, moods: [], moodsTouched: false, ending: {} };
+    const url = field(head, '링크'), password = field(head, '비밀번호');
+    if (url && password) d.publication = { url: url.trim(), password };
     for (const [name, , put] of LINES) {
       const v = field(tail, name);
       if (v != null && v.trim() !== '') put(d, v.trim());
     }
     return d;
-  }
-
-  function writeKey(url, password) {
-    return [KEY_HEAD, '링크와 작성자 비밀번호가 함께 들어 있어요. 다른 사람에게 보내지 말아 주세요.', '',
-      '링크: ' + url, '비밀번호: ' + password, ''].join('\n');
   }
 
   function readKey(text) {
@@ -113,8 +125,12 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // 파일 이름에 쓸 수 없는 글자는 빼고 앞 24자만 써요.
-  const safeName = (s) => oneLine(s).replace(/[\\/:*?"<>|#%{}\[\]]/g, '').slice(0, 24).trim();
+  // 휴대폰에서는 공유 창(카카오톡 나와의 채팅 등)으로, 공유 창이 없으면 false
+  async function share(title, text) {
+    if (!navigator.share) return false;
+    try { await navigator.share({ title, text }); } catch (e) { if (e.name !== 'AbortError') throw e; }
+    return true;
+  }
 
-  window.GeulFile = { writeDoc, writeKey, read, download, safeName };
+  window.GeulFile = { writeDoc, fileName, shareText, read, download, share };
 })();

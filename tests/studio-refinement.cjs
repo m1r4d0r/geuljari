@@ -74,7 +74,7 @@ const fs = require('node:fs/promises');
       assert.equal(await frame.locator('[data-card=x]').inputValue(),'22');
       if(width===1280) {
         await frame.getByRole('button',{name:'이대로 발행하기'}).click();
-        await pg.fill('#publish-password','test-only-password'); await pg.fill('#publish-confirm','test-only-password'); await pg.check('#publish-agree');
+        await pg.fill('#publish-password','test-only-password');
         await pg.click('#publish-submit'); await pg.waitForSelector('#publish-result:not([hidden])');
         const link=await pg.inputValue('#publish-url');
         const reader=await context.newPage(); reader.on('pageerror',e=>errors.push(e.message));

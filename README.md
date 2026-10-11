@@ -222,4 +222,4 @@ R-0. 글결은 천 자 안팎의 한국어 글을 "써지는 속도와 숨"으�
 - 공개 파일 준비: `npm ci`, `npm run build`. 프런트엔드를 번들하지 않고 `dist/`에 공개 파일만 복사한다.
 - 점검: 읽기 `tests/smoke.py`, 편집실 `tests/smoke_studio.py`, 여백 색인 `tests/smoke_margin_index.py`, 발행 `npm test`와 `npm run test:publish-ui`. 발행 검증의 범위와 남은 운영 확인은 [발행](docs/발행.md)에 적는다.
 
-파비콘은 글자리 글자 로고와 분리한 같은 크기의 사각형 두 개(□■, `favicon.svg`)다. 저장·불러오기와 발행 관리 파일 형식은 유지한다.
+파비콘은 글자리 글자 로고와 분리한 같은 크기의 사각형 두 개(□■, `favicon.svg`)다. 저장·불러오기는 글 파일(.txt) 하나로 하고, 예전 관리 파일도 읽는다.

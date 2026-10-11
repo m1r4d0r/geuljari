@@ -148,20 +148,15 @@
       <p class="publish-intro">지금 다듬은 모습 그대로, 하나의 링크에서 읽을 수 있어요.</p>
       <ol class="publish-guide">
         <li><b>링크는 읽는 열쇠예요.</b><span>본문은 암호화해 보관해요. # 뒤까지 포함한 전체 링크를 가진 사람은 비밀번호 없이 읽을 수 있어요.</span></li>
-        <li><b>비밀번호는 작성자만 간직해요.</b><span>뷰어의 ‘작성자 수정’에서 비밀번호를 확인하면 편집실로 불러와요. 발행 관리에서 수정·게시 중단·삭제할 수 있어요.</span></li>
-        <li><b>링크와 비밀번호를 함께 보관해요.</b><span>분실하면 복구할 수 없어요. 발행 뒤 관리 파일을 받아 두세요.</span></li>
+        <li><b>비밀번호는 고칠 때만 써요.</b><span>뷰어의 ‘작성자 수정’에서 비밀번호를 넣으면 편집실로 불러와요. 발행 관리에서 수정·게시 중단·삭제할 수 있어요.</span></li>
       </ol>
       <form id="publish-form">
         <fieldset id="publish-fields">
           <label class="pub-field">공개 제목<input id="publish-title" maxlength="40" placeholder="제목 없는 글" autocomplete="off"></label>
           <p class="pub-note">제목은 링크 미리보기에 공개돼요. 본문은 암호화해서 보관해요.</p>
           <div id="publish-new">
-            <div class="pub-passwords">
-              <label class="pub-field">작성자 비밀번호<input id="publish-password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
-              <label class="pub-field">비밀번호 확인<input id="publish-confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
-            </div>
-            <p class="pub-note">8자 이상으로 정해 주세요. 독자는 비밀번호 없이 전체 링크로 읽어요.</p>
-            <label class="pub-check"><input id="publish-agree" type="checkbox" required>링크와 비밀번호를 잃으면 수정·삭제를 복구할 수 없음을 확인했어요.</label>
+            <label class="pub-field">작성자 비밀번호<input id="publish-password" type="text" minlength="4" maxlength="128" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>
+            <p class="pub-note">4자 이상이면 돼요. 독자는 비밀번호 없이 전체 링크로 읽어요.</p>
           </div>
           <label class="pub-check"><input id="publish-live" type="checkbox" checked>링크를 가진 사람이 읽을 수 있게 발행해요.</label>
           <p class="pub-note">발행을 중단해도 이미 읽거나 저장한 사본은 회수할 수 없어요.</p>
@@ -173,8 +168,9 @@
         <h2>글의 자리가 생겼어요.</h2>
         <label class="pub-field">전체 링크<input id="publish-url" readonly></label>
         <p class="pub-note"># 뒤의 열쇠까지 함께 보내 주세요. 전체 링크를 가진 사람은 글을 읽을 수 있어요.</p>
-        <div class="pub-actions"><button class="btn" id="publish-copy" type="button">링크 복사</button><a id="publish-visit" target="_blank" rel="noopener noreferrer">글 열기 ↗</a><button class="link" id="publish-download" type="button">관리 파일 받기</button></div>
-        <p class="pub-note">관리 파일에는 링크와 비밀번호가 들어 있어요. 다른 사람에게 보내지 말아 주세요.</p>
+        <div class="pub-actions"><button class="btn" id="publish-copy" type="button">링크 복사</button><a id="publish-visit" target="_blank" rel="noopener noreferrer">글 열기 ↗</a></div>
+        <h3 class="pub-keep">링크와 비밀번호 남겨 두기</h3>
+        <div class="pub-actions"><button class="btn" id="publish-share" type="button" hidden>보내기</button><button class="btn" id="publish-copy-all" type="button">텍스트 복사</button><button class="btn" id="publish-download" type="button">글 파일 받기</button></div>
       </section>
     </div>
   </section>
@@ -202,8 +198,8 @@
     <p class="pub-note">받아 둔 글 파일을 놓거나, 발행한 글의 전체 링크와 작성자 비밀번호를 넣어 주세요.</p>
     <fieldset id="load-fields">
       <label class="pub-field">전체 링크<input id="load-url" type="text" required autocomplete="off" placeholder="https://…/t/…#…"></label>
-      <label class="pub-field">작성자 비밀번호<input id="load-password" type="password" required minlength="8" maxlength="128" autocomplete="off"></label>
-      <label class="pub-field pub-file" id="load-drop">글 파일이나 관리 파일을 고르거나 여기에 놓아 주세요.<input id="load-file" type="file" accept=".txt,.json,application/json,text/plain"></label>
+      <label class="pub-field">작성자 비밀번호<input id="load-password" type="password" required minlength="4" maxlength="128" autocomplete="off"></label>
+      <label class="pub-field pub-file" id="load-drop">글 파일을 고르거나 여기에 놓아 주세요.<input id="load-file" type="file" accept=".txt,.json,application/json,text/plain"></label>
       <div class="pub-actions"><button class="btn fill" type="submit">불러오기</button><button class="link" id="load-close" type="button">닫기</button></div>
     </fieldset>
     <p id="load-message" class="pub-message" role="status"></p>

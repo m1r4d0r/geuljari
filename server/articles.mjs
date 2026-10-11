@@ -34,7 +34,7 @@ export function createHandler(getStore) {
       let size = 0, chunks = [];
       for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.length; if (size > 360000) { await reader.cancel(); fail(413, 'too_large'); } chunks.push(Buffer.from(value)); }
       let d; try { d = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { fail(400, 'invalid_request'); }
-      if (!d || typeof d.password !== 'string' || d.password.length < 8 || d.password.length > 128) fail(400, 'invalid_password');
+      if (!d || typeof d.password !== 'string' || d.password.length < 4 || d.password.length > 128) fail(400, 'invalid_password');
       if (!id) {
         if (!ID.test(d.id || '')) fail(400, 'invalid_id');
         validate(d);

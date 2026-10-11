@@ -7,12 +7,13 @@
 .pub-field { display: flex; flex-direction: column; gap: 10px; margin: 20px 0 8px; }
 .pub-field input:not([type=file]) { width: 100%; min-width: 0; border: 0; border-bottom: 1px solid var(--ink); background: var(--sheet); padding: 12px; border-radius: 0; }
 .pub-note { font-size: 12px; line-height: 1.8; color: var(--lead); margin: 8px 0 16px; }
-.pub-passwords { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .pub-check { display: flex; align-items: flex-start; gap: 9px; margin: 22px 0 10px; line-height: 1.8; }
 .pub-check input { flex: none; margin-top: 5px; accent-color: var(--ink); }
 .pub-actions { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 24px; }
 .pub-message { min-height: 22px; margin-top: 20px; overflow-wrap: anywhere; }
 .pub-result { border-top: 1px solid var(--ink); margin-top: 24px; padding-top: 24px; }
+.pub-keep { margin: 32px 0 0; padding-top: 20px; border-top: 1px solid var(--line); font: 500 13px/1.6 var(--f-ui); }
+.pub-keep + .pub-actions { margin-top: 14px; }
 .publication-strip { padding: 6px var(--gut); display: flex; gap: 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); font-size: 12px; }
 .publication-strip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .publication-strip .link { flex: none; height: 28px; }
@@ -25,7 +26,6 @@
   .steps { margin-left: auto; }
   .publish { padding-top: 28px; }
   .publish h1 { font-size: 27px; }
-  .pub-passwords { grid-template-columns: 1fr; gap: 0; }
   .load-dialog { padding: 20px; }
 }
 .publish-guide { list-style: none; padding: 0; margin: 0 0 30px; border-block: 1px solid var(--line); }

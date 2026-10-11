@@ -195,11 +195,13 @@
   const snapshot = () => ({ version:1, title:st.title, source:st.source, made:st.made || today(), settings:st.settings, moods:st.moods, moodsTouched:st.moodsTouched, ending:st.ending });
 
   // 글 파일: 이 브라우저에만 있는 초안을 메모장으로도 열리는 글로 받아 둔다.
-  $('file-save').addEventListener('click', () => {
+  // 발행한 글과 이어져 있으면 '[발행]' 파일에 링크·비밀번호도 담고, 아니면 '[초안]' 파일
+  function saveFile() {
     if (!st.source.trim()) { toast('글을 먼저 놓아 주세요.'); ta.focus(); return; }
-    const F = window.GeulFile;
-    F.download(`글자리-${F.safeName(st.title) || st.made || today()}.txt`, F.writeDoc(snapshot()));
-  });
+    const F = window.GeulFile, d = snapshot(), pub = publication.current();
+    F.download(F.fileName(d, pub, today()), F.writeDoc(d, pub));
+  }
+  $('file-save').addEventListener('click', saveFile);
 
   $('clear').addEventListener('click', () => {
     if (st.source.trim() && !window.confirm('지금 글을 지우고 새로 쓸까요?')) return;
@@ -778,6 +780,7 @@
 
   publication = window.GeulPublish.mount({
     snapshot,
+    saveFile,
     notice: (msg) => toast(msg),
     title(value) { st.title = value; $('title').value = value; save(); },
     manage: () => setStep('publish'),

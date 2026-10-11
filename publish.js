@@ -5,7 +5,7 @@
     wrong_password:'비밀번호가 맞지 않아요.', not_found:'글을 찾을 수 없거나 발행이 중단됐어요.',
     conflict:'다른 곳에서 글이 바뀌었어요. 현재 글을 따로 보관한 뒤 다시 불러와 주세요.',
     storage_unavailable:'발행 서버에 연결할 수 없어요. 잠시 뒤 다시 시도해 주세요.',
-    too_large:'글이 너무 길어요. 나누어 발행해 주세요.', invalid_password:'비밀번호를 8~128자로 입력해 주세요.'
+    too_large:'글이 너무 길어요. 나누어 발행해 주세요.', invalid_password:'비밀번호를 4~128자로 입력해 주세요.'
   };
   async function api(path, method, data) {
     let response;
@@ -21,7 +21,7 @@
     const link = a => location.origin + '/t/' + a.id + '#' + a.key;
     function render() {
       $('publish-new').hidden = !!active;
-      $('publish-password').required = $('publish-confirm').required = $('publish-agree').required = !active;
+      $('publish-password').required = !active;
       $('publish-delete').hidden = !active;
       $('publish-submit').textContent = active ? '변경 내용 저장' : '이대로 발행하기';
       $('publication-strip').hidden = !active;
@@ -41,15 +41,14 @@
       $('s-publish').setAttribute('aria-busy', String(on));
     }
     const reset = () => {
-      active = pending = null; $('publish-password').value = $('publish-confirm').value = '';
-      $('publish-agree').checked = false; $('publish-live').checked = true;
+      active = pending = null; $('publish-password').value = '';
+      $('publish-live').checked = true;
       $('publish-message').textContent = ''; render();
     };
     $('publish-title').addEventListener('input', e => ctx.title(e.target.value));
     $('publication-manage').onclick = ctx.manage;
     $('publish-form').onsubmit = async e => {
       e.preventDefault(); if (busy) return;
-      if (!active && $('publish-password').value !== $('publish-confirm').value) { $('publish-message').textContent = '두 비밀번호가 달라요.'; $('publish-confirm').focus(); return; }
       lock(true); $('publish-message').textContent = '글을 암호화해서 보관하고 있어요.';
       try {
         const snapshot = structuredClone(ctx.snapshot()), live = $('publish-live').checked;
@@ -64,8 +63,8 @@
         const sealed = active ? await C.seal(snapshot, target.id, target.key) : pending.sealed;
         const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, password, revision:active?.record.revision });
         active = { id:target.id, key:target.key, password, record }; pending = null;
-        $('publish-password').value = $('publish-confirm').value = '';
-        render(); $('publish-message').textContent = live ? '저장했어요. 링크와 관리 파일을 챙겨 주세요.' : '저장했어요. 지금은 다른 사람이 읽을 수 없어요.';
+        $('publish-password').value = '';
+        render(); $('publish-message').textContent = live ? '저장했어요. 아래에서 링크와 비밀번호를 남겨 두세요.' : '저장했어요. 지금은 다른 사람이 읽을 수 없어요.';
       } catch (err) { $('publish-message').textContent = err.message; }
       finally { lock(false); }
     };
@@ -76,32 +75,55 @@
       catch (err) { $('publish-message').textContent = err.message; }
       finally { lock(false); }
     };
+    async function copy(text, done) {
+      try { await navigator.clipboard.writeText(text); $('publish-message').textContent = done; return true; }
+      catch { return false; }
+    }
     $('publish-copy').onclick = async () => {
-      try { await navigator.clipboard.writeText(link(active)); $('publish-message').textContent = '전체 링크를 복사했어요.'; }
-      catch { $('publish-url').focus(); $('publish-url').select(); $('publish-message').textContent = '링크를 선택했어요. 직접 복사해 주세요.'; }
+      if (!await copy(link(active), '전체 링크를 복사했어요.')) { $('publish-url').focus(); $('publish-url').select(); $('publish-message').textContent = '링크를 선택했어요. 직접 복사해 주세요.'; }
     };
-    $('publish-download').onclick = () => {
-      if (active) F.download('글자리-관리-' + active.id + '.txt', F.writeKey(link(active), active.password));
+    const keepText = () => F.shareText(active.record.title, link(active), active.password);
+    $('publish-share').hidden = !navigator.share;
+    $('publish-share').onclick = async () => {
+      try { await F.share(active.record.title || '글자리', keepText()); }
+      catch { if (!await copy(keepText(), '보낼 수 없어서 대신 복사했어요.')) $('publish-message').textContent = '보내지 못했어요. 글 파일로 받아 주세요.'; }
     };
+    $('publish-copy-all').onclick = async () => {
+      if (!await copy(keepText(), '제목·링크·비밀번호를 복사했어요.')) $('publish-message').textContent = '복사하지 못했어요. 글 파일로 받아 주세요.';
+    };
+    $('publish-download').onclick = () => { if (active) ctx.saveFile(); };
     $('load-open').onclick = () => { if (!busy) { $('load-message').textContent = ''; $('load-dialog').showModal(); } };
     $('load-close').onclick = () => $('load-dialog').close();
     $('load-dialog').addEventListener('cancel', e => { if (busy) e.preventDefault(); });
     $('load-dialog').addEventListener('close', () => { $('load-password').value = ''; $('load-file').value = ''; });
-    // 글 파일이면 바로 편집실로 가져오고, 관리 파일이면 링크와 비밀번호 칸을 채워요.
+    // 글 파일에 든 링크·비밀번호로 발행한 글과 다시 이어요. 본문은 파일의 것을 그대로 둬요.
+    async function connect(p) {
+      if (!p) return false;
+      lock(true);
+      try {
+        const target = C.parseLink(p.url);
+        const record = await api('/' + target.id + '/unlock', 'POST', { password:p.password });
+        active = { ...target, password:p.password, record }; pending = null;
+        $('publish-live').checked = record.live; render(); return true;
+      } catch { return false; }
+      finally { lock(false); }
+    }
+    // 글 파일이면 바로 편집실로 가져오고, 예전 관리 파일이면 링크와 비밀번호 칸을 채워요.
     async function readFile(file) {
       if (!file || busy) return;
       let got = null;
       try { if (file.size <= 2097152) got = F.read(await file.text()); } catch { got = null; }
       if (got && got.kind === 'doc') {
         if (ctx.snapshot().source.trim() && !confirm('편집 중인 글을 파일의 글로 바꿀까요?')) { $('load-message').textContent = '불러오기를 취소했어요.'; return; }
-        reset(); ctx.import(got.doc); $('load-dialog').close(); ctx.notice('글 파일을 불러왔어요.');
+        reset(); ctx.import(got.doc); $('load-dialog').close();
+        ctx.notice(await connect(got.doc.publication) ? '글 파일을 불러왔어요. 발행한 글과 이어졌어요.' : '글 파일을 불러왔어요.');
         return;
       }
       try {
-        if (!got || got.password.length < 8 || got.password.length > 128) throw new Error();
+        if (!got || got.password.length < 4 || got.password.length > 128) throw new Error();
         C.parseLink(got.url); $('load-url').value = got.url; $('load-password').value = got.password;
         $('load-message').textContent = '관리 파일을 읽었어요. 불러오기를 눌러 주세요.';
-      } catch { $('load-message').textContent = '글자리 글 파일이나 관리 파일을 읽을 수 없어요.'; }
+      } catch { $('load-message').textContent = '글자리 글 파일을 읽을 수 없어요.'; }
     }
     $('load-file').onchange = e => readFile(e.target.files[0]);
     $('load-drop').ondragover = e => e.preventDefault();
@@ -120,7 +142,8 @@
       finally { lock(false); }
     };
     render();
-    return { reset, resume() {
+    const current = () => active && { url:link(active), password:active.password, live:active.record.live, date:new Date(active.record.updatedAt).toLocaleDateString('sv-SE') };
+    return { reset, current, resume() {
       const match = /^#edit=([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(location.hash);
       if (!match) return;
       $('load-url').value = location.origin + '/t/' + match[1] + '#' + match[2];

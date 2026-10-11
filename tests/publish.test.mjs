@@ -48,6 +48,9 @@ test('암호화·인증·수정·중단·삭제와 제목 미리보기', async (
 test('잘못된 입력과 저장소 미설정은 안전하게 실패',async () => {
   assert.equal((await call('POST','',{password,id,title:'x',cipher:'x',iv:'x',live:true})).status,400);
   assert.equal((await call('POST','',{password,stuff:'x'.repeat(360001)})).status,413);
+  // 비밀번호는 4~128자면 되고 그 밖의 제약은 없어요.
+  for (const p of ['123','x'.repeat(129)]) { const r = await call('POST','',{password:p,id}); assert.equal(r.status,400); assert.equal(r.data.error,'invalid_password'); }
+  const r4 = await call('POST','',{password:'1234',id,title:'x',cipher:'x',iv:'x',live:true}); assert.notEqual(r4.data.error,'invalid_password');
   assert.equal((await call('GET','/invalid')).status,404);
   const offline = createHandler(() => {throw new Error('secret credentials');});
   const r = await offline(new Request('https://test.invalid/api/articles/'+id));

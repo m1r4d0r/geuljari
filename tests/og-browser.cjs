@@ -12,14 +12,16 @@ const fs = require('node:fs/promises');
     // 입력 문구·설정이 아닌 미리보기의 오래된 그림을 내보내는 일을 막아요.
     const data = await page.evaluate(() => ({source:GeulgyeolSample.text,title:'글자리',made:'2026-10-11',settings:GeulTune.defaults(),ending:{scene:'라이트',ground:'편지지',text:'글자리\n남겨 둔 문장',size:60,width:64,x:20,y:80,align:'left',font:'고운바탕'}}));
     const render = d => page.evaluate(d => GeulOG.render(d),d);
-    const first = await render(data); imageFields({ogImage:first});
+    const first = await render(data); assert.equal(imageFields({ogImage:first}).ogType,'jpg');
+    // 공유 그림은 구버전 마스토돈의 미리보기 크기 제한보다 한참 작아요.
+    for (const [scene,ground] of [['다크','오로라'],['다크','물빛'],['라이트','원고지']]) assert.ok(Buffer.from(await render({...data,ending:{...data.ending,scene,ground}}),'base64').length < 700000, ground);
     const renderer = await context.newPage(); await renderer.goto(server.origin+'/og-render.html');
     // 화면용 카드와 발행용 이미지가 같은 설정에서 픽셀까지 같아요.
     const displayed = await renderer.evaluate(async d => {
       await GeulOGRenderer.render(d);
       const built = GeulEnding.build({...d,text:d.source}); document.body.append(built.sheet);
       return new Promise(resolve => {
-        const check = () => { const card = GeulEnding.card(); if (card?.blob) resolve(card.canvas.toDataURL('image/png').split(',')[1]); else setTimeout(check,20); }; check();
+        const check = () => { const card = GeulEnding.card(); if (card?.blob) resolve(card.canvas.toDataURL(GeulEnding.OG_TYPE, GeulEnding.OG_QUALITY).split(',')[1]); else setTimeout(check,20); }; check();
       });
     },data);
     assert.ok(first === displayed, '화면 카드와 발행 이미지가 달라요.');
@@ -36,7 +38,7 @@ const fs = require('node:fs/promises');
     await page.waitForFunction(()=>document.querySelector('#s-publish').getAttribute('aria-busy')==='false'); assert.equal(posts,0);
     assert.equal(await page.isVisible('#publish-result'),false);
     await page.unroute('**/og-render.html'); await page.click('#publish-submit'); await page.waitForSelector('#publish-result:not([hidden])'); assert.equal(posts,1);
-    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-custom.png',Buffer.from(first,'base64'));
-    console.log('카드 화면과 PNG 일치 / 문구·크기·폭·위치·정렬·바탕·주색 / 모바일 동일 크기 / 실패 후 재시도: 통과');
+    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-custom.jpg',Buffer.from(first,'base64'));
+    console.log('카드 화면과 공유 그림(JPEG) 일치 / 문구·크기·폭·위치·정렬·바탕·주색 / 모바일 동일 크기 / 실패 후 재시도: 통과');
   } finally { await browser?.close(); await server.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

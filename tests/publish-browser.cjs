@@ -29,7 +29,8 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
 
     await pg.click('#publish-submit'); await pg.waitForSelector('#publish-result:not([hidden])');
-    const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}#[\w-]{43}$/);
+    const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}\?v=[a-f0-9]{8}#[\w-]{43}$/);
+    const bare = u => u.replace(/\?[^#]*/, '');
     const id = new URL(link).pathname.split('/')[2]; const key = new URL(link).hash.slice(1);
     // 발행 기록(열쇠·비밀번호)은 이 브라우저에 남지만 본문 암호문은 넣지 않아요.
     const kept = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.publication'))); assert.equal(kept.key,key); assert.equal(kept.password,'4821'); assert.equal(kept.record.cipher,undefined);
@@ -37,11 +38,11 @@ const fileBtn = (pg, id) => pg.click(id);
     assert.ok(!JSON.stringify(await store.get(id)).includes('4821'));
     const firstRecord = await store.get(id);
     assert.equal(firstRecord.revision,1); assert.ok(firstRecord.ogImage);
-    const imageURL = r => `${origin}/og/${id}/${r.ogHash}.png`;
+    const imageURL = r => `${origin}/og/${id}/${r.ogHash}.${r.ogType || "png"}`;
     const firstImage = await fetch(imageURL(firstRecord)); assert.equal(firstImage.status,200);
-    const firstBytes = Buffer.from(await firstImage.arrayBuffer()); assert.equal(firstBytes.readUInt32BE(16),1200); assert.equal(firstBytes.readUInt32BE(20),630);
+    const firstBytes = Buffer.from(await firstImage.arrayBuffer()); assert.equal(firstImage.headers.get('content-type'),'image/jpeg'); assert.equal(firstBytes.readUInt16BE(0),0xffd8); assert.ok(firstBytes.length < 700000);
     const html = await (await fetch(link.split('#')[0])).text(); assert.ok(html.includes(imageURL(firstRecord))); assert.ok(!html.includes(key));
-    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-published.png',firstBytes);
+    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-published.jpg',firstBytes);
     // 텍스트 복사: 제목·링크·비밀번호 세 줄
     await context.grantPermissions(['clipboard-read','clipboard-write'],{origin});
     await pg.click('#publish-url'); assert.equal(await pg.evaluate(()=>navigator.clipboard.readText()),link);
@@ -82,12 +83,17 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.click('#publish-live'); await pg.waitForFunction(()=>document.querySelector('#publish-live').getAttribute('aria-checked')==='true'&&!document.querySelector('#publish-live').disabled);
     // 스위치로 다시 열면 남아 있던 본문으로 공유 이미지를 다시 만들어요.
     const reopened = await store.get(id); assert.ok(reopened.live); assert.equal((await fetch(imageURL(reopened))).status,200);
+    // 이미지 없이 놓인 발행 글은 편집실을 다시 열면 이미지를 채워요.
+    await store.change(id, r => ({ next:{ ...r, ogImage:undefined, ogHash:undefined, revision:r.revision + 1 }, value:null }));
+    await pg.reload(); await pg.waitForFunction(()=>document.querySelector('#toast').textContent.includes('미리보기 그림'));
+    const healed = await store.get(id); assert.match(healed.ogHash,/^[a-f0-9]{64}$/); assert.equal((await fetch(imageURL(healed))).status,200);
+    await pg.click('[data-go=publish]');
     await pg.fill('#publish-title','수정한 제목'); loseUpdate=true;
     await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
     const savedRevision=(await store.get(id)).revision;
     await pg.click('#publish-submit');
     await pg.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.includes('수정한 제목'));
-    assert.equal(await pg.inputValue('#publish-url'),link);assert.equal((await store.get(id)).revision,savedRevision);
+    assert.equal(bare(await pg.inputValue('#publish-url')),bare(link));assert.notEqual(await pg.inputValue('#publish-url'),link);assert.equal((await store.get(id)).revision,savedRevision);
     const updatedRecord = await store.get(id); assert.notEqual(updatedRecord.ogHash,firstRecord.ogHash);
     assert.equal((await fetch(imageURL(firstRecord))).status,404); assert.equal((await fetch(imageURL(updatedRecord))).status,200);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});

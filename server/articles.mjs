@@ -6,7 +6,7 @@ export const ID = /^[A-Za-z0-9_-]{22}$/;
 const b64 = /^[A-Za-z0-9_-]+$/;
 const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 const fail = (status, code) => { throw Object.assign(new Error(code), { status }); };
-const publicRecord = r => Object.fromEntries(['id','title','cipher','iv','live','createdAt','updatedAt','revision'].map(k => [k,r[k]]));
+const publicRecord = r => Object.fromEntries(['id','title','cipher','iv','live','ogHash','ogType','createdAt','updatedAt','revision'].map(k => [k,r[k]]));
 async function hash(password, salt) { return (await scrypt(password, salt, 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 })).toString('base64url'); }
 const sameContent = (a, b) => ['cipher','iv','title','live'].every(k => a[k] === b[k]) && (!Object.hasOwn(b, 'ogImage') || a.ogImage === b.ogImage);
 async function authorize(record, password) {

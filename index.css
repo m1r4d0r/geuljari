@@ -199,7 +199,7 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 body:not([data-step="write"]) #guide-open { display: none; }
 .top-replay { display: none; position: relative; }
 .top-replay.due::after { content: ""; position: absolute; right: -8px; top: 9px; width: 5px; height: 5px; background: var(--danger); }
-@media (max-width: 1000px) { body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; } }
+body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; }
 /* 폰 폭: 머리에는 쪽 수만 */
 @media (max-width: 420px) { .top .steps button { padding-inline: 5px; } .top { gap: 8px; } }
 
@@ -358,8 +358,6 @@ body:not([data-step="write"]) #guide-open { display: none; }
 .tb-tools button + button { border-left: 1px solid var(--line); }
 .tb-tools button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
 .tb-tools button[aria-pressed="true"] + button { border-left-color: var(--ink); }
-.tb-replay { position: relative; width: 40px; min-width: 0 !important; padding: 0 !important; display: grid; place-items: center; color: var(--ink) !important; }
-.tb-replay svg { display: block; }
 @media (max-width: 1000px) {
   /* 1000px 이하(태블릿·폰) 하단바: 아래 한 줄. 갈래 · 값 단추(옆으로 밀어 더 봄) · 오른쪽 ⋯.
      값 판과 갈래 판은 바 위에 화면 폭으로 펼친다(지금 값이 바에 가장 가깝게). ⋯는 오른쪽 묶음을 작은 판으로 접는다.
@@ -394,14 +392,13 @@ body:not([data-step="write"]) #guide-open { display: none; }
   .tb-tools button:first-child, .write-bar .tb-acts .tb-act:first-child { border-top: 0; }
   .tb-tools button + button { border-left: 0; }
   .tb-tools button[aria-pressed="true"] { background: none; color: var(--ink); font-weight: 500; box-shadow: inset 3px 0 var(--ink); }
-  .tb-tools .tb-replay, .tb-tools .wide-only { display: none; }
+  .tb-tools .wide-only { display: none; }
   .write-bar .tb-acts { flex-direction: column; gap: 0; }
   .write-bar .publication-strip { flex-direction: column; align-items: flex-start; gap: 0; padding: 10px 14px; border-bottom: 1px solid var(--pick); }
   .write-bar .publication-strip .link { height: 28px; }
   .wide-only { display: none; }
 }
 /* 움직임을 바꾸고 아직 다시 보지 않았으면 작은 점 */
-.tb-replay.due::after { content: ""; position: absolute; right: 7px; top: 7px; width: 5px; height: 5px; background: var(--danger); }
 
 .zoom { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 21; display: flex; align-items: center; gap: 12px; height: 32px; padding: 0 12px; background: var(--sheet); border: 1px solid var(--ink); }
 .zoom .link { height: 30px; font-size: 12px; }

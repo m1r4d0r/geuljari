@@ -62,12 +62,10 @@ const fs = require('node:fs/promises');
       // 결도 이 쪽에만
       await pg.waitForFunction(() => /\[\[[^\]]*결바로/.test(JSON.parse(localStorage.getItem('geul.studio')).source));
       assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('geul.studio')).settings.flow), '이어 쓰기');
-      assert.ok(await pg.locator('#replay.due').count() === 1);
-      // 넓은 화면은 하단바 오른쪽, 1000px 이하는 머리(안내 자리)의 다시 보기
+      // 다시 보기는 화면 폭과 상관없이 머리의 로고 오른쪽 글자 단추
       assert.ok(await pg.locator('#replay-top.due').count() === 1);
-      await pg.click(width > 1000 ? '#replay' : '#replay-top');
+      await pg.click('#replay-top');
       assert.ok(await pg.locator('#replay-top.due').count() === 0);
-      assert.ok(await pg.locator('#replay.due').count() === 0);
       await pg.waitForTimeout(1500);
       frame = pg.frameLocator('#screen-main .frame.on');
       assert.equal(await frame.locator('.sheet.is-current .ch.pending').count(), 0, '바로: 다 놓임');

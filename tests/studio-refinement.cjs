@@ -130,7 +130,7 @@ const fs = require('node:fs/promises');
         // 작성자 수정은 떠 있지 않고 카드 아래 단추 줄 오른쪽 끝에만 있어요.
         assert.equal(await reader.locator('#author-edit').isVisible(),false);
         await reader.click('#dots .dot.fin'); await reader.click('.ending.is-current .end-author'); await reader.waitForSelector('#load-dialog[open]');
-        assert.equal(await reader.inputValue('#load-url'),link);
+        assert.equal(await reader.inputValue('#load-url'),link.replace(/\?[^#]*/,''));
         assert.equal(new URL(reader.url()).hash,'');
         await reader.fill('#load-password','wrong-password'); await reader.click('#load-form button[type=submit]');
         await reader.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('맞지'));
@@ -141,7 +141,7 @@ const fs = require('node:fs/promises');
         await reader.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.startsWith('발행 중단'));
         assert.equal(await reader.getAttribute('#publish-live','aria-checked'),'false');
         const stopped=await context.newPage(); await stopped.goto(link); await stopped.click('#author-edit');
-        await stopped.waitForSelector('#load-dialog[open]'); assert.equal(await stopped.inputValue('#load-url'),link);
+        await stopped.waitForSelector('#load-dialog[open]'); assert.equal(await stopped.inputValue('#load-url'),link.replace(/\?[^#]*/,''));
         // 발행 기록은 새로 고침해도 남아요.
         await reader.reload(); await reader.waitForSelector('.write-bar .publication-strip:not([hidden])');
         const record=await store.get(new URL(link).pathname.split('/')[2]); assert.equal(record.live,false);

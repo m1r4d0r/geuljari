@@ -388,7 +388,7 @@
    * ending이면 마지막 화면에 바로 놓는다.
    */
   /* 바꾼 움직임을 아직 다시 보지 않았는지: 다시 보기 단추(하단바·머리)에 작은 점 */
-  function markDue(on) { ['replay', 'replay-top'].forEach((id) => $(id).classList.toggle('due', on)); }
+  function markDue(on) { $('replay-top').classList.toggle('due', on); }
 
   function play(start) {
     if (st.step !== 'tune' || !st.source.trim()) return;
@@ -749,7 +749,6 @@
     document.body.dataset.tuneCat = s2.cat;
     document.body.classList.toggle('tune-cat-open', s2.open === 'cat');
   };
-  $('replay').addEventListener('click', () => replay());
   $('replay-top').addEventListener('click', () => replay());
 
   /* 1000px 이하의 ⋯: 하단바 오른쪽 묶음을 작은 판으로 접는다. 고르면, 밖을 누르면, Esc면 닫는다 */

@@ -26,6 +26,8 @@
     const pageMark = (n) => `<span class="m-page" data-n="${n + base}"></span>`;
     let open = null;
     let blank = 0;
+    /* 블록 차례(글 안에서 몇 번째 {{인지). 블록의 글·표시 칸에 data-b로 달아 미리보기 안 고치기가 찾는다 */
+    let bi = -1;
     ls.forEach((ln, k) => {
       if (ln.empty) {
         blank++;
@@ -53,8 +55,10 @@
         const cls = [open.em ? 'm-em' : 'm-st'];
         if (open.em && !h.fx) cls.push('focus');
         h.styles.forEach((w) => cls.push('m-s' + E.STYLES[w]));
-        if (h.color) cls.push('m-c-' + E.COLORS[h.color]);
-        return `<span class="${cls.join(' ')}">`;
+        let style = '';
+        if (h.color && E.COLORS[h.color]) cls.push('m-c-' + E.COLORS[h.color]);
+        else if (h.color) style = ` style="color:${h.color}"`;
+        return `<span class="${cls.join(' ')}" data-b="${open.b}"${style}>`;
       };
       let html = open ? emOpen() : '';
       const textPart = (a, b) => esc(line.slice(a, b)).replace(/(\S) ( +)/g, (all, c, more) => c + ' ' + more.split('').map(() => '<span class="m-sp"> </span>').join(''));
@@ -66,12 +70,12 @@
       while ((m = TOKEN_RE.exec(line))) {
         html += textPart(i, m.index);
         if (m[0] === '}}') {
-          html += (open ? '</span>' : '') + '<span class="m-mark">}}</span>';
+          html += (open ? '</span>' : '') + `<span class="m-mark"${open ? ` data-b="${open.b}"` : ''}>}}</span>`;
           open = null;
         } else {
-          html += (open ? '</span>' : '') + `<span class="m-mark">${esc(m[0])}</span>`;
+          html += (open ? '</span>' : '') + `<span class="m-mark" data-b="${bi + 1}">${esc(m[0])}</span>`;
           const head = E.parseHead(m[1] || '');
-          open = { head, em: !!(head.fx || head.keep || !m[1]) };
+          open = { head, em: !!(head.fx || head.keep || !m[1]), b: ++bi };
           html += emOpen();
         }
         i = m.index + m[0].length;

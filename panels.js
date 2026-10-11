@@ -205,7 +205,7 @@
       refresh() {
         /* 속도·크기를 끄는 중에는 다시 그리지 않는다(끄는 손을 놓치지 않게) */
         const a = document.activeElement;
-        if (a && a.type === 'range' && root.contains(a)) return;
+        if (a && (a.type === 'range' || a.type === 'color') && root.contains(a)) return;
         render();
       },
       shut() { openKey = null; },
@@ -365,13 +365,16 @@
       const emNow = em ? (h.fx || '') : null;
       const groups = (names, group) => (E.BLOCK_GROUPS[names] || []).map((v) => opt(v, v, { group }));
       const off = !sel.on;
+      /* '없음'은 효과만 빼고 꾸밈·색을 남길 때만 둔다(남길 것이 없으면 빼기와 같으므로) */
+      const decorated = !!(h && (h.styles.length || h.color));
+      const hex = h && h.color && h.color[0] === '#' ? h.color : null;
       return [{
-        key: 'em', title: '강조', label: em ? (h.fx ? '강조 ' + h.fx : '강조 기본') : '강조 없음', current: emNow, off,
-        options: [opt(null, '없음'), opt('', '기본'), ...groups('등장', '등장'), ...groups('머묾', '머묾')],
+        key: 'em', title: '강조', label: em ? (h.fx ? '강조 ' + h.fx : '강조 자동') : '강조 없음', current: emNow, off,
+        options: [...(em && decorated ? [opt(null, '없음')] : []), opt('', '자동'), ...groups('등장', '등장'), ...groups('머묾', '머묾')],
         pick: (v) => ctx.ip({ act: 'em', v })
       }, {
         key: 'exit', title: '퇴장', label: exit ? '퇴장 ' + h.fx : '퇴장 없음', current: exit ? h.fx : null, off,
-        options: [opt(null, '없음'), ...groups('퇴장', null)],
+        options: [...(exit && decorated ? [opt(null, '없음')] : []), ...groups('퇴장', null)],
         pick: (v) => ctx.ip({ act: 'exit', v })
       }, {
         key: 'style', title: '꾸밈', off, multi: true,
@@ -380,8 +383,9 @@
         options: Object.keys(E.STYLES).map((v) => opt(v, v, { cls: 's-' + E.STYLES[v] })),
         pick: (v) => ctx.ip({ act: 'style', v })
       }, {
-        key: 'color', title: '색', label: h && h.color ? '색 ' + h.color : '색 없음', current: h ? h.color : null, off,
-        options: [opt(null, '없음'), ...Object.keys(E.COLORS).map((v) => opt(v, v, { swatch: E.COLORS[v] }))],
+        key: 'color', title: '색', label: h && h.color ? '색 ' + (hex ? '직접' : h.color) : '색 없음', current: h ? h.color : null, off,
+        options: [opt(null, '없음'), ...Object.keys(E.COLORS).map((v) => opt(v, v, { swatch: E.COLORS[v] })),
+          { v: '#', label: '직접 고르기', picker: true, on: !!hex, value: (hex || '#a63c33').toLowerCase() }],
         pick: (v) => ctx.ip({ act: 'color', v })
       }, { key: 'off', label: '빼기', act: () => ctx.ip({ act: 'off' }), off: !h }];
     }
@@ -421,7 +425,7 @@
         render();
       },
       editing(on) { edit = on ? { sel: null } : null; ui.shut(); render(); },
-      selection(sel) { if (edit) { edit.sel = sel; render(); } },
+      selection(sel) { if (edit) { edit.sel = sel; ui.refresh(); } },
       close: () => ui.close(),
       state: () => ({ cat: edit ? 'pick' : cat, open: ui.open() }),
       set onState(fn) { onState = fn; }

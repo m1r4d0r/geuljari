@@ -93,6 +93,12 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(() => !document.querySelector('#s-tune .tb-val[data-key=em]').disabled);
       await pg.click('#s-tune .tb-val[data-key=em]'); await pg.click('#tb-drop-em .tb-li:has-text("번짐")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐:'));
+      // 고른 효과를 그 자리에서 보임: 고름은 그대로, 표시는 숨겼다가 끝나면 돌아옴
+      await frame.locator('.ip.ip-previewing .pv-ch').first().waitFor();
+      assert.equal(await frame.locator('.ip .m-mark.pv-hide').count() > 0, true);
+      assert.ok(await frame.locator('.ip-input').evaluate((ta) => ta.selectionStart !== ta.selectionEnd), '고름이 남음');
+      await frame.locator('.ip:not(.ip-previewing)').waitFor({ timeout: 8000 });
+      assert.equal(await frame.locator('.ip .pv-ch').count(), 0);
       await pg.click('#s-tune .tb-val[data-key=style]'); await pg.click('#tb-drop-style .tb-li:has-text("굵게")');
       assert.equal(await pg.locator('#tb-drop-style').count(), 1, '꾸밈은 여러 개라 판이 남음');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐+굵게:'));
@@ -108,6 +114,10 @@ const fs = require('node:fs/promises');
       await frame.locator('.ip').waitFor();
       await frame.locator('.ip-input').evaluate((ta) => { ta.focus(); ta.setSelectionRange(0, 4); document.dispatchEvent(new Event('selectionchange')); });
       await pg.waitForFunction(() => !document.querySelector('#s-tune .tb-val[data-key=color]').disabled);
+      // 색: 이름 있는 여섯과 늘 '직접 고르기'
+      await pg.click('#s-tune .tb-val[data-key=color]');
+      assert.equal(await pg.locator('#tb-drop-color .tb-picker input[type=color]').count(), 1);
+      await pg.keyboard.press('Escape');
       await pg.click('#s-tune .tb-val[data-key=color]'); await pg.click('#tb-drop-color .tb-li:has-text("파랑")');
       await frame.locator('.ip-acts button').last().click();
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{파랑:'));

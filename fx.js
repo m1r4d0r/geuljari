@@ -314,7 +314,8 @@
   /* 글자 꾸밈 클래스 */
   function decorate(el, c) {
     if (c.st) for (const k of c.st) el.classList.add('s-' + k);
-    if (c.color) el.classList.add('c-' + c.color);
+    if (c.color && c.color[0] === '#') el.style.color = c.color;
+    else if (c.color) el.classList.add('c-' + c.color);
   }
 
   /* 엔진이 짠 문단 하나를 inner 안에 줄·어절·글자로 그리고, 재생기에 넘길 항목을 돌려준다.

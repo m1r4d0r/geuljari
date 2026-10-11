@@ -77,7 +77,9 @@
   const COLORS = { '빨강': 'red', '주황': 'orange', '초록': 'green', '파랑': 'blue', '보라': 'violet', '회색': 'gray' };
   const HEAD_WORDS = [...BLOCK_NAMES, KEEP, ...Object.keys(STYLES), ...Object.keys(COLORS)].sort((a, b) => b.length - a.length);
   const WORD_ALT = HEAD_WORDS.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const HEAD_SRC = `(?:${WORD_ALT})(?:\\+(?:${WORD_ALT}))*`;
+  /* 직접 고른 색은 #rrggbb 그대로 머리에 적는다: {{#A63C33:…}}, {{번짐+#A63C33:…}} */
+  const HEX_WORD = '#[0-9A-Fa-f]{6}';
+  const HEAD_SRC = `(?:${WORD_ALT}|${HEX_WORD})(?:\\+(?:${WORD_ALT}|${HEX_WORD}))*`;
 
   /* 블록 머리('떨림+굵게+빨강')를 {fx, keep, styles, color}로 읽는다. fx는 효과 이름(없으면 null) */
   function parseHead(head) {
@@ -86,7 +88,7 @@
       if (BLOCKS[w]) out.fx = w;
       else if (w === KEEP) out.keep = true;
       else if (STYLES[w]) { if (!out.styles.includes(w)) out.styles.push(w); }
-      else if (COLORS[w]) out.color = w;
+      else if (COLORS[w] || /^#[0-9A-Fa-f]{6}$/.test(w)) out.color = w;
     });
     return out;
   }
@@ -184,7 +186,7 @@
 
   /*
    * 문단 하나를 {ch, em, fx, block, st, color} 칸으로 펼친다. 블록 표시는 문단 끝에서 저절로 닫힌다.
-   * st는 꾸밈 기호(b·i·u·s)를 이은 글, color는 색 이름(COLORS의 값).
+   * st는 꾸밈 기호(b·i·u·s)를 이은 글, color는 색 이름(COLORS의 값) 또는 직접 고른 색(#rrggbb).
    * ctr.k는 글 전체에서 이름 없는 강조를 센다(DEFAULT_CYCLE을 돌 때 씀).
    * 표시가 있던 자리는 open(여는 표시 글자열)·close로 남겨 가림판이 같은 폭으로 그릴 수 있게 한다.
    */
@@ -204,7 +206,7 @@
         em = !!(h.fx || h.keep || !m);
         fx = em ? (h.fx || DEFAULT_CYCLE[(ctr.k++) % DEFAULT_CYCLE.length]) : null;
         st = h.styles.map((w) => STYLES[w]).join('');
-        color = h.color ? COLORS[h.color] : null;
+        color = h.color ? (COLORS[h.color] || h.color) : null;
         if (em) block++;
         pendingOpen = EM_OPEN + (m ? m[0] : '');
         i += 1 + (m ? graphemes(m[0]).length : 0);

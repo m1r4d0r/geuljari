@@ -194,7 +194,10 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 /* 머리: 로고 오른쪽에 안내(편집 단계에서만) */
 .top-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .top-info .link { height: 36px; font-size: 12px; color: var(--ink); }
-body:not([data-step="write"]) .top-info { display: none; }
+body:not([data-step="write"]) #guide-open { display: none; }
+.top-replay { display: none; position: relative; }
+.top-replay.due::after { content: ""; position: absolute; right: -8px; top: 9px; width: 5px; height: 5px; background: #A63C33; }
+@media (max-width: 1000px) { body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; } }
 /* 폰 폭: 머리에는 쪽 수만 */
 @media (max-width: 420px) { .top .steps button { padding-inline: 5px; } .top { gap: 8px; } }
 
@@ -214,22 +217,15 @@ body:not([data-step="write"]) .top-info { display: none; }
   .write-side { grid-column: 1; grid-row: 2; margin-bottom: 10px; }
   .write-help { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 0; border-bottom: 1px solid var(--line); }
   .write-count { margin-top: 4px; text-align: right; font-size: 10px; }
-  .write-help li { grid-template-columns: 30px minmax(0, 1fr); padding: 6px 8px 8px 0; border-bottom: 0; }
+  .write-help li { padding: 6px 8px 8px 0; border-bottom: 0; }
   .write-help li + li { padding-left: 10px; border-left: 1px solid var(--line); }
-  .hm-cut { width: 22px; }
-  .hm-rest { width: 18px; height: 12px; }
-  .write-bar .tb-side { position: absolute; right: 0; bottom: 0; max-width: calc(100% - 150px); flex-direction: column; align-items: flex-end; gap: 6px; font-size: 11px; }
-  .write-bar .tb-acts .tb-act { width: auto; }
+  /* 폰·태블릿의 쓰는 법 세 줄은 표시 그림 없이 글자만 */
+  .write-help .hm { display: none; }
+  .write-help li { grid-template-columns: minmax(0, 1fr); }
   /* 쓰는 동안(자판이 올라온 동안)은 하단바를 거둔다 */
   body.typing .write-bar { display: none; }
 }
-@media (max-width: 600px) {
-  .write-bar .tb-acts { flex-direction: column-reverse; align-items: flex-end; gap: 6px; }
-  .write-bar .tb-acts .tb-act { width: 100px; padding: 0; }
-}
 @media (max-width: 760px) {
-  .write-help li { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; }
-  .hm { grid-row: auto; margin-bottom: 4px; }
   .write-help b { font-size: 12px; white-space: normal; }
   .write-help span { font-size: 11px; }
   body.typing .write-side { display: none; }
@@ -352,6 +348,7 @@ body:not([data-step="write"]) .top-info { display: none; }
 .tb-range input::-webkit-slider-thumb { width: 14px; height: 14px; }
 .tb-range input::-moz-range-thumb { width: 14px; height: 14px; }
 
+.tb-more { display: none; }
 .tb-tools { flex: none; margin-left: auto; display: flex; align-items: stretch; height: 36px; border: 1px solid var(--line); background: var(--sheet); pointer-events: auto; }
 .tb-tools button { min-width: 0; padding: 0 10px; border: 0; background: none; font: 12px var(--f-ui); color: var(--lead); white-space: nowrap; }
 .tb-tools button:hover:not(:disabled):not([aria-pressed="true"]) { color: var(--ink); background: var(--paper); }
@@ -361,33 +358,43 @@ body:not([data-step="write"]) .top-info { display: none; }
 .tb-replay { position: relative; width: 40px; min-width: 0 !important; padding: 0 !important; display: grid; place-items: center; color: var(--ink) !important; }
 .tb-replay svg { display: block; }
 @media (max-width: 1000px) {
-  /* 1000px 이하(태블릿·폰) 하단바: 왼쪽 아래에 세로로 쌓는다. 갈래가 맨 아래, 그 위로 값 단추. 판은 오른쪽으로 한 줄 */
-  .tune-bar { left: 10px; right: 10px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); height: auto; padding: 0; align-items: flex-end; }
-  .tb-left { flex-direction: column-reverse; align-items: flex-start; gap: 0; }
-  .tb-vals { flex-direction: column-reverse; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
-  .tb-sep { width: 64px; height: 1px; margin: 8px 0 0 20px; }
-  .tb-cat, .tb-val { width: 124px; min-width: 0; height: 44px; padding: 0 10px 0 12px; gap: 6px; }
-  .tb-act { width: 124px; }
-  .car { transform: rotate(90deg); }
-  .open > .car, [aria-expanded="true"] > .car { transform: rotate(-90deg); }
-  .tb-val.open { border-top-color: var(--ink); border-right-color: transparent; box-shadow: -6px 0 18px rgba(29, 32, 48, .12); }
-  .tb-drop { left: 100%; bottom: 0; width: min(calc(100vw - 124px - 24px), 560px); height: 44px; max-height: none; flex-direction: row; align-items: stretch; border: 1px solid var(--ink); border-left: 0; box-shadow: 8px 0 22px rgba(29, 32, 48, .12); overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; }
-  .tb-ttl { display: none; }
-  .tb-grp { flex-direction: row; }
-  .tb-grp + .tb-grp { border-bottom: 0; border-left: 1px solid var(--pick); }
-  .tb-gname { order: -1; display: flex; align-items: center; padding: 0 6px 0 10px; }
-  .tb-li { height: 42px; padding: 0 13px; border-top: 0; border-right: 1px solid var(--paper); }
-  .tb-cat-item .tb-li { flex: 1 0 auto; }
-  .tb-cat-item .tb-grp { flex: 1 1 auto; }
-  .tb-li.on { box-shadow: inset 0 -3px var(--ink); }
-  .tb-range { height: 44px; flex-direction: row; align-items: center; gap: 10px; padding: 0 14px; }
+  /* 1000px 이하(태블릿·폰) 하단바: 아래 한 줄. 갈래 · 값 단추(옆으로 밀어 더 봄) · 오른쪽 ⋯.
+     값 판과 갈래 판은 바 위에 화면 폭으로 펼친다(지금 값이 바에 가장 가깝게). ⋯는 오른쪽 묶음을 작은 판으로 접는다.
+     바 뒤에는 종이색이 위로 옅어지는 면을 깔아 글 위에서 단추가 뜨지 않게 한다. */
+  .tune-bar { left: 0; right: 0; bottom: 0; height: auto; padding: 0 10px calc(14px + env(safe-area-inset-bottom, 0px)); gap: 0; align-items: flex-end; }
+  .tune-bar::before { content: ""; position: absolute; z-index: -1; inset: -28px 0 0 0; background: linear-gradient(to top, color-mix(in srgb, var(--paper) 96%, transparent) 55%, transparent); pointer-events: none; }
+  .tb-left { position: static; flex: 1 1 auto; min-width: 0; align-items: flex-end; gap: 0; }
+  .tb-item, .tb-vals .tb-item { position: static; }
+  .tb-sep { position: relative; margin: 0 8px 11px; height: 22px; }
+  .tb-vals { position: static; flex: 1 1 auto; min-width: 0; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-right: 24px; }
+  .tb-vals::-webkit-scrollbar { display: none; }
+  .tb-cat { position: relative; width: 92px; height: 44px; }
+  .tb-val { height: 44px; }
+  .tb-val.open { border-top-color: var(--ink); }
+  .tb-drop { left: 10px; right: auto; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); width: min(calc(100% - 20px), 420px); max-height: min(56vh, 400px); border-bottom: 1px solid var(--ink); box-shadow: 0 -10px 26px rgba(29, 32, 48, .14); }
+  .tb-li { height: 44px; padding: 0 14px; }
+  .tb-range { height: auto; flex-direction: column-reverse; padding: 0; }
+  .tb-range .tb-ttl { margin-bottom: 0; }
+  .tb-range input { order: 0; writing-mode: horizontal-tb; direction: ltr; width: auto; height: 24px; margin: 20px 16px; background: linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat; }
+  .tb-range .k { display: none; }
   body[data-step="tune"] .toast { top: 96px; }
-  .tb-range input { writing-mode: horizontal-tb; direction: ltr; width: auto; min-width: 0; height: 24px; margin: 0; background: linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat; }
-  .tb-tools { position: absolute; right: 0; bottom: 0; height: 44px; }
-  .tb-tools button { min-width: 44px; }
-  .tb-replay { width: 44px; }
-  body.tune-cat-open .tb-tools, body[data-tune-cat="pick"] .tb-tools { visibility: hidden; }
-  .tb-left.cat-open .tb-vals { opacity: .45; pointer-events: none; }
+  /* ⋯: 오른쪽 묶음을 접는다. 미리보기는 PC·폰(고른 것은 앞쪽 바), 편집은 새로 쓰기·불러오기·초안 저장과 발행 상태 */
+  /* 값 단추 줄의 끝을 흐려 옆으로 더 있음을 알린다(판을 가리지 않게 덮개로) */
+  .tb-more::before { content: ""; position: absolute; right: calc(100% + 7px); bottom: -1px; width: 30px; height: 46px; background: linear-gradient(to right, color-mix(in srgb, var(--paper) 0%, transparent), var(--paper)); pointer-events: none; }
+  .tb-more { position: relative; display: flex; flex: none; width: 44px; height: 44px; margin-left: 6px; align-items: center; justify-content: center; gap: 3px; padding: 0; background: var(--sheet); border: 1px solid var(--line); pointer-events: auto; }
+  .tb-more i { width: 3px; height: 3px; background: var(--ink); }
+  .tb-more[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); }
+  .tb-more[aria-expanded="true"] i { background: var(--sheet); }
+  .tune-bar .tb-tools, .write-bar .tb-side { display: none; position: absolute; right: 10px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 8; width: 168px; max-width: none; height: auto; margin: 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--sheet); border: 1px solid var(--ink); box-shadow: 0 -10px 26px rgba(29, 32, 48, .14); font-size: 12px; }
+  .tune-bar.more-open .tb-tools, .write-bar.more-open .tb-side { display: flex; }
+  .tb-tools button, .write-bar .tb-acts .tb-act { width: 100%; min-width: 0; height: 44px; padding: 0 14px; display: flex; align-items: center; justify-content: flex-start; border: 0; border-top: 1px solid var(--paper); background: none; color: var(--ink); font: 13px var(--f-ui); text-align: left; }
+  .tb-tools button:first-child, .write-bar .tb-acts .tb-act:first-child { border-top: 0; }
+  .tb-tools button + button { border-left: 0; }
+  .tb-tools button[aria-pressed="true"] { background: none; color: var(--ink); font-weight: 500; box-shadow: inset 3px 0 var(--ink); }
+  .tb-tools .tb-replay, .tb-tools .wide-only { display: none; }
+  .write-bar .tb-acts { flex-direction: column; gap: 0; }
+  .write-bar .publication-strip { flex-direction: column; align-items: flex-start; gap: 0; padding: 10px 14px; border-bottom: 1px solid var(--pick); }
+  .write-bar .publication-strip .link { height: 28px; }
   .wide-only { display: none; }
 }
 /* 움직임을 바꾸고 아직 다시 보지 않았으면 작은 점 */

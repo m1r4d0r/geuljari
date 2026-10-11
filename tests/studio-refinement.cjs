@@ -35,7 +35,7 @@ const fs = require('node:fs/promises');
       const [vb,db]=[await pg.locator('#s-tune .tb-val[data-key=align]').boundingBox(), await pg.locator('#tb-drop-align').boundingBox()];
       // 1000px 넘게: 같은 폭으로 단추 위에 붙음. 그 아래: 단추 오른쪽에 같은 높이로 붙음
       if (width > 1000) { assert.equal(Math.round(vb.width),Math.round(db.width)); assert.ok(Math.abs(db.y+db.height-vb.y)<1); }
-      else { assert.equal(Math.round(vb.height),Math.round(db.height)); assert.ok(Math.abs(db.x-(vb.x+vb.width))<1); }
+      else { assert.ok(db.y+db.height<=vb.y+1,'판은 바 위'); assert.ok(Math.abs(db.x-10)<1,'왼쪽 끝에서'); assert.ok(db.width>=Math.min(width-20,420)-1); }
       await pg.screenshot({path:`tests/out/refined-bar-${width}.png`});
       // 값 단추 이름은 잘리지 않음(갈래마다)
       for (const c of ['바탕','글']) {

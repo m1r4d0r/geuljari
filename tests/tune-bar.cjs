@@ -55,7 +55,10 @@ const fs = require('node:fs/promises');
       await pg.click('#s-tune .tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');
       assert.equal(await pg.textContent('#s-tune .tb-val[data-key=flow] .tb-label'), '바로');
       assert.ok(await pg.locator('#replay.due').count() === 1);
-      await pg.click('#replay');
+      // 넓은 화면은 하단바 오른쪽, 1000px 이하는 머리(안내 자리)의 다시 보기
+      assert.ok(await pg.locator('#replay-top.due').count() === 1);
+      await pg.click(width > 1000 ? '#replay' : '#replay-top');
+      assert.ok(await pg.locator('#replay-top.due').count() === 0);
       assert.ok(await pg.locator('#replay.due').count() === 0);
       await pg.waitForTimeout(1500);
       frame = pg.frameLocator('#screen-main .frame.on');

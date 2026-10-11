@@ -173,7 +173,7 @@
       pick(list) {
         st.moodsTouched = true;
         setMoods(list);
-        if (st.step === 'tune') { handOff(); $('replay').classList.add('due'); } else drawRail();
+        if (st.step === 'tune') { handOff(); markDue(true); } else drawRail();
       }
     });
   }
@@ -386,6 +386,9 @@
    * 미리보기를 start({page, needle, next, done, ending}) 자리부터 다시 그린다. done이면 다 쓴 모습으로 바로,
    * ending이면 마지막 화면에 바로 놓는다.
    */
+  /* 바꾼 움직임을 아직 다시 보지 않았는지: 다시 보기 단추(하단바·머리)에 작은 점 */
+  function markDue(on) { ['replay', 'replay-top'].forEach((id) => $(id).classList.toggle('due', on)); }
+
   function play(start) {
     if (st.step !== 'tune' || !st.source.trim()) return;
     const s = Object.assign({ page: st.page }, start);
@@ -394,7 +397,7 @@
     handOff();
     const url = `view.html?v=${++pvN}&start=${encodeURIComponent(JSON.stringify(s))}#preview`;
     screens().forEach((sc) => sc.load(url));
-    if (!s.done) $('replay').classList.remove('due');
+    if (!s.done) markDue(false);
     save();
   }
   const show = (start) => play(Object.assign({ page: st.page }, start, { done: true }));
@@ -415,12 +418,11 @@
    * 병렬은 PC와 폰을 같은 배율로 나란히.
    */
   /* 하단바가 무대 위에 겹치는 높이. 같은 기기 틀은 그 아래까지 채우고 눈금만 올리며, 줄인 틀은 이 높이를 비워 둔다.
-     1000px 이하에서는 하단바가 왼쪽 아래 세로 줄이라 줄인 틀을 그 위에 둔다 */
+     1000px 이하에서는 하단바가 조금 더 높은 한 줄이다 */
   const stacked = window.matchMedia('(max-width: 1000px)');
-  const barRoom = () => (stacked.matches ? 250 : 64);
+  const barRoom = () => (stacked.matches ? 72 : 64);
   function tellInset() {
-    const same = mode() === native();
-    post(main, { type: 'geulgyeol:inset', bottom: same && !stacked.matches ? 64 : 0 });
+    post(main, { type: 'geulgyeol:inset', bottom: mode() === native() ? barRoom() : 0 });
   }
 
   function fit() {
@@ -673,7 +675,7 @@
     save();
     if (st.step !== 'tune') return;
     if (keys.every((k) => LIVE.includes(k))) postAll({ type: 'geulgyeol:style', settings: st.settings });
-    else if (keys.every((k) => MOTION.includes(k))) $('replay').classList.add('due');
+    else if (keys.every((k) => MOTION.includes(k))) markDue(true);
     else show(here());
   }
 
@@ -726,6 +728,17 @@
     document.body.classList.toggle('tune-cat-open', s2.open === 'cat');
   };
   $('replay').addEventListener('click', () => replay());
+  $('replay-top').addEventListener('click', () => replay());
+
+  /* 1000px 이하의 ⋯: 하단바 오른쪽 묶음을 작은 판으로 접는다. 고르면, 밖을 누르면, Esc면 닫는다 */
+  document.querySelectorAll('.tb-more').forEach((b) => {
+    const barEl = b.closest('.tune-bar');
+    const set = (on) => { barEl.classList.toggle('more-open', on); b.setAttribute('aria-expanded', String(on)); };
+    b.addEventListener('click', () => set(!barEl.classList.contains('more-open')));
+    barEl.querySelectorAll('.tb-tools button, .tb-side button').forEach((x) => x.addEventListener('click', () => set(false)));
+    document.addEventListener('pointerdown', (e) => { if (!barEl.contains(e.target)) set(false); });
+    barEl.addEventListener('keydown', (e) => { if (e.key === 'Escape' && barEl.classList.contains('more-open')) { set(false); b.focus(); } });
+  });
 
   function enterTune(fresh) {
     T.useFont(document, st.settings);

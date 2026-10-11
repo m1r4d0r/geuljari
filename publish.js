@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const $ = id => document.getElementById(id), C = window.GeulCrypto;
+  const $ = id => document.getElementById(id), C = window.GeulCrypto, F = window.GeulFile;
   const messages = {
     wrong_password:'비밀번호가 맞지 않아요.', not_found:'글을 찾을 수 없거나 발행이 중단됐어요.',
     conflict:'다른 곳에서 글이 바뀌었어요. 현재 글을 따로 보관한 뒤 다시 불러와 주세요.',
@@ -37,7 +37,7 @@
       busy = on;
       $('publish-fields').disabled = on; $('load-fields').disabled = on;
       // 요청 중 다른 글로 바뀌는 일을 막아요.
-      for (const id of ['clear','load-open']) $(id).disabled = on;
+      for (const id of ['clear','load-open','file-save']) $(id).disabled = on;
       $('s-publish').setAttribute('aria-busy', String(on));
     }
     const reset = () => {
@@ -81,23 +81,27 @@
       catch { $('publish-url').focus(); $('publish-url').select(); $('publish-message').textContent = '링크를 선택했어요. 직접 복사해 주세요.'; }
     };
     $('publish-download').onclick = () => {
-      if (!active) return;
-      const url = URL.createObjectURL(new Blob([JSON.stringify({ format:'geuljari-key', version:1, url:link(active), password:active.password }, null, 2)], { type:'text/plain;charset=utf-8' }));
-      const a = document.createElement('a'); a.href = url; a.download = '글자리-관리-' + active.id + '.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (active) F.download('글자리-관리-' + active.id + '.txt', F.writeKey(link(active), active.password));
     };
     $('load-open').onclick = () => { if (!busy) { $('load-message').textContent = ''; $('load-dialog').showModal(); } };
     $('load-close').onclick = () => $('load-dialog').close();
     $('load-dialog').addEventListener('cancel', e => { if (busy) e.preventDefault(); });
     $('load-dialog').addEventListener('close', () => { $('load-password').value = ''; $('load-file').value = ''; });
+    // 글 파일이면 바로 편집실로 가져오고, 관리 파일이면 링크와 비밀번호 칸을 채워요.
     async function readFile(file) {
       if (!file || busy) return;
+      let got = null;
+      try { if (file.size <= 2097152) got = F.read(await file.text()); } catch { got = null; }
+      if (got && got.kind === 'doc') {
+        if (ctx.snapshot().source.trim() && !confirm('편집 중인 글을 파일의 글로 바꿀까요?')) { $('load-message').textContent = '불러오기를 취소했어요.'; return; }
+        reset(); ctx.import(got.doc); $('load-dialog').close(); ctx.notice('글 파일을 불러왔어요.');
+        return;
+      }
       try {
-        if (file.size > 16384) throw new Error();
-        const d = JSON.parse(await file.text());
-        if (d.format !== 'geuljari-key' || d.version !== 1 || typeof d.password !== 'string' || d.password.length < 8 || d.password.length > 128) throw new Error();
-        C.parseLink(d.url); $('load-url').value = d.url; $('load-password').value = d.password;
+        if (!got || got.password.length < 8 || got.password.length > 128) throw new Error();
+        C.parseLink(got.url); $('load-url').value = got.url; $('load-password').value = got.password;
         $('load-message').textContent = '관리 파일을 읽었어요. 불러오기를 눌러 주세요.';
-      } catch { $('load-message').textContent = '글자리 관리 파일을 읽을 수 없어요.'; }
+      } catch { $('load-message').textContent = '글자리 글 파일이나 관리 파일을 읽을 수 없어요.'; }
     }
     $('load-file').onchange = e => readFile(e.target.files[0]);
     $('load-drop').ondragover = e => e.preventDefault();

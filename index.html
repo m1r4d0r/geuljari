@@ -25,6 +25,7 @@
 <script src="flip.js" defer></script>
 <script src="look.js" defer></script>
 <script src="publish-crypto.js" defer></script>
+<script src="geul-file.js" defer></script>
 <script src="publish.js" defer></script>
 <script src="studio-drawer.js" defer></script>
 <script src="ending-settings.js" defer></script>
@@ -44,6 +45,7 @@
   <button type="button" class="menu-toggle" id="settings-open" aria-label="편집 설정" aria-haspopup="dialog" aria-controls="write-settings" aria-expanded="false"><span aria-hidden="true"></span></button>
   <span class="top-links">
     <button type="button" class="link" id="load-open">불러오기</button>
+    <button type="button" class="link" id="file-save">글 파일 받기</button>
     <button type="button" class="link" id="guide-open">안내</button>
     <button type="button" class="link" id="clear">새로 쓰기</button>
   </span>
@@ -197,11 +199,11 @@
 <dialog id="load-dialog" class="load-dialog" aria-labelledby="load-heading">
   <form id="load-form">
     <h2 id="load-heading">글을 다시 가져와요.</h2>
-    <p class="pub-note">발행한 글의 전체 링크와 작성자 비밀번호를 넣어 주세요.</p>
+    <p class="pub-note">받아 둔 글 파일을 놓거나, 발행한 글의 전체 링크와 작성자 비밀번호를 넣어 주세요.</p>
     <fieldset id="load-fields">
       <label class="pub-field">전체 링크<input id="load-url" type="text" required autocomplete="off" placeholder="https://…/t/…#…"></label>
       <label class="pub-field">작성자 비밀번호<input id="load-password" type="password" required minlength="8" maxlength="128" autocomplete="off"></label>
-      <label class="pub-field pub-file" id="load-drop">관리 파일을 고르거나 여기에 놓아 주세요.<input id="load-file" type="file" accept=".txt,.json,application/json,text/plain"></label>
+      <label class="pub-field pub-file" id="load-drop">글 파일이나 관리 파일을 고르거나 여기에 놓아 주세요.<input id="load-file" type="file" accept=".txt,.json,application/json,text/plain"></label>
       <div class="pub-actions"><button class="btn fill" type="submit">불러오기</button><button class="link" id="load-close" type="button">닫기</button></div>
     </fieldset>
     <p id="load-message" class="pub-message" role="status"></p>

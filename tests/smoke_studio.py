@@ -98,19 +98,20 @@ try:
             pg.goto(f'http://127.0.0.1:{PORT}/'); pg.wait_for_timeout(600)
             print(tag, 'root opens studio', pg.evaluate("() => document.body.dataset.step"), '| guide', pg.is_visible('#guide'))
             pg.screenshot(path=str(OUT / f'st-{tag}-0guide.png'))
+            pg.click('#guide-open')
             steps = []
             for i in range(5):
                 steps.append(pg.evaluate("() => document.querySelector('.g-scene:not([hidden])').dataset.n + ':' + document.getElementById('g-title').textContent"))
                 pg.click('#g-next'); pg.wait_for_timeout(250)
             print(tag, '  guide steps', steps, '| closed', not pg.is_visible('#guide'))
-            pg.click('#settings-open'); pg.click('#sample'); pg.wait_for_timeout(1200)
+            pg.fill('#src', pg.evaluate("() => Geulgyeol.stripMarks(GeulgyeolSample.text)")); pg.wait_for_timeout(1200)
             n0 = pg.evaluate(pages)
             base = pg.evaluate(plain)
             print(tag, 'write', pg.text_content('#count'), '| pages', n0, '| rests', pg.evaluate("() => getComputedStyle(document.querySelector('#write-mirror .m-sp')).backgroundColor"),
                   '| guessed moods', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"))
             pg.screenshot(path=str(OUT / f'st-{tag}-1write.png'))
 
-            pg.click('#settings-open')
+            if tag == 'phone': pg.click('#settings-open')
             # 설정 서랍: 분위기·테마 두 제목, 표 대신 조각, 요약 줄 없음, 주색 여섯과 고르기, 글꼴·시작, 쓰는 법 세 줄
             print(tag, '  rail', pg.evaluate("""() => ({
               heads: [...document.querySelectorAll('.rail h2')].map(h => h.textContent),
@@ -119,11 +120,10 @@ try:
               pieces: document.querySelectorAll('#moods .piece').length,
               swatches: [...document.querySelectorAll('#themes .swatch')].map(b => b.title).join(','),
               fonts: document.querySelectorAll('#fonts .piece').length, scenes: [...document.querySelectorAll('#start-scene .piece')].map(b => b.textContent).join('/'),
-              help: [...document.querySelectorAll('.rail-help p')].map(p => p.textContent) })"""))
-            print(tag, '  help visible', pg.is_visible('.rail-help'), '| h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"))
+              help: [...document.querySelectorAll('.write-help p')].map(p => p.textContent) })"""))
+            print(tag, '  help visible', pg.is_visible('.write-help'), '| h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"))
             if tag == 'desk':
                 pg.locator('.rail').screenshot(path=str(OUT / f'st-{tag}-1rail.png'))
-                pg.click('#settings-close')
                 # 페이지 어디서 휠을 굴려도 본문이 굴러간다(오른쪽 칸, 위 막대, 아래 막대), Ctrl+휠은 그대로
                 pg.evaluate("() => { const t = document.getElementById('src'); t.scrollTop = 0; }"); pg.wait_for_timeout(100)
                 seen = []
@@ -138,13 +138,13 @@ try:
                 print(tag, '  ctrl+wheel leaves text', pg.evaluate("() => document.getElementById('src').scrollTop") == 0)
                 # 살펴보기 덮개(look.js가 있을 때): 열리고, 열린 동안 휠은 본문을 굴리지 않는다
                 if pg.evaluate("() => !!window.GeulLook"):
-                    pg.click('#settings-open'); pg.click('#mood-look'); pg.wait_for_timeout(500)
+                    pg.click('#mood-look'); pg.wait_for_timeout(500)
                     opened = pg.evaluate("() => [...document.querySelectorAll('[role=dialog][aria-modal=true]')].some(d => d.id !== 'guide' && !d.hidden && d.getClientRects().length)")
                     pg.mouse.move(640, 400); pg.mouse.wheel(0, 300); pg.wait_for_timeout(400)
                     print(tag, '  look opens', opened, '| wheel stays', pg.evaluate("() => document.getElementById('src').scrollTop") == 0)
                     pg.screenshot(path=str(OUT / f'st-{tag}-1look.png'))
                     pg.evaluate("() => window.GeulLook.close()"); pg.wait_for_timeout(300)
-            if not pg.is_visible('#write-settings'):
+            if tag == 'phone' and not pg.is_visible('#write-settings'):
                 pg.click('#settings-open')
             # 테마: 글꼴과 시작 장면
             pg.locator('#fonts .piece', has_text='고운바탕').click(); pg.wait_for_timeout(200)
@@ -156,7 +156,7 @@ try:
             pg.locator('#start-scene .piece', has_text='라이트').click(); pg.wait_for_timeout(200)
             pg.locator('#fonts .piece', has_text='송명').click(); pg.wait_for_timeout(200)
 
-            pg.click('#settings-close')
+            if tag == 'phone': pg.click('#settings-close')
             # 줄 사이: 올리면 띠, 누르면 쪽 나누기
             x, y = seam_point(pg, '편지를 쓰는'); pg.wait_for_timeout(250)
             pg.mouse.move(x, y); pg.wait_for_timeout(150)
@@ -183,18 +183,18 @@ try:
             pg.wait_for_timeout(250)
             pg.locator('#write-ed .cp-pop button', has_text='강조').first.click(); pg.wait_for_timeout(250)
             print(tag, '  emphasized', '{{보고 싶다고 쓰는 것은 너무}}' in pg.evaluate(src))
-            pg.click('#settings-open')
+            if tag == 'phone': pg.click('#settings-open')
             pg.locator('#moods button', has_text='고요한').click(); pg.wait_for_timeout(200)
             pg.click('#themes .swatch[title="자두"]'); pg.wait_for_timeout(200)
             print(tag, '  mood', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"), '| theme ink', pg.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--ink')"))
             pg.screenshot(path=str(OUT / f'st-{tag}-3marked.png'))
-            pg.click('#settings-close')
+            if tag == 'phone': pg.click('#settings-close')
             pg.fill('#title', '편지'); pg.wait_for_timeout(100)
             h = pg.evaluate(handed)
             print(tag, '  handed off', sorted(h.keys()), '| title', h.get('title'), '| made', h.get('made'), '| ending', h.get('ending'))
 
             # 미리보기
-            pg.click('#go-tune'); pg.wait_for_timeout(2600)
+            pg.click('[data-go=tune]'); pg.wait_for_timeout(2600)
             print(tag, 'preview', pv(pg).evaluate(written), '| frames', pg.evaluate("() => [...document.querySelectorAll('#screen-main .frame')].map(f => f.classList.contains('on') ? 'on' : 'off').join(' ')"),
                   '| header', pg.evaluate("() => getComputedStyle(document.querySelector('.top')).display"),
                   '| tabs right' if tag == 'desk' else '', pg.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().right)") if tag == 'desk' else '')

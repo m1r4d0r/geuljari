@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>글자리</title>
 <meta name="description" content="글이 써지는 속도와 숨을 그대로 보여 주는 글 틀">
-<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Noto+Serif+KR:wght@400&family=Song+Myung&display=swap">
@@ -41,7 +41,12 @@
     <button type="button" data-go="tune">미리보기</button>
     <button type="button" data-go="publish">발행</button>
   </nav>
-  <button type="button" class="menu-toggle" id="settings-open" aria-label="편집 설정과 메뉴" aria-haspopup="dialog" aria-controls="write-settings" aria-expanded="false"><span aria-hidden="true"></span></button>
+  <button type="button" class="menu-toggle" id="settings-open" aria-label="편집 설정" aria-haspopup="dialog" aria-controls="write-settings" aria-expanded="false"><span aria-hidden="true"></span></button>
+  <span class="top-links">
+    <button type="button" class="link" id="load-open">불러오기</button>
+    <button type="button" class="link" id="guide-open">안내</button>
+    <button type="button" class="link" id="clear">새로 쓰기</button>
+  </span>
 </header>
 
 <div id="publication-strip" class="publication-strip" hidden><span id="publication-label"></span><button type="button" class="link" id="publication-manage">발행 관리</button></div>
@@ -52,17 +57,21 @@
     <div class="write-body">
       <div class="write-col">
         <input id="title" class="title" type="text" placeholder="제목 (선택)" aria-label="제목" autocomplete="off" maxlength="40">
+        <div class="write-help">
+          <p>줄 사이를 누르면 쪽을 나눠요.</p>
+          <p>두 번 띄어 쓰면 잠시 쉬고 읽어요.</p>
+          <p>드래그해서 원하는 부분을 강조해요.</p>
+        </div>
         <div class="ed" id="write-ed">
           <div class="ed-mirror" id="write-mirror" aria-hidden="true"></div>
           <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
             placeholder="여기에 글을 놓아 주세요.&#10;&#10;빈 줄 둘은 새 쪽이 돼요."></textarea>
         </div>
       </div>
-
+      <div id="write-settings-slot" class="write-settings-slot"></div>
     </div>
     <footer class="bar">
       <span class="k" id="count"></span>
-      <button type="button" class="btn fill push" id="go-tune">미리보기</button>
     </footer>
   </section>
 
@@ -181,18 +190,9 @@
           <div class="set-row r-font"><span class="set-name">글꼴</span><div class="set-box" id="fonts"></div></div>
           <div class="set-row r-scene"><span class="set-name">시작</span><div class="set-box" id="start-scene"></div></div>
         </section>
-        <div class="rail-help">
-          <p>줄 사이를 누르면 쪽을 나눠요.</p>
-          <p>두 번 띄어 쓰면 잠시 쉬고 읽어요.</p>
-          <p>드래그해서 원하는 부분을 강조해요.</p>
-        </div>
+
       </aside>
-  <span class="top-links">
-    <button type="button" class="link" id="load-open">불러오기</button>
-    <button type="button" class="link" id="guide-open">안내</button>
-    <button type="button" class="link" id="sample">예시 글</button>
-    <button type="button" class="link" id="clear">새로 쓰기</button>
-  </span>
+
 </dialog>
 <dialog id="load-dialog" class="load-dialog" aria-labelledby="load-heading">
   <form id="load-form">

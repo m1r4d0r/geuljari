@@ -37,7 +37,7 @@
       busy = on;
       $('publish-fields').disabled = on; $('load-fields').disabled = on;
       // 요청 중 다른 글로 바뀌는 일을 막아요.
-      for (const id of ['sample','clear','load-open']) $(id).disabled = on;
+      for (const id of ['clear','load-open']) $(id).disabled = on;
       $('s-publish').setAttribute('aria-busy', String(on));
     }
     const reset = () => {

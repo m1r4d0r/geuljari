@@ -192,19 +192,6 @@
   $('mood-look').hidden = !window.GeulLook;
   $('mood-look').addEventListener('click', openLook);
 
-  function sampleText() {
-    return E.stripMarks(window.GeulgyeolSample ? window.GeulgyeolSample.text : '').replace(/\n{4,}/g, '\n\n\n');
-  }
-  $('sample').addEventListener('click', () => {
-    if (st.source.trim() && !window.confirm('지금 글을 예시 글로 바꿀까요?')) return;
-    publication.reset();
-    st.moodsTouched = false;
-    st.made = '';
-    setStep('write');
-    setSource(sampleText(), [0, 0]);
-    ta.scrollTop = 0;
-    guessLater();
-  });
   $('clear').addEventListener('click', () => {
     if (st.source.trim() && !window.confirm('지금 글을 지우고 새로 쓸까요?')) return;
     publication.reset();
@@ -221,14 +208,13 @@
     drawRail();
     ta.focus();
   });
-  $('go-tune').addEventListener('click', () => { st.page = 0; setStep('tune'); });
 
   /*
    * 처음 들어오면 편집창을 흐리게 가리고 안내를 띄운다. 다섯 장을 한 장씩 넘기며, 장마다 그 기능이 움직이는 작은 장면을 보인다.
    * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
    */
   const GUIDE = [
-    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '상단 메뉴의 편집 설정에서 축마다 하나씩 골라요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
+    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '편집 설정에서 축마다 하나씩 골라요. 모바일에서는 상단 설정 버튼으로 열어요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
     { title: '줄 사이를 누르면', body: '거기서부터 다음 쪽으로 넘어가요. 한 쪽에 한 호흡씩 담아 보세요.', tip: '줄 사이에 마우스를 올리면 점선이 보여요. 띠 어디를 눌러도 돼요.' },
     { title: '쪽 사이에서 반전', body: '이 쪽부터 배경이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '분위기가 바뀌는 자리는 반전 단추가 점선으로 먼저 알려 줘요.' },
     { title: '두 번 띄어 쓰면 쉼', body: '띄어쓰기를 두 번 한 곳은 잠깐 쉬었다가 이어서 써요. 화면에는 한 칸으로 보여요.', tip: '편집창에는 쉬는 자리가 호박색으로 표시돼요.' },
@@ -801,7 +787,6 @@
   ta.value = st.source;
   T.useFont(document, st.settings);
   T.useTheme(document, st.settings);
-  if (!store.get('geul.guide') && !location.hash.startsWith('#edit=')) showGuide(true);
   setStep(st.step);
   publication.resume();
   if (!st.moodsTouched && st.source.trim() && !st.moods.length) guessLater();

@@ -14,11 +14,11 @@ const fs = require('node:fs/promises');
       await context.route('**/fonts.g*/**',r=>r.abort());
       const pg=await context.newPage(); pg.on('pageerror',e=>errors.push(e.message));
       pg.on('console',msg=>{if(msg.type()==='error' && /shader|compile|link program/i.test(msg.text()))errors.push(msg.text());});
-      await pg.goto(origin); await pg.click('#g-skip');
+      await pg.goto(origin);
       assert.equal(await pg.title(),'글자리');
       assert.equal(await pg.getAttribute('#home','aria-label'),'글자리, 글로');
       assert.ok(await pg.locator('#home svg path').count()>0);
-      await pg.click('#settings-open'); await pg.click('#sample'); await pg.screenshot({path:`tests/out/merged-logo-${width}.png`});
+      await pg.fill('#src', await pg.evaluate(()=>Geulgyeol.stripMarks(GeulgyeolSample.text).replace(/\n{4,}/g,'\n\n\n'))); await pg.screenshot({path:`tests/out/merged-logo-${width}.png`});
       const sample=await pg.inputValue('#src');
       // 저장소 예시 글에 새 바탕 두 개를 적용해 실제 편집실 읽기 틀로 확인해요.
       await pg.fill('#src','[[라이트:원고지]]\n'+sample.split('\n\n\n')[0]+'\n\n\n[[다크:타자]]\n'+sample.split('\n\n\n')[0]);

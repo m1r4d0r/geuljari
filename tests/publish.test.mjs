@@ -27,6 +27,7 @@ test('암호화·인증·수정·중단·삭제와 제목 미리보기', async (
   assert.equal(record.passwordHash,undefined); assert.equal(record.salt,undefined);
   assert.ok(!JSON.stringify(store.rows.get(id)).includes(doc.source));
   assert.equal((await call('POST','',body)).data.revision,1);
+  assert.equal((await call('POST','',{...body,password:'another-password'})).status,401);
   assert.equal((await call('POST','',{...body,title:'다른 글'})).status,409);
   assert.equal((await call('GET','/'+id)).status,200);
   assert.equal((await call('POST','/'+id+'/unlock',{password:'wrong-password'})).status,401);
@@ -36,6 +37,7 @@ test('암호화·인증·수정·중단·삭제와 제목 미리보기', async (
   let html = await (await page(new Request('https://test.invalid/t/'+id))).text();
   assert.ok(html.includes('&lt;script&gt;')); assert.ok(!html.includes(doc.title)); assert.ok(!html.includes(sealed.cipher));
   r = await call('PUT','/'+id,{...body,live:false,revision:1}); assert.equal(r.status,200); assert.equal(r.data.revision,2);
+  r = await call('PUT','/'+id,{...body,live:false,revision:1}); assert.equal(r.status,200); assert.equal(r.data.revision,2);
   assert.equal((await call('GET','/'+id)).status,404);
   assert.equal((await call('POST','/'+id+'/unlock',{password})).status,200);
   html = await (await page(new Request('https://test.invalid/t/'+id))).text(); assert.ok(!html.includes('&lt;script&gt;'));
@@ -43,11 +45,12 @@ test('암호화·인증·수정·중단·삭제와 제목 미리보기', async (
   assert.equal((await call('DELETE','/'+id,{password,revision:1})).status,409);
   assert.equal((await call('PUT','/'+id,{...body,revision:2})).status,200);
   assert.equal((await call('DELETE','/'+id,{password,revision:3})).status,200);
+  assert.equal((await call('DELETE','/'+id,{password,revision:3})).status,200);
   assert.equal((await call('GET','/'+id)).status,404);
 });
 test('잘못된 입력과 저장소 미설정은 안전하게 실패',async () => {
   assert.equal((await call('POST','',{password,id,title:'x',cipher:'x',iv:'x',live:true})).status,400);
-  assert.equal((await call('POST','',{password,stuff:'x'.repeat(360001)})).status,413);
+  assert.equal((await call('POST','',{password,stuff:'x'.repeat(3100001)})).status,413);
   // 비밀번호는 4~128자면 되고 그 밖의 제약은 없어요.
   for (const p of ['123','x'.repeat(129)]) { const r = await call('POST','',{password:p,id}); assert.equal(r.status,400); assert.equal(r.data.error,'invalid_password'); }
   const r4 = await call('POST','',{password:'1234',id,title:'x',cipher:'x',iv:'x',live:true}); assert.notEqual(r4.data.error,'invalid_password');

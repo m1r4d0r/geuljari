@@ -17,6 +17,17 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.goto(origin);  await pg.fill('#src', await pg.evaluate(()=>Geulgyeol.stripMarks(GeulgyeolSample.text).replace(/\n{4,}/g,'\n\n\n')));
     await pg.fill('#title','발행 확인'); await pg.click('[data-go=publish]');
     await pg.fill('#publish-password','4821');
+    // 서버 저장 뒤 응답만 유실된 경우를 재현해요.
+    let loseCreate=true,loseUpdate=false,loseDelete=false;
+    await pg.route('**/api/articles**',async route=>{
+      const m=route.request().method();
+      if((m==='POST'&&loseCreate&&!route.request().url().endsWith('/unlock'))||(m==='PUT'&&loseUpdate)||(m==='DELETE'&&loseDelete)){
+        if(m==='POST')loseCreate=false;if(m==='PUT')loseUpdate=false;if(m==='DELETE')loseDelete=false;
+        await route.fetch();await route.abort('failed');
+      }else await route.continue();
+    });
+    await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
+
     await pg.click('#publish-submit'); await pg.waitForSelector('#publish-result:not([hidden])');
     const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}#[\w-]{43}$/);
     const id = new URL(link).pathname.split('/')[2]; const key = new URL(link).hash.slice(1);
@@ -24,6 +35,13 @@ const fileBtn = (pg, id) => pg.click(id);
     const kept = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.publication'))); assert.equal(kept.key,key); assert.equal(kept.password,'4821'); assert.equal(kept.record.cipher,undefined);
     // 링크 칸을 누르면 바로 복사돼요.
     assert.ok(!JSON.stringify(await store.get(id)).includes('4821'));
+    const firstRecord = await store.get(id);
+    assert.equal(firstRecord.revision,1); assert.ok(firstRecord.ogImage);
+    const imageURL = r => `${origin}/og/${id}/${r.ogHash}.png`;
+    const firstImage = await fetch(imageURL(firstRecord)); assert.equal(firstImage.status,200);
+    const firstBytes = Buffer.from(await firstImage.arrayBuffer()); assert.equal(firstBytes.readUInt32BE(16),1200); assert.equal(firstBytes.readUInt32BE(20),630);
+    const html = await (await fetch(link.split('#')[0])).text(); assert.ok(html.includes(imageURL(firstRecord))); assert.ok(!html.includes(key));
+    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-published.png',firstBytes);
     // 텍스트 복사: 제목·링크·비밀번호 세 줄
     await context.grantPermissions(['clipboard-read','clipboard-write'],{origin});
     await pg.click('#publish-url'); assert.equal(await pg.evaluate(()=>navigator.clipboard.readText()),link);
@@ -39,6 +57,7 @@ const fileBtn = (pg, id) => pg.click(id);
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'발행 확인');
     await reader.goto(link.split('#')[0]+'#'+'A'.repeat(43)); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('열쇠'));
     await pg.click('#publish-live'); await pg.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.startsWith('발행 중단'));
+    assert.equal((await fetch(imageURL(firstRecord))).status,404);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('발행이 중단'));
     await pg.reload(); await fileBtn(pg,'#load-open');
     await pg.fill('#load-url',link); await pg.fill('#load-password','incorrect-password'); await pg.click('#load-form button[type=submit]');
@@ -61,9 +80,16 @@ const fileBtn = (pg, id) => pg.click(id);
     assert.equal(await pg.inputValue('#load-password'),'4821'); await pg.click('#load-close');
     await pg.click('[data-go=publish]'); assert.equal(await pg.getAttribute('#publish-live','aria-checked'),'false');
     await pg.click('#publish-live'); await pg.waitForFunction(()=>document.querySelector('#publish-live').getAttribute('aria-checked')==='true'&&!document.querySelector('#publish-live').disabled);
-    await pg.fill('#publish-title','수정한 제목'); await pg.click('#publish-submit');
+    // 스위치로 다시 열면 남아 있던 본문으로 공유 이미지를 다시 만들어요.
+    const reopened = await store.get(id); assert.ok(reopened.live); assert.equal((await fetch(imageURL(reopened))).status,200);
+    await pg.fill('#publish-title','수정한 제목'); loseUpdate=true;
+    await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
+    const savedRevision=(await store.get(id)).revision;
+    await pg.click('#publish-submit');
     await pg.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.includes('수정한 제목'));
-    assert.equal(await pg.inputValue('#publish-url'),link);
+    assert.equal(await pg.inputValue('#publish-url'),link);assert.equal((await store.get(id)).revision,savedRevision);
+    const updatedRecord = await store.get(id); assert.notEqual(updatedRecord.ogHash,firstRecord.ogHash);
+    assert.equal((await fetch(imageURL(firstRecord))).status,404); assert.equal((await fetch(imageURL(updatedRecord))).status,200);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'수정한 제목');
     await fs.mkdir('tests/out',{recursive:true});
@@ -81,9 +107,11 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('다른 곳'));
     assert.equal(await pg.inputValue('#publish-title'),'충돌해도 남을 제목');
     await pg.click('[data-go=write]'); await fileBtn(pg,'#load-open'); await pg.fill('#load-url',link); await pg.fill('#load-password','4821'); await pg.click('#load-form button[type=submit]'); await pg.waitForSelector('#load-dialog',{state:'hidden'});
-    await pg.click('[data-go=publish]'); await pg.click('#publish-delete');
+    await pg.click('[data-go=publish]');loseDelete=true;await pg.click('#publish-delete');
+    await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));await pg.click('#publish-delete');
     await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('삭제했어요'));
     assert.equal(await store.get(id),null); assert.equal((await blobs.get(id,{type:'json'})).deleted,true); await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('삭제'));
+    assert.equal((await fetch(imageURL(updatedRecord))).status,404);
     // 글 파일: 받아서 새로 쓰기로 비운 뒤 다시 불러오면 글과 설정이 돌아와요.
     await pg.click('[data-go=write]');
     const before = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')));

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { blobFixture } from './blobs-fixture.mjs';
 import { createHandler } from '../server/articles.mjs';
 import { createReaderHandler } from '../server/reader-page.mjs';
+import { createImageHandler } from '../server/og-image.mjs';
 export function memoryStore() {
   const rows = new Map();
   return { rows, async get(id) { return structuredClone(rows.get(id) || null); }, async change(id, fn) {
@@ -15,15 +16,16 @@ export function memoryStore() {
 export async function serve(port = 0) {
   const fixture = await blobFixture(), blobs = fixture.raw('browser-test'), store = fixture.store('browser-test'), api = createHandler(() => store);
   const reader = createReaderHandler(() => store, await readFile(new URL('../published.html', import.meta.url), 'utf8'));
+  const image = createImageHandler(() => store);
   const root = new URL('../', import.meta.url);
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://' + req.headers.host);
-      if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/t/')) {
+      if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/t/') || url.pathname.startsWith('/og/')) {
         const chunks = []; for await (const c of req) chunks.push(c);
         const body = Buffer.concat(chunks);
         const request = new Request(url, { method:req.method, headers:req.headers, ...(body.length ? {body} : {}) });
-        const response = await (url.pathname.startsWith('/api/') ? api : reader)(request);
+        const response = await (url.pathname.startsWith('/api/') ? api : url.pathname.startsWith('/og/') ? image : reader)(request);
         res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(Buffer.from(await response.arrayBuffer()));
       } else {
         const path = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);

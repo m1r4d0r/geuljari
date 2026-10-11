@@ -79,11 +79,9 @@ input[type=range]::-moz-range-thumb { width: 11px; height: 11px; background: var
 
 .top { flex: none; display: flex; align-items: center; gap: 28px; height: 60px; padding: 0 var(--gut); }
 .logo { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0; background: none; border: 0; }
-/* 로고: 원고지 네 칸. 글·자·리 다음 빈 칸의 왼쪽 아래에 마침표 */
-.logo-cells { display: flex; border: 1px solid var(--ink); }
-.logo-cells i { position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font: normal 18px/1 var(--f-body); color: var(--ink); }
-.logo-cells i + i { border-left: 1px solid var(--ink); }
-.logo-cells .stop::after { content: ''; position: absolute; left: 5px; bottom: 5px; width: 4px; height: 4px; border-radius: 50%; background: #A63C33; }
+/* 로고: 원고지 네 칸 SVG(글자는 송명 윤곽이라 글꼴이 늦거나 없어도 같은 모양). 넷째 칸 왼쪽 아래에 마침표 */
+.logo { color: var(--ink); }
+.logo-svg { display: block; height: 30px; width: auto; }
 .steps { display: flex; gap: 2px; }
 .steps button { height: 36px; padding: 0 12px; background: none; border: 0; color: var(--faint); }
 .steps button:hover:not(:disabled) { color: var(--ink); }
@@ -311,8 +309,7 @@ body[data-step="tune"] .top { display: none; }
 @media (max-width: 760px) {
   :root { --gut: 16px; }
   .top { gap: 12px; height: 52px; }
-  .logo-cells i { width: 24px; height: 24px; font-size: 15px; }
-  .logo-cells .stop::after { left: 4px; bottom: 4px; }
+  .logo-svg { height: 26px; }
   .steps button { padding: 0 7px; }
   .top-links { gap: 10px; }
   .top-links #guide-open { display: none; }

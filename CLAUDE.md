@@ -13,6 +13,9 @@
 - 외부 라이브러리 없음. 글꼴만 Google Fonts(송명, 함렛, 고운바탕, 나눔명조, 노토 세리프 KR, 노토 산스 KR, 나눔고딕코딩). 본문 글꼴은 조판에서 고른다.
 - 새 화면도 같은 방식: `이름.html` + `이름.css` + `이름.js`. 공용 코드는 `engine.js`·`fx.js`·`motion.js`·`flip.js`·`backdrop.js`에 둔다.
 
+## 브랜치
+- 사용자가 따로 브랜치 작업을 지시하기 전에는, 작업 브랜치에 올린 뒤 `main`에 병합해 함께 올린다.
+
 ## 고치는 방식
 - 원인을 먼저 짚고 고친다. 우회보다 삭제.
 - 구문 검사, 헤드리스 렌더, 스모크(`tests/smoke.py`)는 Claude가 직접 돌린다. 실기기에서만 확인할 수 있는 것(터치 감, GPU 셰이더 화질, 폰 가장자리)만 사용자에게 남긴다.
@@ -53,6 +56,7 @@
 - `inplace.js` — 미리보기(view.html) 안에서 글 상자 자리에 같은 폭·글꼴의 편집창. 편집실과 `geulgyeol:edit-req`·`edit-slice`·`edit`·`edit-done`으로 그 쪽 글을 주고받음. 고르면 막대: 강조·효과·퇴장·굵게·기울임·밑줄·취소선·색·빼기. 효과·퇴장은 닫으면서 그 자리부터 다시 써 보이고, 나머지는 닫을 때 다 쓴 모습으로. '다 고쳤어요'는 화면 아래 가운데에 떠 있음.
 - `tune.js` — 조판값·심상 세 축(온도·물기·숨)·속도·글꼴·글자 크기·글 상자 폭·정렬·주색을 엔진과 화면에 거는 법(`GeulTune`, `themeVars`·`useTheme`). `sense.js` — 원문을 브라우저 안에서 읽어 심상 짐작·반전 후보·표시 넣고 빼기(`GeulSense`).
 - `view.html` + `view.css` + `view.js` — 편집실 미리보기용 읽기 틀(조판값을 건 뒤 `reader.js`를 띄움). 모양 조판값은 CSS 변수(`--fs-k`·`--m-user`·`--a-user`·`--theme-*`)로 걸어 `geulgyeol:style`이면 바로 바꿈. 글 상자 폭은 기본 글자 크기로 재서, 글자 크기를 바꾸면 상자는 그대로이고 한 줄에 드는 글자 수가 바뀜. iframe 안에서는 손짓을 편집실에 알림: `geulgyeol:place`(글 상자 끌어 붙이기), `geulgyeol:zoom`(Ctrl+휠), `geulgyeol:pinch`·`geulgyeol:pan`(문서 좌표, 편집실이 화면 좌표로 바꿈), `geulgyeol:scroll`(확대 중 휠). 편집실은 `geulgyeol:zoomed`로 확대 중인지 알림. `simsang.*` — 심상 낱말 하나씩 견주기.
+- `logo.svg` — 글자리 로고(원고지 네 칸, 넷째 칸 왼쪽 아래 마침표). 글자는 송명 윤곽 패스라 글꼴과 상관없이 같은 모양. 편집실 머리에는 같은 SVG를 `currentColor`로 넣어 주색을 따름.
 - `codex-proposals/` — Codex 시안(비교용, 손대지 않음).
 - `meokji/` — 먹지판(편집실 재구성 시험판). 쓰기 → 세 가지 묻기(심상 낱말·반전 자리·한 문장) → 1차 안 → 다듬기. 루트의 `engine.js`·`fx.js`·`reader.js` 등을 그대로 불러 쓰고, 색은 복사지 바탕에 남보라 `#2C2F6B` 한 색. `tune.js`(조판값→엔진), `sense.js`(원문을 브라우저 안에서 읽어 짐작·제안·표시 넣기), `index.*`(편집실), `read.*`(읽기 틀 덮개). 스모크는 `tests/smoke_meokji.py`.
 - `tests/smoke.py` — 읽기 틀 스모크(PC·폰 크기, 쓰기→넘김→쓸기→끌기→휠→길게 누르기→처음부터).

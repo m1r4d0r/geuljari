@@ -123,7 +123,7 @@
    * 넘김과 자리는 그 쪽에만 걸린다.
    */
   const SCENES = { '밤': 'night', '낮': 'day', '라이트': 'day', '다크': 'night' };
-  const GROUNDS = { '창빛': 'window', '한지': 'hanji', '잎그늘': 'leaf', '새벽': 'dawn', '영사광': 'projector', '오로라': 'aurora', '물빛': 'caustic' };
+  const GROUNDS = { '창빛': 'window', '원고지': 'wongoji', '잎그늘': 'leaf', '새벽': 'dawn', '영사광': 'projector', '오로라': 'aurora', '물빛': 'caustic', '타자': 'typing' };
   const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash' };
   const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };

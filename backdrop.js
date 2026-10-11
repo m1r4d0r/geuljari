@@ -3,13 +3,14 @@
  * 이미지 없이 코드로 그리는 장면 바탕. 장(.sheet)마다 캔버스를 하나 깔고, 지금 보이는 장만 그린다.
  * 낮
  *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀐다.
- *   - hanji(한지): 종이 섬유와 닥 펄프 얼룩. 빛이 아주 천천히 비스듬히 지나간다.
+ *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 빛이 아주 천천히 비스듬히 지나간다.
  *   - leaf(잎그늘): 나뭇잎 사이로 드는 볕. 바람에 잎이 흔들리듯 볕 조각이 느리게 일렁인다.
  *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛과 그 위를 천천히 흐르는 엷은 안개 결.
  * 밤
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
  *   - aurora(오로라): 아랫단이 밝고 위로 갈수록 바래는 빛의 커튼. 결이 세로로 잘게 일렁인다.
  *   - caustic(물빛): 물에 비친 빛이 천장에 어른거리듯, 위쪽에 흐린 빛 그물이 아주 느리게 일렁인다.
+ *   - typing(타자): 어두운 방의 화면. 흐린 글자 덩이가 한 줄씩 타자되고, 줄이 차면 위로 밀려 올라가며 바랜다. 커서는 쉴 때만 깜빡인다.
  * 포인터(마우스·손가락)를 움직이면 바탕이 그쪽으로 아주 조금, 느리게 따라온다.
  * 캔버스는 곁에 둘 장(keep)에만 만들고 나머지는 거둬서, 페이지가 많아도 WebGL 문맥이 몇 개만 산다.
  * setSpeed로 흐르는 빠르기를 바꿀 수 있다(머무르기 때 느려짐).
@@ -32,13 +33,14 @@
 
   /* 종류별 그리는 방식과 해상도(화면 1px당 캔버스 화소) */
   const KINDS = {
-    hanji: { engine: '2d', scale: () => Math.min(2, window.devicePixelRatio || 1) },
+    wongoji: { engine: '2d', scale: () => Math.min(2, window.devicePixelRatio || 1) },
     window: { engine: 'gl', scale: () => 0.5 },
     leaf: { engine: 'gl', scale: () => 0.5 },
     dawn: { engine: 'gl', scale: () => 0.4 },
     aurora: { engine: 'gl', scale: () => 0.5 },
     projector: { engine: 'gl', scale: () => 0.6 },
-    caustic: { engine: 'gl', scale: () => 0.8 }
+    caustic: { engine: 'gl', scale: () => 0.8 },
+    typing: { engine: 'gl', scale: () => 0.6 }
   };
 
   /* ---------- 셰이더 ---------- */
@@ -213,6 +215,47 @@
         vec4 col = over(light, vec4(vec3(0.0), vig));
         gl_FragColor = over(grain(0.035), col);
       }
+    `,
+    typing: `
+      float box(vec2 q, vec2 h, float s) { vec2 d = abs(q) - h; return 1.0 - smoothstep(-s, s, max(d.x, d.y)); }
+      void main() {
+        float asp = uRes.x / uRes.y;
+        vec2 p = vec2(vUv.x * asp, 1.0 - vUv.y) + uPtr * vec2(0.02, 0.012);
+        float t = uTime;
+        float rh = 0.085;
+        float cw = 0.05;
+        float cols = floor(asp * 0.84 / cw);
+        float x0 = (asp - cols * cw) * 0.5;
+        float now = t / 7.0;
+        float cur = floor(now);
+        float fr = fract(now);
+        float lift = rh * (1.0 - smoothstep(0.0, 0.08, fr));
+        float k = (p.y - 0.64 - lift) / rh;
+        float row = floor(k + 0.5);
+        float ly = (k - row) * rh;
+        float line = cur + row;
+        float c = floor((p.x - x0) / cw);
+        float lx = p.x - x0 - (c + 0.5) * cw;
+        float len = floor(cols * (0.45 + 0.5 * hash(vec2(line, 3.1))));
+        float typed = line < cur ? len : floor(min(fr / 0.8, 1.0) * len);
+        float inRow = step(0.0, c) * step(c, cols - 1.0) * step(row, 0.0) * step(-8.0, row);
+        float space = step(hash(vec2(line, c)), 0.17) * step(1.0, c);
+        float on = inRow * step(c, typed - 1.0) * (1.0 - space);
+        float tall = 0.75 + 0.25 * hash(vec2(c, line + 7.0));
+        float g = box(vec2(lx, ly), vec2(cw * 0.34, rh * 0.25 * tall), 0.007) * on;
+        float fresh = 1.0 + 1.4 * step(cur, line) * step(typed - 1.0, c) * (1.0 - smoothstep(0.0, 0.02, fr - (typed / len) * 0.8));
+        float fade = exp(-(cur - line) * 0.32) * smoothstep(0.02, 0.3, p.y);
+        float blink = fr < 0.8 ? 1.0 : step(0.5, fract(t * 1.1));
+        float cursor = box(vec2(lx + cw * 0.38, ly), vec2(0.004, rh * 0.32), 0.003) * step(cur, line) * step(line, cur) * step(typed, c) * step(c, typed) * blink;
+        float I = g * 0.075 * fade * fresh + cursor * 0.24;
+        I *= 0.86 + 0.14 * sin(vUv.y * uRes.y * 1.4);
+        float glow = 0.05 * exp(-length((vUv - vec2(0.5, 0.45)) * vec2(1.0, 1.3)) * 2.4) * (0.96 + 0.04 * noise(vec2(t * 6.0, 0.0)));
+        vec3 phos = mix(uInk, vec3(0.62, 0.95, 0.78), 0.55);
+        float a = clamp(I + glow, 0.0, 0.5);
+        float vig = 0.24 * smoothstep(0.3, 1.2, length(vUv - 0.5) * 1.5);
+        vec4 col = over(vec4(phos * a, a), vec4(vec3(0.0), vig));
+        gl_FragColor = over(grain(0.04), col);
+      }
     `
   };
 
@@ -265,14 +308,15 @@
     e.paper = rgb(cs.getPropertyValue('--paper'));
   }
 
-  /* ---------- 한지 ---------- */
+  /* ---------- 원고지 ---------- */
 
   function rand(seed) {
     let s = seed >>> 0;
     return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
   }
 
-  function buildHanji(e) {
+  /* 칸 크기는 장의 짧은 변에 맞춘다. 칸 줄 사이에 좁은 띠를 두고, 바깥은 겹줄로 두른다 */
+  function buildWongoji(e) {
     const pad = Math.round(28 * e.scale);
     const w = e.w + pad * 2;
     const h = e.h + pad * 2;
@@ -280,61 +324,76 @@
     off.width = w;
     off.height = h;
     const c = off.getContext('2d');
-    const r = rand(20261009);
+    const r = rand(20261011);
     const ink = e.ink.map((v) => Math.round(v * 255)).join(',');
+    const rule = '178,84,64';
 
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < 40; i++) {
       const x = r() * w;
       const y = r() * h;
-      const rad = (40 + r() * 160) * e.scale;
+      const rad = (60 + r() * 180) * e.scale;
       const g = c.createRadialGradient(x, y, 0, x, y, rad);
-      const light = r() < 0.5;
-      g.addColorStop(0, light ? 'rgba(255,255,255,0.10)' : `rgba(${ink},0.022)`);
+      const light = r() < 0.6;
+      g.addColorStop(0, light ? 'rgba(255,255,255,0.10)' : `rgba(${ink},0.018)`);
       g.addColorStop(1, light ? 'rgba(255,255,255,0)' : `rgba(${ink},0)`);
       c.fillStyle = g;
       c.fillRect(x - rad, y - rad, rad * 2, rad * 2);
     }
 
-    const count = Math.round((w * h) / (520 * e.scale * e.scale));
-    c.lineCap = 'round';
-    for (let i = 0; i < count; i++) {
-      const x = r() * w;
-      const y = r() * h;
-      const len = (6 + r() * r() * 54) * e.scale;
-      const a = r() * Math.PI * 2;
-      const bend = (r() - 0.5) * len * 0.6;
-      const x2 = x + Math.cos(a) * len;
-      const y2 = y + Math.sin(a) * len;
-      const mx = (x + x2) / 2 + Math.cos(a + Math.PI / 2) * bend;
-      const my = (y + y2) / 2 + Math.sin(a + Math.PI / 2) * bend;
-      const light = r() < 0.55;
-      c.strokeStyle = light ? `rgba(255,255,255,${0.18 + r() * 0.3})` : `rgba(${ink},${0.025 + r() * 0.05})`;
-      c.lineWidth = (0.35 + r() * 0.8) * e.scale;
-      c.beginPath();
-      c.moveTo(x, y);
-      c.quadraticCurveTo(mx, my, x2, y2);
-      c.stroke();
+    const cell = Math.max(26 * e.scale, Math.round(Math.min(e.w, e.h) / 16));
+    const gap = Math.round(cell * 0.32);
+    const band = cell + gap;
+    const cols = Math.floor((e.w - cell * 1.6) / cell);
+    const rows = Math.floor((e.h - cell * 1.6 + gap) / band);
+    const gw = cols * cell;
+    const gh = rows * band - gap;
+    const x0 = Math.round(pad + (e.w - gw) / 2) + 0.5;
+    const y0 = Math.round(pad + (e.h - gh) / 2) + 0.5;
+    const lw = Math.max(1, e.scale * 0.8);
+
+    c.lineWidth = lw;
+    c.strokeStyle = `rgba(${rule},0.16)`;
+    c.beginPath();
+    for (let j = 0; j < rows; j++) {
+      const y = y0 + j * band;
+      c.moveTo(x0, y);
+      c.lineTo(x0 + gw, y);
+      c.moveTo(x0, y + cell);
+      c.lineTo(x0 + gw, y + cell);
+      for (let i = 1; i < cols; i++) {
+        const x = x0 + i * cell;
+        c.moveTo(x, y);
+        c.lineTo(x, y + cell);
+      }
     }
-    e.hanji = { off, pad };
+    c.stroke();
+
+    const o = Math.round(cell * 0.28);
+    c.strokeStyle = `rgba(${rule},0.24)`;
+    c.lineWidth = lw * 1.6;
+    c.strokeRect(x0 - o, y0 - o, gw + o * 2, gh + o * 2);
+    c.lineWidth = lw;
+    c.strokeRect(x0 - o + lw * 3, y0 - o + lw * 3, gw + o * 2 - lw * 6, gh + o * 2 - lw * 6);
+    e.off = { off, pad };
   }
 
-  function drawHanji(e, t) {
+  function drawWongoji(e, t) {
     const { ctx, w, h } = e;
-    if (!e.hanji) buildHanji(e);
-    const { off, pad } = e.hanji;
+    if (!e.off) buildWongoji(e);
+    const { off, pad } = e.off;
     ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(off, -pad + px * pad * 0.6, -pad + py * pad * 0.6);
+    ctx.drawImage(off, -pad + px * pad * 0.4, -pad + py * pad * 0.4);
     const s = ((t * 0.000012) % 1.6) - 0.3;
     const g = ctx.createLinearGradient(w * (s - 0.35), 0, w * (s + 0.35), h);
     g.addColorStop(0, 'rgba(255,250,238,0)');
-    g.addColorStop(0.5, 'rgba(255,250,238,0.13)');
+    g.addColorStop(0.5, 'rgba(255,250,238,0.14)');
     g.addColorStop(1, 'rgba(255,250,238,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.hypot(w, h) * 0.62);
     const ink = e.ink.map((x) => Math.round(x * 255)).join(',');
     v.addColorStop(0, `rgba(${ink},0)`);
-    v.addColorStop(1, `rgba(${ink},0.06)`);
+    v.addColorStop(1, `rgba(${ink},0.05)`);
     ctx.fillStyle = v;
     ctx.fillRect(0, 0, w, h);
   }
@@ -352,7 +411,7 @@
     e.gl = null;
     e.ctx = null;
     e.programs = {};
-    e.hanji = null;
+    e.off = null;
   }
 
   function makeCanvas(e) {
@@ -365,7 +424,7 @@
     e.ctx = null;
     e.gl = null;
     e.programs = {};
-    e.hanji = null;
+    e.off = null;
     e.engine = KINDS[e.kind].engine;
     if (e.engine === 'gl') {
       const gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false });
@@ -392,7 +451,7 @@
     if (e.canvas.width !== w || e.canvas.height !== h) {
       e.canvas.width = w;
       e.canvas.height = h;
-      e.hanji = null;
+      e.off = null;
     }
     e.w = w;
     e.h = h;
@@ -430,7 +489,7 @@
       if (!e.active || !e.canvas) return;
       any = true;
       if (e.engine === 'gl') drawGl(e, t);
-      else drawHanji(e, t);
+      else drawWongoji(e, t);
     });
     if (any && !reduce.matches) raf = requestAnimationFrame(frame);
   }

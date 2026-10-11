@@ -35,7 +35,7 @@
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
   const DRY = { '빨리': 0.9, '보통': 1.8, '느리게': 3.2 };
   const DRY_NAMES = Object.keys(DRY);
-  const GROUNDS = { '라이트': ['창빛', '한지', '잎그늘', '새벽'], '다크': ['영사광', '오로라', '물빛'] };
+  const GROUNDS = { '라이트': ['창빛', '원고지', '잎그늘', '새벽'], '다크': ['영사광', '오로라', '물빛', '타자'] };
   const OLD_SCENE = { '낮': '라이트', '밤': '다크' };
   /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀌는 쪽에는 스밈을 빼고 고른다. */
   const TURNS = (global.Geulgyeol && global.Geulgyeol.TURNS) || { '쓸기': 'sweep' };

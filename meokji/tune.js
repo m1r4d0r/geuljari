@@ -22,7 +22,7 @@
     '새벽': { scene: '밤', ground: '영사광' },
     '한낮': { scene: '낮', ground: '창빛' },
     '물': { scene: '밤', ground: '물빛' },
-    '종이': { scene: '낮', ground: '한지' }
+    '종이': { scene: '낮', ground: '원고지' }
   };
 
   /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로 */
@@ -32,7 +32,7 @@
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
   const DRY = { '빨리': 0.9, '보통': 1.8, '느리게': 3.2 };
   const DRY_NAMES = Object.keys(DRY);
-  const GROUNDS = { '낮': ['창빛', '한지'], '밤': ['영사광', '오로라', '물빛'] };
+  const GROUNDS = { '낮': ['창빛', '원고지'], '밤': ['영사광', '오로라', '물빛'] };
   /* 속도에 따라 줄이고 늘리는 시간표 항목 */
   const PACED = ['flowSlow', 'flowFast', 'lineBreak', 'stop', 'shortBefore', 'shortChar', 'shortAfter', 'dripBefore', 'dripChar', 'dripAfter'];
 

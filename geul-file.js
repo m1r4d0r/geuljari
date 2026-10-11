@@ -12,6 +12,8 @@
   const ALIGN = { left: '왼쪽', center: '가운데', right: '오른쪽' };
   const ALIGN_BACK = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const FOLLOW = '(편집 제목을 따름)';
+  // 앞서 쓰던 설정 줄 이름도 읽어요.
+  const ALIAS = { '카드 장면': '끝 장 장면', '카드 바탕': '끝 장 바탕' };
 
   // 설정 줄: [이름, 스냅숏에서 꺼내기, 스냅숏에 넣기]. 넣을 때 값 검사는 편집실의 normalize가 맡아요.
   const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : undefined; };
@@ -30,8 +32,8 @@
     ['글 상자 폭', (d) => (d.settings.measure ? d.settings.measure + '자' : '저절로'), (d, v) => { d.settings.measure = num(v.replace(/자$/, '')) || 0; }],
     ['정렬', (d) => d.settings.align, (d, v) => { d.settings.align = v; }],
     ['주색', (d) => d.settings.theme, (d, v) => { d.settings.theme = v; }],
-    ['끝 장 장면', (d) => d.ending.scene, (d, v) => { d.ending.scene = v; }],
-    ['끝 장 바탕', (d) => d.ending.ground, (d, v) => { d.ending.ground = v; }],
+    ['카드 장면', (d) => d.ending.scene, (d, v) => { d.ending.scene = v; }],
+    ['카드 바탕', (d) => d.ending.ground, (d, v) => { d.ending.ground = v; }],
     // 카드 문구의 줄 나눔은 ' / '로 한 줄에 적어요.
     ['카드 문구', (d) => (d.ending.text == null ? FOLLOW : d.ending.text.split('\n').join(' / ')), (d, v) => { d.ending.text = v === FOLLOW ? null : v.split(' / ').join('\n'); }],
     ['카드 글꼴', (d) => d.ending.font || '본문 글꼴', (d, v) => { d.ending.font = v === '본문 글꼴' ? null : v; }],
@@ -93,7 +95,7 @@
     const url = field(head, '링크'), password = field(head, '비밀번호');
     if (url && password) d.publication = { url: url.trim(), password };
     for (const [name, , put] of LINES) {
-      const v = field(tail, name);
+      const v = field(tail, name) ?? (ALIAS[name] ? field(tail, ALIAS[name]) : null);
       if (v != null && v.trim() !== '') put(d, v.trim());
     }
     return d;

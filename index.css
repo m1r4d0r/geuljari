@@ -120,7 +120,8 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .g-page.two { animation: g-two 4.8s cubic-bezier(.3, .1, .2, 1) infinite; }
 @keyframes g-two { 0%, 54% { opacity: 0; transform: translateY(-34px); } 66%, 88% { opacity: 1; transform: none; } 96%, 100% { opacity: 0; } }
 .g-leave { animation: g-leave 4.8s ease infinite; }
-@keyframes g-leave { 0%, 50% { opacity: 1; transform: none; } 58%, 92% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: none; } }
+.g-leave { display: block; overflow: hidden; max-height: 2em; }
+@keyframes g-leave { 0%, 50% { opacity: 1; transform: none; max-height: 2em; } 58%, 92% { opacity: 0; transform: translateY(14px); max-height: 0; } 100% { opacity: 1; transform: none; max-height: 2em; } }
 .g-hint { position: absolute; left: 20px; right: 0; top: 44px; height: 0; border-top: 1px dashed var(--ink); animation: g-hint 4.8s ease infinite; }
 .g-hint b { position: absolute; right: 6px; top: -10px; padding: 0 6px; font: 400 10px/18px var(--f-ui); background: var(--ink); color: var(--sheet); }
 @keyframes g-hint { 0%, 24% { opacity: 0; } 30%, 46% { opacity: 1; } 52%, 100% { opacity: 0; } }
@@ -207,7 +208,8 @@ body:not([data-step="write"]) #guide-open { display: none; }
 .write-bar .tb-acts .tb-act { min-width: 0; padding: 0 14px; }
 .write-bar .tb-side > * { max-width: 100%; }
 /* 발행 단계 하단바: 오른쪽에 발행 상태 */
-.publish-bar { flex: none; display: flex; align-items: center; min-height: 52px; padding: 6px var(--gut) calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--sheet); min-width: 0; }
+.publish-bar { flex: none; display: flex; align-items: center; min-height: 64px; padding: 0 var(--gut) calc(10px + env(safe-area-inset-bottom, 0px)); min-width: 0; }
+.publish-bar:has(> .publication-strip[hidden]) { display: none; }
 @media (min-width: 1001px) {
   .tune-bar.write-bar { position: relative; left: auto; right: auto; bottom: auto; flex: none; padding: 0 var(--gut) 10px; }
 }

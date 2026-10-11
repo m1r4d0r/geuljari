@@ -99,35 +99,43 @@
   </section>
   <section class="step publish" id="s-publish" aria-labelledby="publish-heading" hidden>
     <div class="publish-scroll"><div class="publish-sheet">
-      <p class="k">03 / 글의 자리</p>
-      <h1 id="publish-heading">글에 주소를 놓아요.</h1>
-      <p class="publish-intro">지금 다듬은 모습 그대로, 하나의 링크에서 읽을 수 있어요.</p>
-      <ol class="publish-guide">
-        <li><b>링크는 읽는 열쇠예요.</b><span>본문은 암호화해 보관해요. # 뒤까지 포함한 전체 링크를 가진 사람은 비밀번호 없이 읽을 수 있어요.</span></li>
-        <li><b>비밀번호는 고칠 때만 써요.</b><span>뷰어의 ‘작성자 수정’에서 비밀번호를 넣으면 편집실로 불러와요. 발행 관리에서 수정·게시 중단·삭제할 수 있어요.</span></li>
-      </ol>
+      <p class="k">03 / 발행</p>
+      <h1 id="publish-heading">글의 자리를 찾아요.</h1>
+      <p class="publish-intro" id="publish-intro">다듬은 모습 그대로 링크 하나에 놓아 둬요.</p>
+      <section id="publish-result" class="pub-result" aria-label="발행한 글 링크" hidden>
+        <label class="pub-field">전체 링크<input id="publish-url" readonly></label>
+        <div class="pub-actions"><button class="btn fill" id="publish-copy" type="button">링크 복사</button><a class="btn" id="publish-visit" target="_blank" rel="noopener noreferrer">글 열기</a></div>
+        <h2 class="pub-keep">링크와 비밀번호 남겨 두기</h2>
+        <p class="pub-note">비밀번호는 이 화면을 닫으면 다시 볼 수 없어요.</p>
+        <div class="pub-actions"><button class="btn" id="publish-share" type="button" hidden>보내기</button><button class="btn" id="publish-copy-all" type="button">텍스트 복사</button><button class="btn" id="publish-download" type="button">글 파일 받기</button></div>
+      </section>
+      <dl class="pub-keys" aria-label="링크와 비밀번호">
+        <div class="pub-key">
+          <dt><b>링크</b><span>읽는 열쇠</span></dt>
+          <dd>
+            <p class="pub-url k" aria-hidden="true">geuljari.netlify.app/t/<i>글</i><em>#<i>열쇠</i></em></p>
+            <ul><li># 뒤까지 한 덩어리예요. 전체 링크를 가진 사람만 읽어요.</li><li>본문은 이 브라우저에서 잠근 채로 보관돼요. 서버도 열어 볼 수 없어요.</li></ul>
+          </dd>
+        </div>
+        <div class="pub-key">
+          <dt><b>비밀번호</b><span>고치는 열쇠</span></dt>
+          <dd><ul><li>읽는 사람에게는 필요 없어요.</li><li>글을 고치거나 닫거나 지울 때 써요.</li><li>읽기 화면의 ‘작성자 수정’이나 편집의 ‘불러오기’에 넣어요.</li><li>잊으면 되찾을 수 없어요.</li></ul></dd>
+        </div>
+      </dl>
       <form id="publish-form">
         <fieldset id="publish-fields">
           <label class="pub-field">공개 제목<input id="publish-title" maxlength="40" placeholder="제목 없는 글" autocomplete="off"></label>
-          <p class="pub-note">제목은 링크 미리보기에 공개돼요. 본문은 암호화해서 보관해요.</p>
+          <p class="pub-note">링크 미리보기에 보여요. 본문은 보이지 않아요.</p>
           <div id="publish-new">
             <label class="pub-field">작성자 비밀번호<input id="publish-password" type="text" minlength="4" maxlength="128" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>
-            <p class="pub-note">4자 이상이면 돼요. 독자는 비밀번호 없이 전체 링크로 읽어요.</p>
+            <p class="pub-note">4자 이상</p>
           </div>
-          <label class="pub-check"><input id="publish-live" type="checkbox" checked>링크를 가진 사람이 읽을 수 있게 발행해요.</label>
-          <p class="pub-note">발행을 중단해도 이미 읽거나 저장한 사본은 회수할 수 없어요.</p>
+          <label class="pub-check"><input id="publish-live" type="checkbox" checked>링크로 읽을 수 있게 열어 두기</label>
+          <p class="pub-note">닫아도 이미 읽거나 저장한 사본은 거둘 수 없어요.</p>
           <div class="pub-actions"><button class="btn fill" id="publish-submit" type="submit">이대로 발행하기</button><button class="link" id="publish-delete" type="button" hidden>글 삭제</button></div>
         </fieldset>
       </form>
       <p id="publish-message" class="pub-message" role="status" aria-live="polite"></p>
-      <section id="publish-result" class="pub-result" aria-label="발행한 글 링크" hidden>
-        <h2>글의 자리가 생겼어요.</h2>
-        <label class="pub-field">전체 링크<input id="publish-url" readonly></label>
-        <p class="pub-note"># 뒤의 열쇠까지 함께 보내 주세요. 전체 링크를 가진 사람은 글을 읽을 수 있어요.</p>
-        <div class="pub-actions"><button class="btn" id="publish-copy" type="button">링크 복사</button><a id="publish-visit" target="_blank" rel="noopener noreferrer">글 열기 ↗</a></div>
-        <h3 class="pub-keep">링크와 비밀번호 남겨 두기</h3>
-        <div class="pub-actions"><button class="btn" id="publish-share" type="button" hidden>보내기</button><button class="btn" id="publish-copy-all" type="button">텍스트 복사</button><button class="btn" id="publish-download" type="button">글 파일 받기</button></div>
-      </section>
     </div></div>
     <footer class="bar publish-bar">
       <span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span>

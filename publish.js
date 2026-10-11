@@ -23,7 +23,7 @@
       $('publish-new').hidden = !!active;
       $('publish-password').required = !active;
       $('publish-delete').hidden = !active;
-      $('publish-submit').textContent = active ? '변경 내용 저장' : '이대로 발행하기';
+      $('publish-submit').textContent = active ? '고친 내용 저장' : '이대로 발행하기';
       $('publish-result').hidden = !active;
       // 발행 상태는 편집·발행 하단바 오른쪽에 같은 모양으로 보여요.
       const label = active ? `${active.record.live ? '발행 중' : '발행 중단'} · ${active.record.title || '제목 없는 글'} · ${new Date(active.record.updatedAt).toLocaleDateString('ko-KR')}` : '';
@@ -31,8 +31,13 @@
       if (active) {
         $('publish-url').value = link(active); $('publish-visit').href = link(active);
         $('publish-visit').hidden = !active.record.live;
-        $('publish-result').querySelector('h2').textContent = active.record.live ? '글의 자리가 생겼어요.' : '글을 보관하고 있어요.';
       }
+      // 머리말은 지금 상태를 말해요: 아직 · 자리를 찾음 · 닫아 둠
+      const live = active && active.record.live;
+      $('publish-heading').textContent = !active ? '글의 자리를 찾아요.' : live ? '글이 자리를 찾았어요.' : '글이 자리에서 쉬고 있어요.';
+      $('publish-intro').textContent = !active ? '다듬은 모습 그대로 링크 하나에 놓아 둬요.'
+        : live ? '아래 링크로 읽을 수 있어요. 글을 고친 뒤 저장하면 같은 링크에 바로 반영돼요.'
+        : '지금은 아무도 읽을 수 없어요. 다시 열려면 아래에서 열어 두기를 고르고 저장해 주세요.';
     }
     function lock(on) {
       busy = on;
@@ -50,7 +55,7 @@
     document.querySelectorAll('.publication-manage').forEach(b => { b.onclick = ctx.manage; });
     $('publish-form').onsubmit = async e => {
       e.preventDefault(); if (busy) return;
-      lock(true); $('publish-message').textContent = '글을 암호화해서 보관하고 있어요.';
+      lock(true); $('publish-message').textContent = '글을 잠가서 자리에 놓고 있어요.';
       try {
         const snapshot = structuredClone(ctx.snapshot()), live = $('publish-live').checked;
         const password = active ? active.password : $('publish-password').value;
@@ -63,9 +68,12 @@
         const target = active || pending;
         const sealed = active ? await C.seal(snapshot, target.id, target.key) : pending.sealed;
         const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, password, revision:active?.record.revision });
+        const first = !active;
         active = { id:target.id, key:target.key, password, record }; pending = null;
         $('publish-password').value = '';
-        render(); $('publish-message').textContent = live ? '저장했어요. 아래에서 링크와 비밀번호를 남겨 두세요.' : '저장했어요. 지금은 다른 사람이 읽을 수 없어요.';
+        render();
+        // 처음 발행하면 맨 위에 생긴 링크 면으로 올라가요.
+        if (first) document.querySelector('.publish-scroll').scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); $('publish-message').textContent = live ? '저장했어요. 링크와 비밀번호를 남겨 두세요.' : '저장했어요. 지금은 닫혀 있어요.';
       } catch (err) { $('publish-message').textContent = err.message; }
       finally { lock(false); }
     };

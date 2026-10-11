@@ -40,13 +40,13 @@ const fs = require('node:fs/promises');
       await pg.click('#src'); assert.equal(await pg.isVisible('.write-bar'),width>1000);
       await pg.locator('#src').blur(); await pg.evaluate(()=>document.activeElement.blur()); assert.equal(await pg.isVisible('.write-bar'),true);
       await pg.reload(); assert.ok((await pg.inputValue('#src')).length>0);
-      // 미리보기: 하단바 갈래. 글 상자를 한 번 누르면 글씨, 빈 바탕을 누르면 바탕
+      // 미리보기: 하단바 갈래. 글 상자를 한 번 누르면 글, 빈 바탕을 누르면 바탕
       await pg.click('[data-go=tune]');
       assert.equal(await pg.textContent('#s-tune .tb-cat'),'바탕');
       const frame=pg.frameLocator('#screen-main .frame.on');
       await frame.locator('.sheet.is-current .column').click({position:{x:8,y:8}});
-      await pg.waitForFunction(()=>document.body.dataset.tuneCat==='type');
-      assert.ok(await pg.locator('#s-tune .tb-val[data-key=font]').count()===1);
+      await pg.waitForFunction(()=>document.body.dataset.tuneCat==='text');
+      assert.ok(await pg.locator('#s-tune .tb-val[data-key=speed]').count()===1);
       await frame.locator('.sheet.is-current .scroll').click({position:{x:4,y:4}});
       await pg.waitForFunction(()=>document.body.dataset.tuneCat==='ground');
       await ctx.close(); console.log(`${width}×${height}: 머리 안내, 쓰는 법과 그 아래 집계, 편집 하단바·쓰는 동안 거둠, 저장·불러오기 유지, 누른 곳의 갈래 통과`);

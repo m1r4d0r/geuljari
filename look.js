@@ -229,7 +229,7 @@
     if (pg.kind === 'temp') {
       /* 떠오른 강조 글자는 젖은 먹으로 나와 잠깐 머문 뒤 마름 시간 동안 마른다(fx.js의 wet) */
       const wetHold = 1000 / speed;
-      const dry = T.DRY[s.dry] * 1000;
+      const dry = T.dryTime(s) * 1000;
       const wets = items.filter((it) => it.fx === 'rise');
       wets.forEach((it) => push(held(it.el, [
         { color: pal.wet, easing: 'linear' },
@@ -275,7 +275,7 @@
     const m = T.MOOD[word];
     const out = [];
     if (m.turn) out.push('넘김 ' + m.turn);
-    if (m.dry) out.push('마름 ' + T.DRY[m.dry] + '초');
+    if (m.dry) out.push('마름 ' + (T.DRY[m.dry] / T.PACE).toFixed(1) + '초');
     if (m.flow) out.push('흐름 ' + m.flow);
     if (m.speed != null) out.push('속도 ' + m.speed.toFixed(2) + '×');
     if (m.rest != null) out.push('쉼 ' + T.REST_NAMES[m.rest]);

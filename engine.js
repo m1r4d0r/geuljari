@@ -117,26 +117,28 @@
   const EM_OPEN = '{{';
   const EM_CLOSE = '}}';
   /*
-   * 쪽 표시 줄: 장면(라이트·다크, 예전 이름 낮·밤도 읽음)·바탕·넘김·글 자리를 :로 이어 적는다.
-   * [[다크]] · [[다크:오로라]] · [[다크:영사광:조리개]] · [[가운데]]
+   * 쪽 표시 줄: 장면(라이트·다크, 예전 이름 낮·밤도 읽음)·바탕·넘김·글 자리·글자 크기(크기110 = 110%)·글 상자 폭(폭30 = 30자)을 :로 이어 적는다.
+   * [[다크]] · [[다크:오로라]] · [[다크:영사광:조리개]] · [[가운데]] · [[크기120:폭24]]
    * 이 줄에서 새 쪽이 시작되고, 장면·바탕은 적지 않으면 앞 쪽을 따른다(장면이 바뀌고 바탕이 없으면 그 장면의 기본 바탕).
-   * 넘김과 자리는 그 쪽에만 걸린다.
+   * 넘김·자리·크기·폭은 그 쪽에만 걸린다.
    */
   const SCENES = { '밤': 'night', '낮': 'day', '라이트': 'day', '다크': 'night' };
   const GROUNDS = { '창빛': 'window', '원고지': 'wongoji', '잎그늘': 'leaf', '새벽': 'dawn', '편지지': 'letter', '오로라': 'aurora', '영사광': 'projector', '빛커튼': 'drape', '물빛': 'caustic', '타자': 'typing' };
   const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash', '잠수': 'dive', '먹자국': 'ink', '글리치': 'glitch', '피어남': 'bloom' };
   const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };
-  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES)].join('|');
+  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES), '크기\\d{2,3}', '폭\\d{2}'].join('|');
   const MARK_BODY = `(?:${MARK_WORD})(?:\\s*[:·]\\s*(?:${MARK_WORD}))*`;
   const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(${MARK_BODY})\\]\\][^\\S\\n]*$`);
   const SCENE_LINES_RE = new RegExp(`^[^\\S\\n]*\\[\\[${MARK_BODY}\\]\\][^\\S\\n]*$`, 'gm');
 
-  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn, place}로 읽는다(없는 것은 null) */
+  /* 쪽 표시 줄 안쪽 글을 {scene, ground, turn, place, size(배율), measure(자)}로 읽는다(없는 것은 null) */
   function readMark(body) {
     const parts = String(body).split(/\s*[:·]\s*/);
     const pick = (map) => { const k = parts.find((x) => map[x]); return k ? map[k] : null; };
-    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS), place: pick(PLACES) };
+    const num = (re) => { const m = parts.map((x) => x.match(re)).find(Boolean); return m ? Number(m[1]) : null; };
+    const size = num(/^크기(\d{2,3})$/);
+    return { scene: pick(SCENES), ground: pick(GROUNDS), turn: pick(TURNS), place: pick(PLACES), size: size ? size / 100 : null, measure: num(/^폭(\d{2})$/) };
   }
   const PREFIX_RE = new RegExp(`^(${HEAD_SRC}):`);
   const MARKS_RE = new RegExp(`(\\{\\{(?:${HEAD_SRC}):|\\{\\{|\\}\\}|\\[\\[${MARK_BODY}\\]\\])`);
@@ -465,7 +467,7 @@
           const mk = readMark(m[1]);
           scene = mk.scene;
           ground = mk.ground;
-          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, place: mk.place, text: m[0].trim() });
+          rows.push({ sceneMark: mk.scene || 'same', scene: mk.scene, ground: mk.ground, turn: mk.turn, place: mk.place, size: mk.size, measure: mk.measure, text: m[0].trim() });
           return;
         }
         const line = parseLine(rl);
@@ -499,7 +501,8 @@
     parsed.paragraphs.forEach((para) => {
       const marks = para.rows.filter((r) => r.sceneMark);
       const mark = marks.length ? marks.reduce((a, r) => ({
-        scene: r.scene || a.scene, ground: r.ground || a.ground, turn: r.turn || a.turn, place: r.place || a.place
+        scene: r.scene || a.scene, ground: r.ground || a.ground, turn: r.turn || a.turn, place: r.place || a.place,
+        size: r.size || a.size, measure: r.measure || a.measure
       }), {}) : null;
       if (mark) pending = mark;
       if (para.sceneOnly) {
@@ -509,6 +512,8 @@
       if (!cur || para.pageStart || mark) {
         let turn = null;
         let place = null;
+        let size = null;
+        let measure = null;
         if (pending) {
           if (pending.scene) {
             ground = pending.ground || (pending.scene !== scene ? DEFAULT_GROUND[pending.scene] : ground);
@@ -516,9 +521,11 @@
           } else if (pending.ground) ground = pending.ground;
           turn = pending.turn || null;
           place = pending.place || null;
+          size = pending.size || null;
+          measure = pending.measure || null;
           pending = null;
         }
-        cur = { paragraphs: [], scene, ground, turn, place, count: 0 };
+        cur = { paragraphs: [], scene, ground, turn, place, size, measure, count: 0 };
         out.push(cur);
       }
       cur.paragraphs.push(para);

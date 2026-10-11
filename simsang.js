@@ -36,7 +36,7 @@
     const para = E.parse(text).paragraphs[0];
     if (!para) return;
     T.flowCells(para, settings);
-    stage.style.setProperty('--dry', T.DRY[settings.dry] + 's');
+    stage.style.setProperty('--dry', T.dryTime(settings) + 's');
     const inner = document.createElement('div');
     stage.append(inner);
     const built = G.buildParagraph(para, inner);

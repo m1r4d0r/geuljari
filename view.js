@@ -44,12 +44,15 @@
   }
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:style') return;
-    look(T.normalize(e.data.settings));
+    const v = T.normalize(e.data.settings);
+    look(v);
+    /* 전환 속도는 다음 넘김부터 */
+    if (window.GeulReaderOpts) window.GeulReaderOpts.turnPace = T.turnPace(v);
     if (window.GeulFx) window.GeulFx.recolor();
     window.dispatchEvent(new Event('resize'));
   });
-  window.GeulReaderOpts = { turn: T.TURNS[s.turn] };
-  document.documentElement.style.setProperty('--dry', T.DRY[s.dry] + 's');
+  window.GeulReaderOpts = { turn: T.TURNS[s.turn], turnPace: T.turnPace(s) };
+  document.documentElement.style.setProperty('--dry', T.dryTime(s) + 's');
   if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');
 
   const holder = document.getElementById('glog-text');
@@ -187,6 +190,16 @@
       return;
     }
     tell({ type: 'geulgyeol:tap', on: col ? 'box' : 'ground' });
+  });
+
+  /* 쪽마다 글자 크기·글 상자 폭: 편집실이 바꾸면 그 장에 바로 건다(다시 쓰지 않음) */
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:sheet') return;
+    const sheet = document.querySelector(`.sheet[data-i="${Number(e.data.page)}"]`);
+    if (!sheet) return;
+    if (e.data.size) sheet.style.setProperty('--page-k', String(e.data.size)); else sheet.style.removeProperty('--page-k');
+    if (e.data.measure) sheet.style.setProperty('--page-m', e.data.measure + 'em'); else sheet.style.removeProperty('--page-m');
+    window.dispatchEvent(new Event('resize'));
   });
 
   /* 편집실 하단바가 미리보기 위에 겹치는 높이만큼 눈금·기다림 표시를 올린다 */

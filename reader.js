@@ -113,6 +113,9 @@
       sheet.dataset.ground = pg.ground;
       sheet.dataset.i = String(i);
       sheet.setAttribute('aria-hidden', 'true');
+      /* 쪽 표시의 글자 크기·글 상자 폭(그 쪽에만) */
+      if (pg.size) sheet.style.setProperty('--page-k', String(pg.size));
+      if (pg.measure) sheet.style.setProperty('--page-m', pg.measure + 'em');
       const scroll = document.createElement('div');
       scroll.className = 'scroll';
       const column = document.createElement('div');
@@ -341,13 +344,19 @@
     if (tw) { tw.cancel(); tw = null; }
   }
 
-  /* 넘김의 시간과 곡선. flip.js가 정한 값을 쓰고, 없으면 반전은 빛 170 · 휙 640 · 빛 빠짐 260, 스밈은 760 */
+  /*
+   * 넘김의 시간과 곡선. flip.js가 정한 값을 쓰고, 없으면 반전은 빛 170 · 휙 640 · 빛 빠짐 260, 스밈은 760.
+   * 시간은 전환 속도(GeulReaderOpts.turnPace, 클수록 빠름)로 나눈다. 편집실이 바꾸면 다음 넘김부터 따른다.
+   */
   function timingOf(mode) {
     const t = typeof F.timing === 'function' ? F.timing(mode) : null;
-    if (t && t.run > 0) return { lead: t.lead || 0, run: t.run, tail: t.tail || 0, ease: t.ease || M.ease.inOut };
-    return mode === 'drift'
-      ? { lead: 0, run: 760, tail: 0, ease: M.ease.inOut }
-      : { lead: 170, run: 640, tail: 260, ease: M.ease.swing };
+    const base = t && t.run > 0
+      ? { lead: t.lead || 0, run: t.run, tail: t.tail || 0, ease: t.ease || M.ease.inOut }
+      : mode === 'drift'
+        ? { lead: 0, run: 760, tail: 0, ease: M.ease.inOut }
+        : { lead: 170, run: 640, tail: 260, ease: M.ease.swing };
+    const k = Number(OPTS.turnPace) > 0 ? Number(OPTS.turnPace) : 1;
+    return { lead: base.lead / k, run: base.run / k, tail: base.tail / k, ease: base.ease };
   }
 
   /*

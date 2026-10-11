@@ -1,5 +1,5 @@
 /* 미리보기 하단바(쪽 다듬기)와 그 자리 고치기를 PC·폰 크기에서 확인해요.
-   갈래 고르기, 쪽 표시로 들어가는 바탕·전환·자리, 움직임 '다시 보기' 표시, 바로 흐름,
+   갈래 고르기(바탕·글 둘), 쪽 표시로 들어가는 바탕·전환·쪽별 크기, 전환 속도, '다시 보기' 표시, 바로 흐름,
    두 번 눌러 고치기(강조·꾸밈·색 → 본문 표시, X는 되돌림, 체크는 남김), X·체크가 글 상자 선에 딱 붙는지, 눈금 네모. */
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
@@ -41,8 +41,17 @@ const fs = require('node:fs/promises');
       await pg.click('#s-tune .tb-val[data-key=ground]'); await pg.click('#tb-drop-ground .tb-li:has-text("원고지")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('원고지'));
 
-      // 움직임: 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
-      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("움직임")');
+      // 바탕의 전환 속도: 글 전체 값, 다시 쓰지 않음
+      assert.equal(await pg.locator('#s-tune .tb-cat-item').count(), 1);
+      await pg.click('#s-tune .tb-val[data-key=turnSpeed]');
+      await pg.locator('#tb-drop-turnSpeed input').evaluate((n) => { n.value = '1.3'; n.dispatchEvent(new Event('input', { bubbles: true })); });
+      await pg.keyboard.press('Escape');
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).settings.turnSpeed === 1.3);
+      // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
+      await pg.click('#s-tune .tb-cat');
+      assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글']);
+      await pg.click('#s-tune .tb-cat-item .tb-li:has-text("글")');
+      assert.equal(await pg.locator('#s-tune .tb-val[data-key=place], #s-tune .tb-val[data-key=font], #s-tune .tb-val[data-key=rest], #s-tune .tb-val[data-key=dry]').count(), 0);
       await pg.click('#s-tune .tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');
       assert.equal(await pg.textContent('#s-tune .tb-val[data-key=flow] .tb-label'), '바로');
       assert.ok(await pg.locator('#replay.due').count() === 1);
@@ -52,14 +61,19 @@ const fs = require('node:fs/promises');
       frame = pg.frameLocator('#screen-main .frame.on');
       assert.equal(await frame.locator('.sheet.is-current .ch.pending').count(), 0, '바로: 다 놓임');
 
-      // 글씨: 첫 쪽으로 돌아가 자리를 고름
+      // 글: 첫 쪽으로 돌아가 그 쪽 글자 크기만 키움(쪽 표시로)
       await frame.locator('#dots .dot').first().click();
       await frame.locator('#dots .dot[aria-current="true"]').first().evaluate(() => 0);
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 0);
       await frame.locator('.sheet.is-current .column').click({ position: { x: 6, y: 6 } });
-      await pg.waitForFunction(() => document.body.dataset.tuneCat === 'type');
-      await pg.click('#s-tune .tb-val[data-key=place]'); await pg.click('#tb-drop-place .tb-li:has-text("가운데")');
-      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('가운데]]'));
+      await pg.waitForFunction(() => document.body.dataset.tuneCat === 'text');
+      await pg.click('#s-tune .tb-val[data-key=size]');
+      await pg.locator('#tb-drop-size input').evaluate((n) => { n.value = '1.2'; n.dispatchEvent(new Event('input', { bubbles: true })); });
+      await pg.keyboard.press('Escape');
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.startsWith('[[크기120]]'));
+      frame = pg.frameLocator('#screen-main .frame.on');
+      assert.equal(await frame.locator('.sheet[data-i="0"]').evaluate((n) => n.style.getPropertyValue('--page-k')), '1.2');
+      assert.equal(await frame.locator('.sheet[data-i="1"]').evaluate((n) => n.style.getPropertyValue('--page-k')), '');
 
       // 두 번 눌러 고치기
       frame = pg.frameLocator('#screen-main .frame.on');
@@ -100,7 +114,7 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(() => document.body.dataset.tuneCat !== 'pick');
       assert.ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await ctx.close();
-      console.log(`${width}×${height}: 갈래·바탕·전환·자리, 움직임 다시 보기·바로, 두 번 눌러 고치기·X·체크, 눈금 통과`);
+      console.log(`${width}×${height}: 갈래 둘·바탕·전환·전환 속도·쪽별 크기, 다시 보기·바로, 두 번 눌러 고치기·X·체크, 눈금 통과`);
     }
     assert.deepEqual(errors, []);
   } finally { await browser?.close(); await close(); }

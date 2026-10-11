@@ -2,13 +2,13 @@
  * 글결 미리보기 하단바(쪽 다듬기)
  * 미리보기 아래 한 줄에 갈래 단추 하나와 그 갈래의 값 단추들을 둔다. 값 단추를 누르면 같은 폭의 판이 단추에 붙어 펼쳐지고
  * (PC는 위로, 폰은 오른쪽으로 한 줄), 한 번에 하나만 열린다. 지금 값이 단추에서 가장 가깝다.
- * - 바탕: 지금 쪽의 장면(라이트·다크, 둘째 쪽부터는 그 쪽부터 반전)·바탕·전환(이 쪽으로 넘어올 때).
- * - 움직임: 나타나는 결·속도·쉼·마름. '다시 보기'를 눌러야 움직임으로 보인다.
- * - 글씨: 글 자리(지금 쪽)·글꼴·크기·정렬·글 상자 폭(PC). 다시 쓰지 않고 바로 바뀐다.
+ * - 바탕: 지금 쪽의 장면(라이트·다크, 둘째 쪽부터는 그 쪽부터 반전)·바탕·전환(이 쪽으로 넘어올 때)·전환 속도(글 전체, 다음 넘김부터).
+ * - 글: 나타나는 결·속도(쓰는 빠르기·쉼·마름이 함께, '다시 보기'를 눌러야 보임)·이 쪽의 글자 크기·정렬·이 쪽의 글 상자 폭(PC).
+ *   크기·폭은 그 쪽 표시(크기110·폭30)로 들어가고 다시 쓰지 않고 바로 바뀐다. 글 자리는 글 상자를 끌어 옮기고, 글꼴은 편집 단계에서 고른다.
  * - 끝 장에 있으면 갈래가 끝 장(장면·바탕)과 카드(크기·폭·정렬·편집 제목으로)로 바뀐다.
  * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 강조(등장·머묾)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
- * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글씨' 갈래가 먼저 열린다(hint).
- * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마·글. 전역 GeulPanels.
+ * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint).
+ * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마. 전역 GeulPanels.
  */
 (function (global) {
   'use strict';
@@ -25,7 +25,7 @@
     return n;
   }
 
-  const CATS = { ground: '바탕', motion: '움직임', type: '글씨', end: '끝 장', card: '카드' };
+  const CATS = { ground: '바탕', text: '글', end: '끝 장', card: '카드' };
   const CARD_ALIGN = { left: '왼쪽', center: '가운데', right: '오른쪽' };
   const opt = (v, label, extra) => Object.assign({ v, label: label == null ? String(v) : label }, extra);
   const num = (v) => (Math.round(v * 100) / 100).toFixed(Math.round(v * 100) % 10 ? 2 : 1);
@@ -219,7 +219,8 @@
    * ctx: get() 본문, set(text) 본문 바꾸기, head(), settings(), setSettings(part), page() 지금 쪽(0부터),
    *      show(start) 다 쓴 모습으로 바로 보이기, wide() 넓은 틀(PC)을 보고 있는지, atEnd() 끝 장에 있는지,
    *      ending() 끝 장의 {scene, ground, text, size, width, align…}, setEnding(part) 끝 장의 장면·바탕 바꾸기(그 화면을 다시 보인다),
-   *      setCard(part) 카드 문구·배치 바꾸기(다시 그리지 않음), ip(cmd) 고치는 중인 글 상자에 고른 것을 보내기
+   *      setCard(part) 카드 문구·배치 바꾸기(다시 그리지 않음), setPageLook(k, {size, measure}) 그 쪽의 크기(%)·폭(자, 0은 저절로),
+   *      ip(cmd) 고치는 중인 글 상자에 고른 것을 보내기
    */
   function mount(root, ctx) {
     let cat = 'ground';
@@ -272,12 +273,25 @@
           }
         });
       }
+      vals.push({
+        key: 'turnSpeed', title: '전환 속도', label: `속도 ${num(st.turnSpeed)}×`, range: {
+          min: 0.7, max: 1.5, step: 0.05, value: st.turnSpeed,
+          shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.setSettings({ turnSpeed: v })
+        }
+      });
       return vals;
     }
 
-    function motionVals() {
+    /* 글: 나타나는 결, 속도(쓰는 빠르기·쉼·마름이 함께), 그리고 이 쪽의 글자 크기·글 상자 폭(쪽 표시), 정렬 */
+    function textVals() {
+      const all = pages();
+      const k = Math.min(ctx.page(), all.length - 1);
+      const pg = all[k];
       const st = ctx.settings();
-      return [{
+      const size = pg.size || st.size;
+      const measure = pg.measure || st.measure;
+      const w = (v) => (v < 14 ? '저절로' : v + '자');
+      const vals = [{
         key: 'flow', title: '나타나는 결', label: st.flow, current: st.flow,
         options: T.FLOW_NAMES.map((v) => opt(v)),
         pick: (v) => ctx.setSettings({ flow: v })
@@ -287,52 +301,21 @@
           shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.setSettings({ speed: v })
         }
       }, {
-        key: 'rest', title: '띄어 쓴 쉼', label: '쉼 ' + T.REST_NAMES[st.rest], current: st.rest,
-        options: T.REST_NAMES.map((n, i) => opt(i, n)),
-        pick: (v) => ctx.setSettings({ rest: v })
-      }, {
-        key: 'dry', title: '마름', label: '마름 ' + st.dry, current: st.dry,
-        options: T.DRY_NAMES.map((v) => opt(v)),
-        pick: (v) => ctx.setSettings({ dry: v })
-      }];
-    }
-
-    function typeVals() {
-      const all = pages();
-      const k = Math.min(ctx.page(), all.length - 1);
-      const st = ctx.settings();
-      const vals = [];
-      if (groundName(all[k].ground) !== '원고지') {
-        const own = S.pageMark(ctx.get(), k, 'place') || '';
-        vals.push({
-          key: 'place', title: '글 자리', label: '자리 ' + (own || '저절로'), current: own,
-          options: [opt('', '저절로'), opt('왼쪽'), opt('가운데'), opt('오른쪽')],
-          pick(v) {
-            ctx.set(S.setPageMark(ctx.get(), k, 'place', v || null));
-            ctx.show({ page: k, done: true });
-          }
-        });
-      }
-      vals.push({
-        key: 'font', title: '글꼴', label: st.font, current: st.font, font: T.FONTS[st.font].css,
-        options: T.FONT_NAMES.map((v) => opt(v, v, { font: T.FONTS[v].css })),
-        pick: (v) => ctx.setSettings({ font: v })
-      }, {
-        key: 'size', title: '글자 크기', label: `크기 ${Math.round(st.size * 100)}%`, range: {
-          min: 0.8, max: 1.5, step: 0.05, value: st.size,
-          shown: (v) => `${Math.round(v * 100)}%`, label: (v) => `크기 ${Math.round(v * 100)}%`, input: (v) => ctx.setSettings({ size: v })
+        key: 'size', title: '이 쪽 글자 크기', label: `크기 ${Math.round(size * 100)}%`, range: {
+          min: 0.8, max: 1.5, step: 0.05, value: size,
+          shown: (v) => `${Math.round(v * 100)}%`, label: (v) => `크기 ${Math.round(v * 100)}%`,
+          input: (v) => ctx.setPageLook(k, { size: Math.round(v * 100) })
         }
       }, {
         key: 'align', title: '정렬', label: '정렬 ' + st.align, current: st.align,
         options: T.ALIGN_NAMES.map((v) => opt(v)),
         pick: (v) => ctx.setSettings({ align: v })
-      });
+      }];
       if (ctx.wide()) {
-        const w = (v) => (v < 14 ? '저절로' : v + '자');
         vals.push({
-          key: 'measure', title: '글 상자 폭', label: '폭 ' + w(st.measure || 12), range: {
-            min: 12, max: 44, step: 1, value: st.measure || 12,
-            shown: w, label: (v) => '폭 ' + w(v), input: (v) => ctx.setSettings({ measure: v < 14 ? 0 : v })
+          key: 'measure', title: '이 쪽 글 상자 폭', label: '폭 ' + w(measure || 12), range: {
+            min: 12, max: 44, step: 1, value: measure || 12,
+            shown: w, label: (v) => '폭 ' + w(v), input: (v) => ctx.setPageLook(k, { measure: v < 14 ? 0 : v })
           }
         });
       }
@@ -405,9 +388,9 @@
 
     function vals() {
       if (edit) return pickVals();
-      return ({ ground: groundVals, motion: motionVals, type: typeVals, end: endVals, card: cardVals })[cat]();
+      return ({ ground: groundVals, text: textVals, end: endVals, card: cardVals })[cat]();
     }
-    const cats = () => (ctx.atEnd() ? ['end', 'card'] : ['ground', 'motion', 'type']);
+    const cats = () => (ctx.atEnd() ? ['end', 'card'] : ['ground', 'text']);
 
     const ui = bar(root, {
       head() {
@@ -434,7 +417,7 @@
       hint(on) {
         if (edit) return;
         ui.shut();
-        cat = ctx.atEnd() ? (on === 'box' ? 'card' : 'end') : on === 'box' ? 'type' : 'ground';
+        cat = ctx.atEnd() ? (on === 'box' ? 'card' : 'end') : on === 'box' ? 'text' : 'ground';
         render();
       },
       editing(on) { edit = on ? { sel: null } : null; ui.shut(); render(); },

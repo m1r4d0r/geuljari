@@ -330,7 +330,7 @@
   /* ---------- 미리보기 ---------- */
 
   const stage = $('stage');
-  const LIVE = ['font', 'size', 'measure', 'align', 'theme'];
+  const LIVE = ['font', 'size', 'measure', 'align', 'theme', 'turnSpeed'];
   const MOTION = ['flow', 'speed', 'rest', 'dry', 'turn'];
   let pvN = 0;
 
@@ -693,6 +693,17 @@
     postAll({ type: 'geulgyeol:ending', ending: st.ending });
   }
 
+  /* 쪽마다 글자 크기·글 상자 폭: 그 쪽 표시에 적고, 미리보기 장에는 다시 쓰지 않고 바로 건다. 글 전체 값과 같으면 표시를 뺀다 */
+  function setPageLook(k, part) {
+    let t = st.source;
+    if ('size' in part) t = S.setPageMark(t, k, 'size', part.size && part.size !== Math.round(st.settings.size * 100) ? part.size : null);
+    if ('measure' in part) t = S.setPageMark(t, k, 'measure', part.measure && part.measure !== st.settings.measure ? part.measure : null);
+    setSource(t);
+    handOff();
+    const pg = allPages()[k] || {};
+    postAll({ type: 'geulgyeol:sheet', page: k, size: pg.size || null, measure: pg.measure || null });
+  }
+
   const panels = P.mount($('tune-tools'), {
     get: () => st.source,
     set(text) { setSource(text); },
@@ -706,6 +717,7 @@
     ending: () => st.ending,
     setEnding,
     setCard,
+    setPageLook,
     ip: (cmd) => post(main, Object.assign({ type: 'geulgyeol:ip' }, cmd))
   });
   panels.onState = () => {

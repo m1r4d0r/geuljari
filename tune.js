@@ -5,7 +5,8 @@
  *   글자 크기(배율), 글 상자 폭(PC, 0이면 저절로), 정렬(저절로·왼쪽·가운데·오른쪽·양쪽), 주색(테마).
  * 심상은 반대말 세 쌍(축)이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
  *   온도 → 넘김·마름 / 물기 → 흐름 / 숨 → 속도·쉼
- * 속도는 흐름·블록·효과 움직임의 시간을 함께 늘이고 줄인다(docs/효과-규칙.md). 넘김은 속도와 상관없다.
+ * 속도는 흐름·블록·효과 움직임의 시간과 띄어 쓴 쉼·마르는 시간을 함께 늘이고 줄인다(docs/효과-규칙.md).
+ * 넘김은 따로 전환 속도(turnSpeed)를 따른다. 둘 다 화면의 1.0×가 엔진 기본보다 조금 빠르다(PACE·TURN_PACE).
  * 전역 GeulTune.
  */
 (function (global) {
@@ -36,6 +37,9 @@
   const REST_MS = [200, 320, 460, 620];
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
   const DRY = { '빨리': 0.9, '보통': 1.8, '느리게': 3.2 };
+  /* 화면의 속도 1.0×가 엔진 기본보다 이만큼 빠르다. 전환(넘김)도 같은 식 */
+  const PACE = 1.15;
+  const TURN_PACE = 1.2;
   const DRY_NAMES = Object.keys(DRY);
   const GROUNDS = { '라이트': ['창빛', '원고지', '잎그늘', '새벽', '편지지', '오로라'], '다크': ['영사광', '빛커튼', '물빛', '타자', '편지지', '오로라'] };
   const OLD_SCENE = { '낮': '라이트', '밤': '다크' };
@@ -74,7 +78,7 @@
   function defaults() {
     return {
       flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', dry: '보통', turn: '쓸기', font: '송명',
-      size: 1, measure: 0, align: '저절로', theme: '남보라'
+      size: 1, measure: 0, align: '저절로', theme: '남보라', turnSpeed: 1
     };
   }
 
@@ -84,6 +88,7 @@
     const o = Object.assign(d, s || {});
     if (!(o.flow in FLOWS)) o.flow = d.flow;
     o.speed = clamp(Number(o.speed) || 1, 0.5, 1.6);
+    o.turnSpeed = clamp(Number(o.turnSpeed) || 1, 0.6, 1.6);
     o.rest = clamp(Math.round(Number(o.rest)), 0, REST_MS.length - 1);
     if (OLD_SCENE[o.scene]) o.scene = OLD_SCENE[o.scene];
     if (!GROUNDS[o.scene]) o.scene = '라이트';
@@ -117,7 +122,7 @@
    */
   function fromMoods(words, keep) {
     const s = defaults();
-    if (keep) ['scene', 'ground', 'font', 'size', 'measure', 'align', 'theme'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
+    if (keep) ['scene', 'ground', 'font', 'size', 'measure', 'align', 'theme', 'turnSpeed'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
     oneEach(words).forEach((w) => {
       const m = MOOD[w];
       ['flow', 'speed', 'rest', 'dry', 'turn'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
@@ -153,7 +158,7 @@
       base = { time: Object.assign({}, E.TIME), enter: Object.assign({}, E.ENTER), blocks: {} };
       Object.keys(E.BLOCKS).forEach((k) => { base.blocks[k] = Object.assign({}, E.BLOCKS[k]); });
     }
-    const k = s.speed;
+    const k = s.speed * PACE;
     PACED.forEach((n) => { E.TIME[n] = base.time[n] / k; });
     E.TIME.restPerSpace = REST_MS[s.rest] / Math.sqrt(k);
     Object.keys(base.enter).forEach((n) => { E.ENTER[n] = base.enter[n] / k; });
@@ -165,6 +170,11 @@
     });
     if (fx && fx.setPace) fx.setPace(k);
   }
+
+  /* 마르는 시간(초): 고른 마름을 속도에 맞춰 줄이고 늘인다 */
+  function dryTime(s) { return DRY[s.dry] / (s.speed * PACE); }
+  /* 넘김 시간을 나눌 값(클수록 빨리 넘김) */
+  function turnPace(s) { return (s.turnSpeed || 1) * TURN_PACE; }
 
   /* 흐름 효과: 엔진이 보통 글자에 붙인 fade·soft를 고른 효과로 바꾼다. 강조 블록과 흘러내림은 그대로 둔다. */
   function flowCells(para, s) {
@@ -253,6 +263,7 @@
   global.GeulTune = {
     AXES, WORDS, MOOD, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
+    PACE, TURN_PACE, dryTime, turnPace,
     defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -28,6 +28,24 @@ test('공개 PNG 검증: 형식·크기·손상·압축 폭탄 거부', () => {
   const bomb = Buffer.concat([original.subarray(0,33), chunk('IDAT',deflateSync(Buffer.alloc(4000000))), chunk('IEND',Buffer.alloc(0))]);
   assert.throws(() => imageFields({ogImage:bomb.toString('base64')}), {status:400});
 });
+function jpeg(width = 1200) {
+  const seg = (m, body) => { const b = Buffer.alloc(body.length + 4); b[0] = 0xff; b[1] = m; b.writeUInt16BE(body.length + 2, 2); body.copy(b, 4); return b; };
+  const sof = Buffer.alloc(15); sof[0] = 8; sof.writeUInt16BE(630, 1); sof.writeUInt16BE(width, 3); sof[5] = 3;
+  return Buffer.concat([Buffer.from([0xff,0xd8]), seg(0xe0, Buffer.from('JFIF\0')), seg(0xc0, sof), seg(0xda, Buffer.alloc(10)), Buffer.from([1,2,3,0xff,0xd9])]).toString('base64');
+}
+test('공개 JPEG: 크기 확인과 응답 형식', async () => {
+  assert.equal(imageFields({ogImage:jpeg()}).ogType,'jpg');
+  for (const image of [jpeg(1199), jpeg().slice(0,-8)]) assert.throws(() => imageFields({ogImage:image}), {status:400});
+  const store = memoryStore(), api = createHandler(() => store), image = createImageHandler(() => store);
+  const page = createReaderHandler(() => store, await readFile(new URL('../published.html',import.meta.url),'utf8'));
+  const id = 'jpegjpegjpegjpegjpegjp';
+  const r = await api(new Request('https://test.invalid/api/articles', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,password:'test-password',title:'그림',live:true,cipher:'A'.repeat(24),iv:'B'.repeat(16),ogImage:jpeg()})}));
+  assert.equal(r.status,201);
+  const hash = (await store.get(id)).ogHash, markup = await (await page(new Request(`https://test.invalid/t/${id}`))).text();
+  assert.ok(markup.includes(`/og/${id}/${hash}.jpg`)); assert.ok(markup.includes('image/jpeg'));
+  const res = await image(new Request(`https://test.invalid/og/${id}/${hash}.jpg`)); assert.equal(res.status,200); assert.equal(res.headers.get('content-type'),'image/jpeg');
+  assert.equal((await image(new Request(`https://test.invalid/og/${id}/${hash}.png`))).status,404);
+});
 test('공개 카드·HTML·변경·재시도·중단·삭제·구형 자료 호환', async () => {
   const store = memoryStore(), api = createHandler(() => store), image = createImageHandler(() => store);
   const page = createReaderHandler(() => store, await readFile(new URL('../published.html',import.meta.url),'utf8'));

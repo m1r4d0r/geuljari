@@ -284,12 +284,14 @@
     return c;
   }
 
-  function toBlob(c) {
+  function toBlob(c, type = 'image/png', quality) {
     return new Promise((resolve) => {
       if (!c.toBlob) { resolve(null); return; }
-      try { c.toBlob((b) => resolve(b), 'image/png'); } catch (e) { resolve(null); }
+      try { c.toBlob((b) => resolve(b && b.type === type ? b : null), type, quality); } catch (e) { resolve(null); }
     });
   }
+  /* 공유 그림은 JPEG: 바탕의 번짐이 PNG보다 훨씬 작게 담겨 미리보기 그림 크기 제한이 작은 곳(구버전 마스토돈 등)에서도 받는다 */
+  const OG_TYPE = 'image/jpeg', OG_QUALITY = 0.88;
 
   /* 캔버스를 img에 건다. 앞에 쓰던 주소는 새 그림이 뜬 뒤 거둔다 */
   async function show(img, c, st, slot) {
@@ -562,11 +564,11 @@
       position(st); st.look = readLook(sheet, card);
       const fonts = fontsFor(st.look, st.title, st.made.mark);
       await (fonts.late || fonts.ready);
-      const blob = await toBlob(drawCard(st, true));
+      const blob = await toBlob(drawCard(st, true), OG_TYPE, OG_QUALITY);
       if (!blob) throw new Error('카드 이미지를 만들지 못했어요. 다시 시도해 주세요.');
       return blob;
     } finally { sheet.remove(); }
   }
 
-  window.GeulEnding = { build, card, exportCard, W, H };
+  window.GeulEnding = { build, card, exportCard, W, H, OG_TYPE, OG_QUALITY };
 })();

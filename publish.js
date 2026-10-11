@@ -109,9 +109,9 @@
       const record = await api('/' + active.id, 'PUT', { id:active.id, title:fresh.title, cipher:fresh.cipher, iv:fresh.iv, live:open, ogImage, password:active.password, revision:fresh.revision });
       active.record = slim(record); keep(); render();
     }
-    // 발행 중인데 공유 이미지가 없는 글(이미지를 만들기 전에 놓인 글)은 이미지를 채워 넣어요.
+    // 발행 중인데 공유 그림이 없거나 큰 PNG로 놓인 글은 JPEG 그림으로 다시 채워 넣어요.
     async function heal(fresh) {
-      if (busy || !active || !fresh.live || fresh.ogHash) return;
+      if (busy || !active || !fresh.live || (fresh.ogHash && fresh.ogType === 'jpg')) return;
       lock(true);
       try { await putStored(fresh, true); ctx.notice('링크 미리보기 그림을 새로 만들었어요.'); }
       catch (err) { say(err.message); }

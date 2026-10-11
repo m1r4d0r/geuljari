@@ -38,11 +38,11 @@ const fileBtn = (pg, id) => pg.click(id);
     assert.ok(!JSON.stringify(await store.get(id)).includes('4821'));
     const firstRecord = await store.get(id);
     assert.equal(firstRecord.revision,1); assert.ok(firstRecord.ogImage);
-    const imageURL = r => `${origin}/og/${id}/${r.ogHash}.png`;
+    const imageURL = r => `${origin}/og/${id}/${r.ogHash}.${r.ogType || "png"}`;
     const firstImage = await fetch(imageURL(firstRecord)); assert.equal(firstImage.status,200);
-    const firstBytes = Buffer.from(await firstImage.arrayBuffer()); assert.equal(firstBytes.readUInt32BE(16),1200); assert.equal(firstBytes.readUInt32BE(20),630);
+    const firstBytes = Buffer.from(await firstImage.arrayBuffer()); assert.equal(firstImage.headers.get('content-type'),'image/jpeg'); assert.equal(firstBytes.readUInt16BE(0),0xffd8); assert.ok(firstBytes.length < 700000);
     const html = await (await fetch(link.split('#')[0])).text(); assert.ok(html.includes(imageURL(firstRecord))); assert.ok(!html.includes(key));
-    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-published.png',firstBytes);
+    await fs.mkdir('tests/out',{recursive:true}); await fs.writeFile('tests/out/og-published.jpg',firstBytes);
     // 텍스트 복사: 제목·링크·비밀번호 세 줄
     await context.grantPermissions(['clipboard-read','clipboard-write'],{origin});
     await pg.click('#publish-url'); assert.equal(await pg.evaluate(()=>navigator.clipboard.readText()),link);

@@ -26,52 +26,60 @@ const fs = require('node:fs/promises');
       assert.ok((await pg.locator('#src').boundingBox()).height>150);
       await pg.screenshot({path:`tests/out/refined-write-${width}.png`});
       await pg.click('[data-go=tune]');
-      if (width === 1280) {
-        const r=await pg.locator('#tab-toggle').boundingBox();
-        await pg.mouse.move(r.x+r.width/2,r.y+r.height/2); await pg.mouse.down();
-        await pg.mouse.move(r.x-40,r.y+r.height/2,{steps:5}); await pg.mouse.up();
-      } else await pg.click('#tab-toggle');
-      await pg.click('#tab-type');
-      assert.equal(await pg.getAttribute('#tab-type','aria-expanded'),'true');
-      await pg.screenshot({path:`tests/out/refined-drawer-${width}.png`});
-      await pg.click('#tabs-close'); assert.equal(await pg.isVisible('#tabs'),false);
-      await pg.click('#card-open');
+      // 하단바: 갈래 단추를 눌러 글씨로 바꾸고, 값 단추는 같은 폭의 판으로 펼쳐요.
+      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("글씨")');
+      assert.equal(await pg.textContent('.tb-cat .tb-label'),'글씨');
+      await pg.click('.tb-val[data-key=align]');
+      const [vb,db]=[await pg.locator('.tb-val[data-key=align]').boundingBox(), await pg.locator('#tb-drop-align').boundingBox()];
+      // PC: 같은 폭으로 단추 위에 붙음. 폰: 단추 오른쪽에 같은 높이로 붙음
+      if (width > 760) { assert.equal(Math.round(vb.width),Math.round(db.width)); assert.ok(Math.abs(db.y+db.height-vb.y)<1); }
+      else { assert.equal(Math.round(vb.height),Math.round(db.height)); assert.ok(Math.abs(db.x-(vb.x+vb.width))<1); }
+      await pg.screenshot({path:`tests/out/refined-bar-${width}.png`});
+      await pg.keyboard.press('Escape'); assert.equal(await pg.locator('.tb-drop').count(),0);
+      // 끝 장: 눈금 끝 네모를 누르면 갈래가 끝 장·카드로 바뀌어요.
       let frame=pg.frameLocator('#screen-main .frame.on');
+      await frame.locator('#dots .dot.fin').click();
+      frame=pg.frameLocator('#screen-main .frame.on');
       await frame.locator('.ending.is-current .end-full[src]').waitFor();
+      await pg.waitForFunction(()=>document.body.dataset.tuneCat==='end');
       const title=frame.getByRole('textbox',{name:'카드 문구'});
       assert.equal(await title.inputValue(),'밤에 쓰는 편지');
       await title.fill('그리고 잉크 한 방울이'); await title.press('Tab');
-      await frame.locator('.end-follow input').check();
+      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("카드")');
+      await pg.click('.tb-val[data-key=card-follow]');
+      await frame.locator('.end-title').evaluate(n=>new Promise(r=>setTimeout(r,50)));
       assert.equal(await title.inputValue(),'밤에 쓰는 편지');
       await title.fill('그리고 잉크 한 방울이'); await title.press('Tab');
-      await frame.locator('[data-card=size]').fill('64');
-      await frame.locator('[data-card=width]').fill('55');
-      await frame.locator('[data-card=x]').fill('20');
-      await frame.locator('[data-card=y]').fill('80');
-      await frame.locator('[data-card=align]').selectOption('left');
+      const slide=async(key,v)=>{ await pg.click(`.tb-val[data-key=${key}]`); await pg.locator(`#tb-drop-${key} input`).evaluate((n,v)=>{n.value=String(v);n.dispatchEvent(new Event('input',{bubbles:true}));},v); await pg.keyboard.press('Escape'); };
+      await slide('card-size',64); await slide('card-width',55);
+      await pg.click('.tb-val[data-key=card-align]'); await pg.click('#tb-drop-card-align .tb-li:has-text("왼쪽")');
       const move=frame.locator('.end-move');
+      const x0=()=>pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')).ending.x);
       if (width === 1280) {
         const r=await move.boundingBox();
         await pg.mouse.move(r.x+r.width/2,r.y+r.height/2); await pg.mouse.down();
         await pg.mouse.move(r.x+r.width/2+30,r.y+r.height/2-10,{steps:5}); await pg.mouse.up();
-        assert.ok(Number(await frame.locator('[data-card=x]').inputValue())>20);
-        await frame.locator('[data-card=x]').fill('20'); await frame.locator('[data-card=y]').fill('80');
+        await pg.waitForFunction(()=>JSON.parse(localStorage.getItem('geul.studio')).ending.x>50);
       }
+      await pg.waitForTimeout(300);
+      const before=await x0();
       await move.focus(); await move.press('ArrowRight');
-      await pg.waitForFunction(()=>JSON.parse(localStorage.getItem('geul.studio')).ending.x===22);
+      await pg.waitForFunction((b)=>JSON.parse(localStorage.getItem('geul.studio')).ending.x===Math.min(100,b+2),before);
       const settings=await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')));
       assert.equal(settings.title,'밤에 쓰는 편지'); assert.equal(settings.ending.text,'그리고 잉크 한 방울이');
-      assert.equal(settings.ending.size,64); assert.equal(settings.ending.align,'left');
+      assert.equal(settings.ending.size,64); assert.equal(settings.ending.width,55); assert.equal(settings.ending.align,'left');
       assert.equal(await frame.locator('.end-made').count(),0);
-      await frame.locator('.end-controls').evaluate(n=>n.scrollIntoView({block:'center'}));
       await pg.screenshot({path:`tests/out/refined-card-${width}.png`});
       await frame.getByRole('button',{name:'이대로 발행하기'}).click();
       await pg.waitForSelector('#s-publish:not([hidden])');
-      await pg.reload(); await pg.click('[data-go=tune]'); await pg.click('#card-open');
+      await pg.reload(); await pg.click('[data-go=tune]');
+      frame=pg.frameLocator('#screen-main .frame.on');
+      await frame.locator('#dots .dot.fin').click();
       frame=pg.frameLocator('#screen-main .frame.on');
       await frame.locator('.ending.is-current .end-full[src]').waitFor();
       assert.equal(await frame.getByRole('textbox',{name:'카드 문구'}).inputValue(),'그리고 잉크 한 방울이');
-      assert.equal(await frame.locator('[data-card=x]').inputValue(),'22');
+      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("카드")');
+      assert.equal(await pg.textContent('.tb-val[data-key=card-size] .tb-label'),'크기 64');
       if(width===1280) {
         await frame.getByRole('button',{name:'이대로 발행하기'}).click();
         await pg.fill('#publish-password','test-only-password');
@@ -89,14 +97,14 @@ const fs = require('node:fs/promises');
         await reader.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('맞지'));
         await reader.fill('#load-password','test-only-password'); await reader.click('#load-form button[type=submit]');
         await reader.waitForSelector('#load-dialog',{state:'hidden'});
-        await reader.click('#publication-manage'); await reader.uncheck('#publish-live'); await reader.click('#publish-submit');
-        await reader.waitForFunction(()=>document.querySelector('#publication-label').textContent.startsWith('발행 중단'));
+        await reader.click('.write-bar .publication-manage'); await reader.uncheck('#publish-live'); await reader.click('#publish-submit');
+        await reader.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.startsWith('발행 중단'));
         const stopped=await context.newPage(); await stopped.goto(link); await stopped.click('#author-edit');
         await stopped.waitForSelector('#load-dialog[open]'); assert.equal(await stopped.inputValue('#load-url'),link);
         const saved=await reader.evaluate(()=>JSON.stringify(localStorage)); assert.ok(!saved.includes('test-only-password')); assert.ok(!saved.includes(new URL(link).hash.slice(1)));
         const record=await store.get(new URL(link).pathname.split('/')[2]); assert.equal(record.live,false);
       }
-      await context.close(); console.log(`${width}×${height}: 설정 서랍·카드 문구/배치·발행 연결 통과`);
+      await context.close(); console.log(`${width}×${height}: 설정 서랍·하단바 갈래·카드 문구/배치·발행 연결 통과`);
     }
     assert.deepEqual(errors,[]);
   } finally { await browser?.close(); await close(); }

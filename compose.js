@@ -132,7 +132,6 @@
         mirror.append(shade);
         const pn = el('span', 'cp-pn' + (pg.count > LONG ? ' long' : '') + (pg.scene === 'night' ? ' night' : ''), String(g.page + 1));
         pn.style.top = top + 'px';
-        pn.title = pg.count > LONG ? `${pg.count}자, 길어요. 줄 사이를 눌러 나눠 보세요.` : `${pg.count}자`;
         inner.append(pn);
 
         /* 쪽 안의 줄 사이 틈 */
@@ -174,7 +173,6 @@
         rev.setAttribute('aria-pressed', String(turned));
         rev.innerHTML = '<i class="box"></i>';
         rev.append(turned ? `반전 · ${sceneWord(pg.scene)}로` : '반전');
-        rev.title = first.ln.i === candidate && !turned ? '글을 읽어 보니 여기서 분위기가 바뀌는 것 같아요.' : '이 쪽부터 라이트와 다크를 바꿔요.';
         rev.addEventListener('click', () => {
           if (!guard(a, b)) return;
           const t = ctx.get();
@@ -186,7 +184,6 @@
         });
         const join = el('button', 'cp-join', '잇기');
         join.type = 'button';
-        join.title = '나눈 쪽을 다시 이어요.';
         join.addEventListener('click', () => {
           if (!guard(a, b)) return;
           const t = ctx.get();
@@ -198,7 +195,6 @@
           const own = markLn ? S.readMarkLine(markLn.text).turn : null;
           const sel = el('select', 'cp-turn');
           sel.setAttribute('aria-label', '넘어오는 결');
-          sel.title = '이 쪽으로 넘어올 때의 결';
           Object.keys(E.TURNS).filter((n) => n !== '스밈').forEach((n) => {
             const o = el('option', null, n === (own || ctx.turn()) && !own ? `${n} (기본)` : n);
             o.value = n;

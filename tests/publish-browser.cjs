@@ -32,7 +32,7 @@ const fs = require('node:fs/promises');
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'발행 확인');
     await reader.goto(link.split('#')[0]+'#'+'A'.repeat(43)); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('열쇠'));
-    await pg.uncheck('#publish-live'); await pg.click('#publish-submit'); await pg.waitForFunction(()=>document.querySelector('#publication-label').textContent.startsWith('발행 중단'));
+    await pg.uncheck('#publish-live'); await pg.click('#publish-submit'); await pg.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.startsWith('발행 중단'));
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('발행이 중단'));
     await pg.reload(); await pg.click('#load-open');
     await pg.fill('#load-url',link); await pg.fill('#load-password','incorrect-password'); await pg.click('#load-form button[type=submit]');
@@ -41,7 +41,7 @@ const fs = require('node:fs/promises');
     // 발행 글 파일을 놓으면 글이 돌아오고 발행 관리도 이어져요.
     await pg.click('#clear'); await pg.click('#load-open');
     await pg.setInputFiles('#load-file',file); await pg.waitForSelector('#load-dialog',{state:'hidden'});
-    await pg.waitForSelector('#publication-strip:not([hidden])');
+    await pg.waitForSelector('.write-bar .publication-strip:not([hidden])');
     assert.equal(await pg.inputValue('#title'),'발행 확인');
     // 예전 관리 파일(JSON·줄글)도 읽어요.
     await fs.mkdir('tests/out',{recursive:true});
@@ -55,7 +55,7 @@ const fs = require('node:fs/promises');
     assert.equal(await pg.inputValue('#load-password'),'4821'); await pg.click('#load-close');
     await pg.click('[data-go=publish]'); assert.equal(await pg.isChecked('#publish-live'),false);
     await pg.fill('#publish-title','수정한 제목'); await pg.check('#publish-live'); await pg.click('#publish-submit');
-    await pg.waitForFunction(()=>document.querySelector('#publication-label').textContent.includes('수정한 제목'));
+    await pg.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.includes('수정한 제목'));
     assert.equal(await pg.inputValue('#publish-url'),link);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'수정한 제목');
@@ -67,6 +67,7 @@ const fs = require('node:fs/promises');
       await pg.click('[data-go=write]'); assert.ok(await pg.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
       await pg.click('[data-go=publish]');
     }
+    await pg.setViewportSize({width:1280,height:800});
     // 오래된 버전의 수정은 거부하고 입력한 내용은 남겨요.
     await store.change(id,r=>({next:{...r,revision:r.revision+1}}));
     await pg.fill('#publish-title','충돌해도 남을 제목'); await pg.click('#publish-submit');
@@ -87,7 +88,7 @@ const fs = require('node:fs/promises');
     await pg.click('#load-open'); await pg.setInputFiles('#load-file',docFile); await pg.waitForSelector('#load-dialog',{state:'hidden'});
     const after = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')));
     for (const k of ['title','source','made','settings','moods','moodsTouched','ending']) assert.deepEqual(after[k],before[k],k);
-    assert.equal(await pg.isVisible('#publication-strip'),false);
+    assert.equal(await pg.isVisible('.write-bar .publication-strip'),false);
     assert.deepEqual(errors,[]); console.log('발행 / 복호화 / 잘못된 열쇠 / 중단 / 텍스트 복사 / 발행·초안 글 파일 / 예전 관리 파일 / 재발행 / 충돌 / 삭제 / 모바일: 통과');
   } finally { await browser?.close(); await close(); }
 })().catch(e=>{console.error(e);process.exitCode=1;});

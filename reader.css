@@ -191,31 +191,22 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: .3rem;
+  gap: 0;
   max-width: 100%;
   pointer-events: auto;
 }
+/* 눈금 하나는 7px 네모. 지난·남은 쪽은 흐리게, 지금 쪽은 먹으로 채운다. 누르는 자리는 네모보다 넓다 */
 .dot {
-  width: 1.2rem;
+  position: relative;
+  width: 13px;
   height: 1.6rem;
   padding: 0;
   border: 0;
-  background: linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
+  background: none;
   color: inherit;
-  opacity: .3;
   cursor: pointer;
 }
-/* 지금 장은 써 나간 만큼(--p) 굵은 선이 찬다 */
-.dot[aria-current="true"] {
-  opacity: 1;
-  background:
-    linear-gradient(currentColor, currentColor) left center / calc(var(--p, 1) * 100%) 2px no-repeat,
-    linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
-}
-/* 끝 장: 선 대신 작은 빈 네모. 지금이면 채운다 */
-.dot.end,
-.dot.end[aria-current="true"] { position: relative; width: 1rem; margin-left: .35rem; background: none; }
-.dot.end::before {
+.dot::before {
   content: "";
   position: absolute;
   left: 50%;
@@ -223,14 +214,20 @@ body {
   width: 7px;
   height: 7px;
   margin: -3.5px 0 0 -3.5px;
-  border: 1px solid currentColor;
+  box-sizing: border-box;
+  background: currentColor;
+  opacity: .28;
 }
-.dot.end[aria-current="true"]::before { background: currentColor; }
-.dot:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+.dot[aria-current="true"]::before { opacity: 1; }
+/* 끝 장: 테두리만 있는 네모. 지금이면 테두리 안을 한 칸 띄우고 채운 겹네모 */
+.dot.fin::before { background: none; border: 1px solid currentColor; opacity: .45; }
+.dot.fin[aria-current="true"]::before { opacity: 1; padding: 1px; background: currentColor; background-clip: content-box; }
+.dot:focus-visible { outline: 1px solid currentColor; outline-offset: -3px; }
 
+/* 폰: 눈금은 위 가운데. 기다림 표시는 그대로 아래에서 흘러내린다 */
 @media (max-width: 599px) {
-  .dots { gap: .15rem; }
-  .dot { width: .9rem; }
+  .ops { top: 0; bottom: auto; padding: calc(env(safe-area-inset-top, 0px) + .5rem) 1rem .5rem; }
+  .cue { bottom: calc(env(safe-area-inset-bottom, 0px) + 1.4rem); }
 }
 
 /* ---------- 편지지 쪽 ---------- */

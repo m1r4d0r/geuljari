@@ -112,28 +112,17 @@
 .end-title::placeholder { color: transparent; opacity: 1; }
 .end-card.editing .end-title::placeholder { color: color-mix(in srgb, var(--ink) 30%, transparent); }
 
-/* 끝 장을 편집할 때는 카드 아래 도구도 한 화면에서 스크롤해 닿을 수 있어요. */
-.in-studio .sheet.ending .scroll { display: block; padding: 32px 20px 90px; overflow-y: auto; touch-action: pan-y; }
+/* 편집실 미리보기의 끝 장: 카드 문구는 카드에서 바로 고치고, 크기·폭·정렬은 편집실 하단바에서 고른다. */
+.in-studio .sheet.ending .scroll { display: block; padding: 32px 20px calc(90px + var(--studio-bottom, 0px)); overflow-y: auto; touch-action: pan-y; }
 .in-studio .end { width: min(100%, 740px); }
 .end-acts { margin-top: 18px; align-items: center; flex-wrap: wrap; gap: 8px 28px; }
 .end-acts .end-new { cursor: pointer; }
 .in-studio .end-new { background: var(--ink); color: var(--paper); padding: 12px 20px; text-decoration: none; font-size: 13px; }
-.end-controls { margin-top: 18px; text-align: left; font-size: 12px; line-height: 1.6; user-select: text; }
-.end-follow { display: flex; gap: 8px; align-items: center; min-height: 36px; }
-.end-follow input, .end-range input { accent-color: var(--ink); }
-.end-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-top: 8px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
-.end-range { display: grid; grid-template-columns: 60px minmax(0,1fr) 42px; gap: 8px; align-items: center; min-height: 36px; }
-.end-range input { width: 100%; min-width: 0; min-height: 32px; }
-.end-range output { text-align: right; font-variant-numeric: tabular-nums; }
-.end-align { display: flex; gap: 12px; align-items: center; min-height: 36px; }
-.end-align select { border: 0; border-bottom: 1px solid currentColor; background: transparent; color: inherit; padding: 6px; font: inherit; }
-.end-hint { margin-top: 12px; color: var(--ink-soft); font-size: 11px; }
 .end-move { position: absolute; right: 0; top: -24px; min-height: 28px; padding: 4px 8px; font: 11px 'Noto Sans KR',sans-serif; background: var(--paper); color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); cursor: grab; touch-action: none; }
 .end-move:active { cursor: grabbing; }
 .in-studio .end-edit { outline: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); }
 .end-title { min-height: 1.3em; }
 @media(max-width: 540px) {
   .in-studio .sheet.ending .scroll { padding: 30px 16px 80px; }
-  .end-layout { grid-template-columns: minmax(0,1fr); gap: 2px; }
   .end-acts { justify-content: space-between; }
 }

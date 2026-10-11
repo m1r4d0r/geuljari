@@ -244,35 +244,23 @@
     finish(P);
     P.held = false;
     cue.classList.remove('is-on');
-    progress(P, 1);
     return true;
-  }
-
-  /* 아래 눈금: 지금 장은 써 나간 만큼 찬다 */
-  function progress(P, n) {
-    const dot = dotsBox.children[pages.indexOf(P)];
-    if (dot) dot.style.setProperty('--p', String(n));
   }
 
   function play(P, wait, from) {
     if (P.state !== 'idle') return;
     if (P.ending || !S.on) { finish(P); return; }
     P.state = 'waiting';
-    const total = P.items.filter((it) => !it.keep).length || 1;
-    let shown = 0;
-    progress(P, 0);
     P.start = setTimeout(() => {
       P.state = 'playing';
       P.tl = G.timeline(P.items, {
         from: from || 0,
         gate: gateFor(P),
-        onReveal(it) { if (!it.keep) progress(P, ++shown / total); },
         onDone() {
           P.tl = null;
           P.state = 'done';
           P.held = false;
           cue.classList.remove('is-on');
-          progress(P, 1);
           if (P.after) { const f = P.after; P.after = null; setTimeout(f, AUTO_NEXT); }
         }
       });
@@ -583,7 +571,7 @@
     pages.forEach((P, i) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = P.ending ? 'dot end' : 'dot';
+      b.className = P.ending ? 'dot fin' : 'dot';
       b.setAttribute('aria-label', P.ending ? '끝' : `${i + 1}쪽`);
       b.addEventListener('click', () => goTo(i));
       dotsBox.append(b);
@@ -694,7 +682,6 @@
     /* done: 그 쪽을 다 쓴 모습으로 바로 놓는다(설정을 바꿨을 때). next와 함께면 곧바로 다음 쪽으로 넘겨 넘김만 보인다 */
     if (done) {
       finish(pages[k]);
-      progress(pages[k], 1);
       if (at.next && k < last) setTimeout(() => goTo(k + 1), NEXT_ONLY);
     }
   }

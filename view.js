@@ -7,7 +7,8 @@
  * - 글 상자 끌기: 넓은 화면에서 글 상자를 옆으로 끌면 왼쪽·가운데·오른쪽 중 가까운 자리에 붙고, 편집실에 그 쪽의 자리를 알린다.
  * - 확대: 손가락 벌리기와 Ctrl+휠(트랙패드 벌리기)은 편집실이 미리보기 틀을 키우고 줄이게 한다.
  *   확대된 동안에는 끌기·휠이 쪽을 넘기지 않고 틀을 옮긴다.
- * - 글 상자를 누르면 그 자리에서 고친다(inplace.js). 끌어서 옮긴 직후의 누름은 빼고.
+ * - 빈 바탕·글 상자를 한 번 누르면 편집실에 알려 그 갈래를 열게 하고, 글 상자를 두 번 누르면 그 자리에서 고친다(inplace.js).
+ * - 편집실 하단바가 겹치는 높이(geulgyeol:inset)만큼 눈금을 올린다.
  * - Esc는 편집실에 판을 접어 달라고 알린다.
  */
 (function () {
@@ -158,20 +159,40 @@
   document.addEventListener('pointerup', end, true);
   document.addEventListener('pointercancel', (e) => { if (e.isTrusted) end(e); }, true);
 
-  /* ---------- 글 상자 누르면 고치기 ---------- */
-
+  /* ---------- 누르기: 한 번은 다듬을 갈래, 두 번은 고치기 ---------- */
+  /*
+   * 빈 바탕을 한 번 누르면 편집실이 '바탕' 갈래를, 글 상자를 누르면 '글씨' 갈래를 연다(geulgyeol:tap).
+   * 글 상자를 두 번 누르면(더블클릭·두 번 톡) 그 자리에서 고친다(inplace.js). 끌거나 오래 누른 뒤의 누름은 빼고.
+   */
   let movedAt = 0;
-  let downAt = 0;
-  document.addEventListener('pointerdown', () => { downAt = performance.now(); }, true);
+  let down = null;
+  let lastTap = null;
+  const DOUBLE = 360;
+  document.addEventListener('pointerdown', (e) => { down = { t: performance.now(), x: e.clientX, y: e.clientY }; }, true);
   document.addEventListener('click', (e) => {
-    const col = e.target.closest('.sheet.is-current .column');
     const now = performance.now();
-    const held = downAt ? now - downAt : 0;
-    downAt = 0;
-    if (!col || zoomed || now - movedAt < 400 || held > 450 || !window.GeulInplace) return;
+    const d = down;
+    down = null;
+    if (!d || zoomed || now - movedAt < 400 || now - d.t > 450 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) return;
+    if (e.target.closest('button, a, input, textarea, .ip, .end-card, .end-acts, .ops')) return;
+    if (window.GeulInplace && window.GeulInplace.editing()) return;
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
-    window.GeulInplace.open(col, Number(col.closest('.sheet').dataset.i));
+    const col = e.target.closest('.sheet.is-current .column');
+    const twice = lastTap && col && lastTap.col === col && now - lastTap.t < DOUBLE;
+    lastTap = col ? { col, t: now } : null;
+    if (twice && window.GeulInplace) {
+      lastTap = null;
+      window.GeulInplace.open(col, Number(col.closest('.sheet').dataset.i));
+      return;
+    }
+    tell({ type: 'geulgyeol:tap', on: col ? 'box' : 'ground' });
+  });
+
+  /* 편집실 하단바가 미리보기 위에 겹치는 높이만큼 눈금·기다림 표시를 올린다 */
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:inset') return;
+    document.documentElement.style.setProperty('--studio-bottom', (Number(e.data.bottom) || 0) + 'px');
   });
 
   /* ---------- 글 상자 끌기 ---------- */

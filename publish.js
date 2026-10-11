@@ -24,10 +24,11 @@
       $('publish-password').required = !active;
       $('publish-delete').hidden = !active;
       $('publish-submit').textContent = active ? '변경 내용 저장' : '이대로 발행하기';
-      $('publication-strip').hidden = !active;
       $('publish-result').hidden = !active;
+      // 발행 상태는 편집·발행 하단바 오른쪽에 같은 모양으로 보여요.
+      const label = active ? `${active.record.live ? '발행 중' : '발행 중단'} · ${active.record.title || '제목 없는 글'} · ${new Date(active.record.updatedAt).toLocaleDateString('ko-KR')}` : '';
+      document.querySelectorAll('.publication-strip').forEach(n => { n.hidden = !active; n.querySelector('.publication-label').textContent = label; });
       if (active) {
-        $('publication-label').textContent = `${active.record.live ? '발행 중' : '발행 중단'} · ${active.record.title || '제목 없는 글'} · ${new Date(active.record.updatedAt).toLocaleDateString('ko-KR')}`;
         $('publish-url').value = link(active); $('publish-visit').href = link(active);
         $('publish-visit').hidden = !active.record.live;
         $('publish-result').querySelector('h2').textContent = active.record.live ? '글의 자리가 생겼어요.' : '글을 보관하고 있어요.';
@@ -46,7 +47,7 @@
       $('publish-message').textContent = ''; render();
     };
     $('publish-title').addEventListener('input', e => ctx.title(e.target.value));
-    $('publication-manage').onclick = ctx.manage;
+    document.querySelectorAll('.publication-manage').forEach(b => { b.onclick = ctx.manage; });
     $('publish-form').onsubmit = async e => {
       e.preventDefault(); if (busy) return;
       lock(true); $('publish-message').textContent = '글을 암호화해서 보관하고 있어요.';

@@ -43,16 +43,8 @@
     <button type="button" data-go="tune">미리보기</button>
     <button type="button" data-go="publish">발행</button>
   </nav>
-  <button type="button" class="menu-toggle" id="settings-open" aria-label="편집 설정" aria-haspopup="dialog" aria-controls="write-settings" aria-expanded="false"><span aria-hidden="true"></span></button>
-  <span class="top-links">
-    <button type="button" class="link" id="load-open">불러오기</button>
-    <button type="button" class="link" id="file-save">글 파일 받기</button>
-    <button type="button" class="link" id="guide-open">안내</button>
-    <button type="button" class="link" id="clear">새로 쓰기</button>
-  </span>
 </header>
 
-<div id="publication-strip" class="publication-strip" hidden><span id="publication-label"></span><button type="button" class="link" id="publication-manage">발행 관리</button></div>
 <main class="steps-body">
 
   <!-- 글: 입력창 하나에서 쓰고, 쪽을 나누고, 반전·강조를 하고, 옆 칸에서 분위기와 테마를 고른다 -->
@@ -60,11 +52,6 @@
     <div class="write-body">
       <div class="write-col">
         <input id="title" class="title" type="text" placeholder="제목 (선택)" aria-label="제목" autocomplete="off" maxlength="40">
-        <div class="write-help">
-          <p>줄 사이를 누르면 쪽을 나눠요.</p>
-          <p>두 번 띄어 쓰면 잠시 쉬고 읽어요.</p>
-          <p>드래그해서 원하는 부분을 강조해요.</p>
-        </div>
         <div class="ed" id="write-ed">
           <div class="ed-mirror" id="write-mirror" aria-hidden="true"></div>
           <textarea class="ed-input" id="src" spellcheck="false" aria-label="본문"
@@ -73,77 +60,36 @@
       </div>
       <div id="write-settings-slot" class="write-settings-slot"></div>
     </div>
-    <footer class="bar">
+    <button type="button" class="settings-cue" id="settings-open" aria-label="편집 설정 열기" aria-haspopup="dialog" aria-controls="write-settings" aria-expanded="false">설정</button>
+    <footer class="bar write-bar">
+      <button type="button" class="link" id="guide-open">안내</button>
+      <span class="bar-sep" aria-hidden="true"></span>
+      <ul class="write-help" aria-label="쓰는 법">
+        <li><b>줄 사이 누르기</b>쪽 나누기</li>
+        <li><b>두 칸 띄우기</b>쉼</li>
+        <li><b>끌어 고르기</b>강조</li>
+      </ul>
       <span class="k" id="count"></span>
+      <span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span>
     </footer>
   </section>
 
-  <!-- 미리보기: 화면을 채운 읽기 틀과, 오른쪽 여백 색인 아래로 펼치는 설정 -->
+  <!-- 미리보기: 화면을 채운 읽기 틀과, 그 위에 겹친 하단바(쪽 다듬기 · 화면 도구) -->
   <section class="step tune" id="s-tune" aria-label="미리보기" hidden>
     <div class="stage" id="stage">
       <div class="screen" id="screen-main"><iframe class="frame" title="미리보기"></iframe><iframe class="frame" title="미리보기" tabindex="-1"></iframe></div>
       <div class="screen" id="screen-side" hidden><iframe class="frame" title="폰 미리보기"></iframe><iframe class="frame" title="폰 미리보기" tabindex="-1"></iframe></div>
-
-      <button type="button" class="drawer-cue" id="tab-toggle" aria-label="여백 색인 열기. 누르거나 왼쪽으로 끌어 주세요." aria-expanded="false" aria-controls="tabs"><span class="cue-line" aria-hidden="true"></span><span class="cue-label" aria-hidden="true">설정</span></button>
-      <nav class="tabs" id="tabs" aria-label="다듬기" hidden inert>
-        <header class="index-head"><span class="k">여백 색인</span><button type="button" class="link" id="tabs-close">닫기</button></header>
-        <div class="tab-list" id="tab-list">
-          <div class="index-item">
-            <button type="button" class="tab" id="tab-mood" data-panel="mood" aria-expanded="false" aria-controls="panel-mood"><span class="tab-number" aria-hidden="true">01</span><span>분위기</span><span class="tab-sign" aria-hidden="true">+</span></button>
-            <div class="panel-fold"><div class="panel-clip">
-                <section class="panel" id="panel-mood" aria-labelledby="tab-mood" hidden inert>
-                  <header class="panel-head"><b>분위기</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-look">살펴보기</button><button type="button" class="link panel-x">닫기</button></header>
-                  <div class="panel-body"></div>
-                </section>
-            </div></div>
-          </div>
-          <div class="index-item">
-            <button type="button" class="tab" id="tab-type" data-panel="type" aria-expanded="false" aria-controls="panel-type"><span class="tab-number" aria-hidden="true">02</span><span>글씨</span><span class="tab-sign" aria-hidden="true">+</span></button>
-            <div class="panel-fold"><div class="panel-clip">
-                <section class="panel" id="panel-type" aria-labelledby="tab-type" hidden inert>
-                  <header class="panel-head"><b>글씨</b><span class="panel-sub k">글 전체</span><button type="button" class="link panel-x">닫기</button></header>
-                  <div class="panel-body"></div>
-                </section>
-            </div></div>
-          </div>
-          <div class="index-item">
-            <button type="button" class="tab" id="tab-motion" data-panel="motion" aria-expanded="false" aria-controls="panel-motion"><span class="tab-number" aria-hidden="true">03</span><span>움직임</span><span class="tab-sign" aria-hidden="true">+</span></button>
-            <div class="panel-fold"><div class="panel-clip">
-                <section class="panel" id="panel-motion" aria-labelledby="tab-motion" hidden inert>
-                  <header class="panel-head"><b>움직임</b><span class="panel-sub k">다시 보기로 확인</span><button type="button" class="link panel-x">닫기</button></header>
-                  <div class="panel-body"></div>
-                </section>
-            </div></div>
-          </div>
-          <div class="index-item">
-            <button type="button" class="tab" id="tab-ground" data-panel="ground" aria-expanded="false" aria-controls="panel-ground"><span class="tab-number" aria-hidden="true">04</span><span>배경</span><span class="tab-sign" aria-hidden="true">+</span></button>
-            <div class="panel-fold"><div class="panel-clip">
-                <section class="panel" id="panel-ground" aria-labelledby="tab-ground" hidden inert>
-                  <header class="panel-head"><b>배경</b><span class="panel-sub k"></span><button type="button" class="link panel-x">닫기</button></header>
-                  <div class="panel-body"></div>
-                </section>
-            </div></div>
-          </div>
-        </div>
-      </nav>
-
       <div class="zoom" id="zoom" hidden><span class="k" id="zoom-k"></span><button type="button" class="link" id="zoom-fit">맞춤</button></div>
-      <button type="button" class="peek" id="peek" aria-label="다듬기 꺼내기" hidden>■□</button>
     </div>
-    <footer class="preview-bar" aria-label="미리보기 도구">
-          <div class="tab-actions tab-tools">
-            <button type="button" class="tab replay" id="replay" title="바꾼 움직임은 다시 보기를 눌러야 보여요.">다시 보기</button>
-            <button type="button" class="tab" id="hide-all">몰입</button>
-            <button type="button" class="tab" id="card-open">끝 장 카드</button>
-
-          </div>
-          <div class="tab-dev" role="group" aria-label="미리보기 화면" id="device">
-            <button type="button" data-device="pc">PC</button><button type="button" data-device="mobile">폰</button><button type="button" data-device="both" class="wide-only">병렬</button>
-          </div>
+    <footer class="tune-bar" aria-label="쪽 다듬기">
+      <div class="tb-left" id="tune-tools"></div>
+      <div class="tb-tools" role="group" aria-label="미리보기 화면" id="device">
+        <button type="button" data-device="pc">PC</button><button type="button" data-device="mobile">폰</button><button type="button" data-device="both" class="wide-only">병렬</button><button type="button" class="tb-replay" id="replay" aria-label="다시 보기"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M13.2 8 A5.2 5.2 0 1 1 11.6 4.2" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M11.8 1.6 L11.8 4.6 L8.8 4.6" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></button>
+      </div>
     </footer>
   </section>
   <section class="step publish" id="s-publish" aria-labelledby="publish-heading" hidden>
-    <div class="publish-sheet">
+    <div class="publish-scroll"><div class="publish-sheet">
       <p class="k">03 / 글의 자리</p>
       <h1 id="publish-heading">글에 주소를 놓아요.</h1>
       <p class="publish-intro">지금 다듬은 모습 그대로, 하나의 링크에서 읽을 수 있어요.</p>
@@ -173,11 +119,14 @@
         <h3 class="pub-keep">링크와 비밀번호 남겨 두기</h3>
         <div class="pub-actions"><button class="btn" id="publish-share" type="button" hidden>보내기</button><button class="btn" id="publish-copy-all" type="button">텍스트 복사</button><button class="btn" id="publish-download" type="button">글 파일 받기</button></div>
       </section>
-    </div>
+    </div></div>
+    <footer class="bar publish-bar">
+      <span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span>
+    </footer>
   </section>
 </main>
 <dialog id="write-settings" class="settings-drawer" aria-labelledby="settings-heading">
-  <header class="drawer-head"><div><p class="k">글의 바탕</p><h2 id="settings-heading">편집 설정</h2></div><button type="button" class="link" id="settings-close">닫기</button></header>
+  <header class="drawer-head"><h2 id="settings-heading">설정</h2><button type="button" class="link" id="settings-close">닫기</button></header>
       <aside class="rail" aria-label="설정">
         <section class="rail-sec" aria-labelledby="h-mood">
           <div class="rail-head"><h2 id="h-mood">분위기</h2><button type="button" class="link" id="mood-look">살펴보기</button></div>
@@ -188,6 +137,14 @@
           <div class="set-row r-theme"><span class="set-name">주색</span><span class="themes" id="themes" aria-label="주색"></span></div>
           <div class="set-row r-font"><span class="set-name">글꼴</span><div class="set-box" id="fonts"></div></div>
           <div class="set-row r-scene"><span class="set-name">시작</span><div class="set-box" id="start-scene"></div></div>
+        </section>
+        <section class="rail-sec" aria-labelledby="h-file">
+          <div class="rail-head"><h2 id="h-file">글</h2></div>
+          <div class="pieces files">
+            <button type="button" class="piece" id="load-open">불러오기</button>
+            <button type="button" class="piece" id="file-save">초안 저장</button>
+            <button type="button" class="piece" id="clear">새로 쓰기</button>
+          </div>
         </section>
 
       </aside>

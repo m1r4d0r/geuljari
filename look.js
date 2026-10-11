@@ -459,7 +459,6 @@
       if (b) {
         b.setAttribute('aria-pressed', String(on));
         b.textContent = on ? '골랐어요' : '이걸로';
-        b.title = on ? '다시 누르면 빠져요.' : '';
       }
     });
   }

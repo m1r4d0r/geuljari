@@ -6,11 +6,13 @@
  *   분위기는 고르기 전에는 글을 읽어 짐작한 것을 두고, '살펴보기'는 낱말마다 움직임을 견주어 보는 덮개(look.js)를 연다.
  *   페이지 어디에서 휠을 굴려도 본문이 굴러간다.
  * - 미리보기: 읽기 틀이 화면을 채운다. 보는 기기와 같은 틀이면 실제 크기 그대로, 다른 틀(폰에서 PC 16:9, PC에서 폰)이면
- *   맞춰 줄이고, 병렬이면 PC와 폰을 나란히 둔다. 설정은 오른쪽 여백 색인(분위기·글씨·움직임·배경) 아래로 하나씩 펼친다(panels.js).
- *   모양을 바꾸면 다시 쓰지 않고 바로 바뀌고, 움직임은 '다시 보기'로 본다. 글 상자를 누르면 그 자리에서 고치고 꾸민다(inplace.js).
+ *   맞춰 줄이고, 병렬이면 PC와 폰을 나란히 둔다. 하단바가 쪽 다듬기다(panels.js): 갈래(바탕·움직임·글씨, 끝 장에서는 끝 장·카드)와
+ *   그 갈래의 값 단추. 빈 바탕을 누르면 바탕, 글 상자를 누르면 글씨 갈래가 열린다. 오른쪽에는 PC·폰·병렬과 다시 보기.
+ *   모양을 바꾸면 다시 쓰지 않고 바로 바뀌고, 움직임은 '다시 보기'로 본다. 글 상자를 두 번 누르면 그 자리에서 고치고(inplace.js),
+ *   그동안 하단바는 '고른 곳' 갈래(강조·퇴장·꾸밈·색·빼기)가 된다.
  *   손가락 벌리기·Ctrl+휠로 확대하고, 글 상자를 끌면 왼쪽·가운데·오른쪽에 붙는다(view.js가 미리보기 안의 손짓을 알려 준다).
  * - 미리보기의 마지막 쪽 뒤에는 마지막 카드 화면이 한 장 더 있다. 그 화면에서 고친 카드 문구·배치를 받아 두고(geulgyeol:ending, 병렬이면 다른 틀에도 건넴),
- *   배경 판에서는 그 화면의 장면·바탕을 고른다.
+ *   하단바의 끝 장·카드 갈래에서 그 화면의 장면·바탕과 카드 크기·폭·정렬을 고른다.
  * 상태는 이 브라우저의 localStorage에만 두고, 미리보기 글({text, title, made, ending})과 조판값은 storage로 view.html에 넘긴다.
  * 반전·쪽 넘김·자리·강조·효과는 모두 본문 안 표시로 들어가 언제든 되돌아가 바꿀 수 있다.
  */
@@ -185,7 +187,7 @@
       pick(list) {
         st.moodsTouched = true;
         setMoods(list);
-        if (st.step === 'tune') { handOff(); $('replay').classList.add('due'); panels.refresh(); } else drawRail();
+        if (st.step === 'tune') { handOff(); $('replay').classList.add('due'); } else drawRail();
       }
     });
   }
@@ -225,11 +227,11 @@
    * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
    */
   const GUIDE = [
-    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '편집 설정에서 축마다 하나씩 골라요. 모바일에서는 상단 설정 버튼으로 열어요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
+    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '설정 칸에서 축마다 하나씩 골라요. 폰에서는 오른쪽 가장자리의 설정을 열어요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
     { title: '줄 사이를 누르면', body: '거기서부터 다음 쪽으로 넘어가요. 한 쪽에 한 호흡씩 담아 보세요.', tip: '줄 사이에 마우스를 올리면 점선이 보여요. 띠 어디를 눌러도 돼요.' },
-    { title: '쪽 사이에서 반전', body: '이 쪽부터 배경이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '분위기가 바뀌는 자리는 반전 단추가 점선으로 먼저 알려 줘요.' },
+    { title: '쪽 사이에서 반전', body: '이 쪽부터 배경이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '분위기가 바뀌는 자리는 반전 단추가 점선으로 먼저 알려 줘요. 미리보기에서는 하단바의 전환으로 넘김을 골라요.' },
     { title: '두 번 띄어 쓰면 쉼', body: '띄어쓰기를 두 번 한 곳은 잠깐 쉬었다가 이어서 써요. 화면에는 한 칸으로 보여요.', tip: '편집창에는 쉬는 자리가 호박색으로 표시돼요.' },
-    { title: '끌어 고르면 강조', body: '남기고 싶은 곳을 끌어 고르고 강조를 눌러요. 미리보기에서는 효과와 글자 꾸밈도 더할 수 있어요.', tip: '여러 곳을 강조하면 조금씩 다른 움직임으로 나와요.' }
+    { title: '끌어 고르면 강조', body: '남기고 싶은 곳을 끌어 고르고 강조를 눌러요. 미리보기에서 글 상자를 두 번 누르면 효과와 글자 꾸밈도 더할 수 있어요.', tip: '여러 곳을 강조하면 조금씩 다른 움직임으로 나와요.' }
   ];
   let guideAt = 0;
   function guideTo(k) {
@@ -413,13 +415,21 @@
 
   /*
    * 보는 기기와 같은 틀이면 무대 크기 그대로(실제 화면), 다른 틀(PC 16:9, 폰 390×844)이면 맞춰 줄인다.
-   * 병렬은 PC와 폰을 같은 배율로 나란히. 여백 색인을 펼쳐도 읽기 틀의 배율은 유지한다.
+   * 병렬은 PC와 폰을 같은 배율로 나란히.
    */
+  /* 하단바가 무대 위에 겹치는 높이. 같은 기기 틀은 그 아래까지 채우고 눈금만 올리며, 줄인 틀은 이 높이를 비워 둔다.
+     폰에서는 하단바가 왼쪽 아래 세로 줄이라 줄인 틀을 그 위에 둔다 */
+  const barRoom = () => (phone.matches ? 250 : 64);
+  function tellInset() {
+    const same = mode() === native();
+    post(main, { type: 'geulgyeol:inset', bottom: same && !phone.matches ? 64 : 0 });
+  }
+
   function fit() {
     const W = stage.clientWidth;
     const H = stage.clientHeight;
     if (W <= 0 || H <= 0) return;
-    const room = H;
+    const room = H - barRoom();
     const m = mode();
     side.box.hidden = m !== 'both';
     if (m === 'both') {
@@ -435,14 +445,15 @@
       const same = m === native();
       const [w, h] = same ? [W, H] : DEVICES[m];
       const pad = same ? 0 : 32;
-      const s = Math.min((W - pad) / w, (room - pad) / h, 1);
-      Object.assign(main, { device: m, w, h, s, x: (W - w * s) / 2, y: (room - h * s) / 2 });
+      const s = same ? 1 : Math.min((W - pad) / w, (room - pad) / h, 1);
+      Object.assign(main, { device: m, w, h, s, x: (W - w * s) / 2, y: same ? 0 : (room - h * s) / 2 });
       main.box.classList.toggle('framed', !same);
     }
     side.box.classList.add('framed');
     if (m === 'both') main.box.classList.add('framed');
     [main, side].forEach((sc) => { sc.box.style.width = sc.w + 'px'; sc.box.style.height = sc.h + 'px'; });
     place();
+    tellInset();
     document.querySelectorAll('#device [data-device]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.device === m)));
   }
 
@@ -555,7 +566,7 @@
     const { sc, i } = who;
     const d = e.data;
     if (d.type === 'geulgyeol:page') {
-      if (i === sc.pending) { sc.swap(); if (sc === main) tellZoom(); }
+      if (i === sc.pending) { sc.swap(); if (sc === main) { tellZoom(); tellInset(); } }
       if (i !== sc.active) return;
       /* 마지막 화면이면 page는 글 쪽 수다. 쪽은 마지막 글 쪽에 두고 마지막 화면에 있다고 적는다 */
       const end = d.ending === true;
@@ -582,6 +593,12 @@
       handOff();
       panels.refresh();
       toast(`${d.page + 1}쪽 글을 ${d.place}에 두었어요.`);
+    } else if (d.type === 'geulgyeol:tap') {
+      if (sc === main) panels.hint(d.on);
+    } else if (d.type === 'geulgyeol:edit-open') {
+      panels.editing(true);
+    } else if (d.type === 'geulgyeol:sel') {
+      panels.selection({ on: !!d.on, head: d.head || null });
     } else if (d.type === 'geulgyeol:edit-req') {
       const r = sliceOf(d.page);
       editing = r ? { s: r.s, e: r.e, page: d.page } : null;
@@ -592,6 +609,7 @@
       editing.e = editing.s + d.text.length;
     } else if (d.type === 'geulgyeol:edit-done') {
       editing = null;
+      panels.editing(false);
       if (d.replay) play(d.replay); else show({ page: d.page });
     } else if (sc !== main) {
       /* 병렬의 폰 틀에서는 확대·닫기 손짓을 받지 않는다 */
@@ -608,7 +626,7 @@
       view.ty += d.dy;
       place();
     } else if (d.type === 'geulgyeol:close') {
-      if (tabs.classList.contains('open')) { openTabs(false); $('tab-toggle').focus(); } else hideAll($('peek').hidden);
+      panels.close();
     }
   });
 
@@ -669,95 +687,46 @@
     show({ page: st.page, ending: true });
   }
 
-  const panels = P.mount({
+  /* 카드 문구·배치: 다시 그리지 않고 끝 장 화면들에 건넨다 */
+  function setCard(part) {
+    st.ending = normEnding(Object.assign({}, st.ending, part));
+    save();
+    handOff();
+    postAll({ type: 'geulgyeol:ending', ending: st.ending });
+  }
+
+  const panels = P.mount($('tune-tools'), {
     get: () => st.source,
     set(text) { setSource(text); },
     head,
     settings: () => st.settings,
     setSettings,
-    moods: () => st.moods,
-    setMoods(list) { st.moodsTouched = true; setMoods(list); handOff(); $('replay').classList.add('due'); },
     page: () => Math.min(st.page, allPages().length - 1),
     show,
-    play,
-    replay,
     wide,
     atEnd: () => st.atEnd,
     ending: () => st.ending,
     setEnding,
-    look: window.GeulLook ? openLook : null
+    setCard,
+    ip: (cmd) => post(main, Object.assign({ type: 'geulgyeol:ip' }, cmd))
   });
-  panels.onChange = () => {
-    document.querySelectorAll('.tab[data-panel]').forEach((b) => {
-      const on = b.dataset.panel === panels.current();
-      b.setAttribute('aria-expanded', String(on));
-      b.querySelector('.tab-sign').textContent = on ? '−' : '+';
-    });
-    stage.classList.toggle('has-panel', !!panels.current());
+  panels.onState = () => {
+    const s2 = panels.state();
+    document.body.dataset.tuneCat = s2.cat;
+    document.body.classList.toggle('tune-cat-open', s2.open === 'cat');
   };
-
-  const tabs = $('tabs');
-  document.querySelectorAll('.tab[data-panel]').forEach((b) => b.addEventListener('click', () => {
-    panels.toggle(b.dataset.panel);
-  }));
-  function openTabs(on) {
-    if (!on && panels.current()) panels.close();
-    tabs.hidden = !on; tabs.inert = !on;
-    $('tab-toggle').hidden = on || document.body.classList.contains('preview-clean');
-    tabs.classList.toggle('open', on);
-    $('tab-toggle').setAttribute('aria-expanded', String(on));
-  }
-  $('tab-toggle').addEventListener('click', () => { openTabs(true); $('tabs-close').focus(); });
-  $('tabs-close').addEventListener('click', () => { openTabs(false); $('tab-toggle').focus(); });
-  let drawerStart = null;
-  $('tab-toggle').addEventListener('pointerdown', e => { drawerStart = e.clientX; e.currentTarget.setPointerCapture(e.pointerId); });
-  $('tab-toggle').addEventListener('pointerup', e => { if (drawerStart !== null && drawerStart - e.clientX > 16) { openTabs(true); $('tabs-close').focus(); } drawerStart = null; });
-  $('tab-toggle').addEventListener('pointercancel', () => { drawerStart = null; });
-  $('card-open').addEventListener('click', () => { openTabs(false); show({ page:allPages().length - 1, ending:true }); });
-  $('replay').addEventListener('click', () => { replay(); if (phone.matches) openTabs(false); });
-
-  /* 숨기기: 책갈피와 판을 모두 거두고 미리보기만 남긴다. 구석의 작은 네모로 돌아온다 */
-  function hideAll(on) {
-    document.body.classList.toggle('preview-clean', on);
-    if (on) panels.close();
-    tabs.hidden = on;
-    $('peek').hidden = !on;
-    openTabs(false);
-    fit();
-  }
-  $('hide-all').addEventListener('click', () => hideAll(true));
-  $('peek').addEventListener('click', () => hideAll(false));
-
-  /* 손이 멈추면 책갈피를 흐린다(판이 열려 있으면 그대로) */
-  let idleTimer = 0;
-  function wake() {
-    stage.classList.remove('idle');
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => stage.classList.add('idle'), 2500);
-  }
-  ['pointermove', 'pointerdown', 'keydown', 'focusin'].forEach((t) => stage.addEventListener(t, wake));
+  $('replay').addEventListener('click', () => replay());
 
   function enterTune(fresh) {
-    document.body.classList.remove('preview-clean');
     T.useFont(document, st.settings);
-    tabs.hidden = false;
-    $('peek').hidden = true;
-    openTabs(false);
     view.k = 1;
     fit();
-    wake();
+    panels.editing(false);
     if (fresh) replay();
-    if (!store.get('geul.tuneHint3')) {
-      store.set('geul.tuneHint3', true);
-      toast(phone.matches
-        ? '글 상자를 누르면 그 자리에서 고치고 꾸며요. 오른쪽 가장자리를 당기면 설정이 열려요.'
-        : '글 상자를 누르면 그 자리에서 고치고 꾸며요. 오른쪽 가장자리에서 여백 색인을 열어요.', 4200);
-    }
   }
 
   function leaveTune() {
-    document.body.classList.remove('preview-clean');
-    panels.close();
+    panels.editing(false);
     main.clear();
     side.clear();
     editing = null;
@@ -771,9 +740,7 @@
     if (e.key !== 'Escape') return;
     if (!$('guide').hidden) { showGuide(false); return; }
     if (st.step === 'write') compose.hidePop();
-    if (st.step !== 'tune') return;
-    if (tabs.classList.contains('open')) { openTabs(false); $('tab-toggle').focus(); }
-    else hideAll($('peek').hidden);
+    if (st.step === 'tune') panels.close();
   });
 
   /* ---------- 시작 ---------- */

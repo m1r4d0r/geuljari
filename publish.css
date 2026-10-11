@@ -1,5 +1,5 @@
 /* 발행은 종이 한 장의 양식으로, 단계 이동은 헤더에 두어요. */
-.publish { overflow: auto; padding: 48px var(--gut) 80px; }
+.publish-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 48px var(--gut) 80px; }
 .publish-sheet { width: min(100%, 640px); margin: 0 auto; }
 .publish h1 { margin: 14px 0; font: 32px/1.4 var(--f-body); font-weight: 400; }
 .publish-intro { color: var(--lead); margin-bottom: 30px; }
@@ -14,17 +14,16 @@
 .pub-result { border-top: 1px solid var(--ink); margin-top: 24px; padding-top: 24px; }
 .pub-keep { margin: 32px 0 0; padding-top: 20px; border-top: 1px solid var(--line); font: 500 13px/1.6 var(--f-ui); }
 .pub-keep + .pub-actions { margin-top: 14px; }
-.publication-strip { padding: 6px var(--gut); display: flex; gap: 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); font-size: 12px; }
+.publication-strip { margin-left: auto; min-width: 0; display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--lead); }
 .publication-strip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.publication-strip .link { flex: none; height: 28px; }
+.publication-strip .link { flex: none; height: 28px; font-size: 12px; color: var(--ink); }
 .load-dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--ink); padding: 28px; width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
 .load-dialog::backdrop { background: rgba(29,32,48,.45); }
 .pub-file { border: 1px dashed var(--line); padding: 16px; font-size: 12px; }
 .pub-file input { max-width: 100%; }
 
 @media(max-width: 760px) {
-  .steps { margin-left: auto; }
-  .publish { padding-top: 28px; }
+  .publish-scroll { padding-top: 28px; }
   .publish h1 { font-size: 27px; }
   .load-dialog { padding: 20px; }
 }

@@ -52,7 +52,17 @@
 .place-guide { position: fixed; z-index: 20; width: 0; border-left: 1px dashed #fff; mix-blend-mode: difference; opacity: .25; pointer-events: none; transition: opacity .15s ease; }
 .place-guide.on { opacity: .7; }
 
-/* 미리보기 안에서 고치기(inplace.js): 글 상자 자리에 같은 폭·같은 글꼴의 편집창. 표시 모양은 marks.css */
+/* 편집실 하단바가 겹치는 만큼(--studio-bottom) 눈금과 기다림 표시를 올린다 */
+.in-studio .ops { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + .9rem + var(--studio-bottom, 0px)); }
+.in-studio .cue { bottom: calc(env(safe-area-inset-bottom, 0px) + 3.3rem + var(--studio-bottom, 0px)); }
+.in-studio .scroll { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.2rem + var(--studio-bottom, 0px)); }
+@media (max-width: 599px) {
+  .in-studio .ops { padding-bottom: .5rem; }
+}
+
+/* 미리보기 안에서 고치기(inplace.js): 글 상자 자리에 같은 폭·같은 글꼴의 편집창. 표시 모양은 marks.css.
+   글 상자 둘레는 1px 선의 면(.ip-frame)이고, 끝내기 X·체크는 그 아래 오른쪽 모서리에 붙는다.
+   두 단추 묶음의 위 선은 상자 아래 선과, 오른쪽 선은 상자 오른쪽 선과 같은 자리에 겹친다. */
 .column.ip-hidden { visibility: hidden; }
 .ip {
   position: absolute; z-index: 6;
@@ -62,10 +72,10 @@
   --dark-ink: var(--ink);
   font-family: var(--f-body); font-size: var(--fs-body); line-height: 1.95; letter-spacing: 0; color: var(--ink);
 }
-.ip::before {
-  content: ""; position: absolute; inset: -16px -20px; z-index: -1;
-  background: color-mix(in srgb, var(--paper) 86%, transparent);
-  outline: 1px dashed color-mix(in srgb, var(--ink) 38%, transparent);
+.ip-frame {
+  position: absolute; inset: -16px -20px; box-sizing: border-box;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  border: 1px solid var(--ink);
 }
 .ip-mirror, .ip-input {
   margin: 0; padding: 0; border: 0; font: inherit; line-height: inherit; letter-spacing: inherit; text-align: left;
@@ -77,36 +87,12 @@
   background: transparent; color: transparent; caret-color: var(--ink);
 }
 .ip-input::selection { background: color-mix(in srgb, var(--ink) 22%, transparent); color: transparent; }
-/* 고치는 동안 화면 아래 가운데에 늘 떠 있는 '다 고쳤어요' */
-.ip-done {
-  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 3.4rem); transform: translateX(-50%); z-index: 30;
-  height: 34px; padding: 0 16px; font: 13px 'Noto Sans KR', sans-serif; background: #2C2F6B; color: #F6F6F4; border: 0; cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+.ip-acts { position: absolute; right: -1px; top: 100%; display: flex; border: 1px solid var(--ink); background: var(--paper); }
+.ip-acts button {
+  width: 40px; height: 40px; padding: 0; border: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--paper); color: var(--ink); cursor: pointer;
 }
-
-/* 고른 곳 위의 막대: 늘 밝은 종이 위에 남보라(장면과 상관없이 읽히게) */
-.ip-bar {
-  position: absolute; left: -12px; z-index: 8; width: max-content; max-width: min(640px, 92vw);
-  padding: 4px 6px; background: #F6F6F4; color: #2C2F6B; border: 1px solid #2C2F6B;
-  font: 12px/1 'Noto Sans KR', sans-serif; box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
-}
-.ip-row, .ip-list { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
-.ip-list { border-top: 1px solid #C5C7D6; margin-top: 4px; padding-top: 4px; }
-.ip-bar button {
-  height: 28px; min-width: 28px; padding: 0 8px; background: none; border: 0; color: inherit; cursor: pointer;
-  font: inherit; text-shadow: none;
-}
-.ip-bar button:hover { background: rgba(44, 47, 107, .08); }
-.ip-bar button[aria-pressed="true"], .ip-bar .on, .ip-bar [aria-expanded="true"] { background: #2C2F6B; color: #F6F6F4; }
-.ip-bar .ip-style { font-family: 'Song Myung', serif; font-size: 14px; }
-.ip-bar .ip-color { min-width: 0; width: 18px; height: 18px; padding: 0; margin: 0 2px; border: 1px solid #F6F6F4; outline: 1px solid transparent; }
-.ip-bar .ip-color.c-red { background: #B03A2E; }
-.ip-bar .ip-color.c-orange { background: #C06A1C; }
-.ip-bar .ip-color.c-green { background: #3F7A4A; }
-.ip-bar .ip-color.c-blue { background: #2F5DA8; }
-.ip-bar .ip-color.c-violet { background: #6A4BA0; }
-.ip-bar .ip-color.c-gray { background: #8A8C98; }
-.ip-bar .ip-color[aria-pressed="true"] { outline-color: #2C2F6B; }
-.ip-sep { width: 1px; height: 16px; margin: 0 4px; background: #C5C7D6; }
-.ip-bar .ip-style.s-b { font-weight: 700; }
-.ip-bar .ip-style.s-i { font-style: italic; }
+.ip-acts button + button { border-left: 1px solid var(--ink); background: var(--ink); color: var(--paper); }
+.ip-acts button:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+.ip-acts svg { display: block; }
+@media (max-width: 599px) { .ip-acts button { width: 44px; height: 44px; } }

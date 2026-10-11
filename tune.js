@@ -28,8 +28,10 @@
     '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 짧게 쉬어요' }
   };
 
-  /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로 */
-  const FLOWS = { '이어 쓰기': null, '번짐': 'bleed', '떠오름': 'rise', '타자': 'type' };
+  /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로, 바로는 효과 없이 한 번에 놓는다 */
+  const FLOWS = { '바로': 'now', '이어 쓰기': null, '번짐': 'bleed', '떠오름': 'rise', '타자': 'type' };
+  /* 바로: 보통 글자를 처음부터 놓고, 강조는 그 뒤 잠깐 쉬었다가 제 움직임으로 */
+  const NOW_LEAD = 400;
   const FLOW_NAMES = Object.keys(FLOWS);
   const REST_MS = [200, 320, 460, 620];
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
@@ -168,9 +170,23 @@
   function flowCells(para, s) {
     const fx = FLOWS[s.flow];
     if (!fx) return para;
+    if (fx === 'now') return nowCells(para);
     para.lines.forEach((l) => l.tokens.forEach((tk) => tk.cells.forEach((c) => {
       if (!c.em && (c.anim === 'fade' || c.anim === 'soft')) c.anim = fx;
     })));
+    return para;
+  }
+  function nowCells(para) {
+    const cells = para.lines.flatMap((l) => l.tokens.flatMap((tk) => tk.cells));
+    const em = cells.filter((c) => c.em && c.anim !== 'fall');
+    const shift = em.length ? Math.max(0, Math.min(...em.map((c) => c.t)) - NOW_LEAD) : para.lead;
+    cells.forEach((c) => {
+      if (em.includes(c)) c.t = Math.max(0, c.t - shift);
+      else { c.t = 0; if (c.anim === 'soft') c.anim = 'fade'; }
+    });
+    (para.events || []).forEach((ev) => { if (typeof ev.t === 'number') { ev.t = Math.max(0, ev.t - shift); ev.end -= shift; } });
+    para.lead = Math.max(0, para.lead - shift);
+    para.span = Math.max(em.length ? para.span - shift : 0, 700);
     return para;
   }
   function patchFlow(E, s) {

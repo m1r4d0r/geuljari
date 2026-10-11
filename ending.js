@@ -355,7 +355,6 @@
   function changed(st, syncField = false) {
     st.title = st.card.text === null ? st.editorTitle || st.line : st.card.text;
     if (syncField && st.field) st.field.value = st.title;
-    if (st.follow) st.follow.checked = st.card.text === null;
     sizeField(st);
     window.parent.postMessage({ type:'geulgyeol:ending', ending:st.card }, location.origin);
     later();
@@ -387,48 +386,15 @@
       if (!drag) return;
       st.card.x = Math.max(0, Math.min(100, drag.cx + (e.clientX - drag.x) / drag.scale / Math.max(1, W - 120 - st.Z.w) * 100));
       st.card.y = Math.max(0, Math.min(100, drag.cy + (e.clientY - drag.y) / drag.scale / 160 * 100));
-      changed(st); syncControls(st);
+      changed(st);
     });
     ['pointerup','pointercancel','lostpointercapture'].forEach(type => move.addEventListener(type, () => { drag = null; }));
     move.addEventListener('keydown', e => {
       const delta = { ArrowLeft:['x',-2], ArrowRight:['x',2], ArrowUp:['y',-2], ArrowDown:['y',2] }[e.key];
       if (!delta) return; e.preventDefault(); e.stopPropagation();
-      st.card[delta[0]] = Math.max(0, Math.min(100, st.card[delta[0]] + delta[1])); changed(st); syncControls(st);
+      st.card[delta[0]] = Math.max(0, Math.min(100, st.card[delta[0]] + delta[1])); changed(st);
     });
     return zone;
-  }
-
-  function syncControls(st) {
-    if (!st.controls) return;
-    st.controls.querySelectorAll('[data-card]').forEach(n => {
-      const v = st.card[n.dataset.card]; n.value = v;
-      const output = n.parentElement.querySelector('output'); if (output) output.value = Math.round(v) + (n.dataset.card === 'size' ? 'px' : '%');
-    });
-  }
-
-  function makeControls(st) {
-    const controls = el('div', 'end-controls'); st.controls = controls;
-    const followLabel = el('label', 'end-follow');
-    const follow = el('input'); follow.type = 'checkbox'; follow.checked = st.card.text === null; st.follow = follow;
-    followLabel.append(follow, document.createTextNode('편집 제목을 카드 문구로'));
-    follow.onchange = () => { st.card.text = follow.checked ? null : st.title; changed(st, true); };
-    controls.append(followLabel);
-    const group = el('div', 'end-layout');
-    for (const [key, label, min, max] of [['size','글자 크기',28,120],['width','문구 폭',30,90],['x','가로 위치',0,100],['y','세로 위치',0,100]]) {
-      const row = el('label', 'end-range'); row.append(el('span','',label));
-      const input = el('input'); input.type = 'range'; input.min = min; input.max = max; input.step = 1; input.dataset.card = key;
-      input.setAttribute('aria-label', '카드 ' + label);
-      input.oninput = () => { st.card[key] = Number(input.value); changed(st); syncControls(st); };
-      row.append(input, el('output')); group.append(row);
-    }
-    const alignRow = el('label','end-align','정렬');
-    const align = el('select'); align.dataset.card = 'align'; align.setAttribute('aria-label','카드 정렬');
-    for (const [value, label] of [['left','왼쪽'],['center','가운데'],['right','오른쪽']]) { const opt = el('option','',label); opt.value = value; align.append(opt); }
-    align.onchange = () => { st.card.align = align.value; changed(st); };
-    alignRow.append(align); group.append(alignRow);
-    controls.append(group, el('p','end-hint','카드의 문장을 눌러 고쳐요. ‘위치 이동’을 끌거나 방향키로 옮겨요. 긴 문구는 카드 안에서 줄여 보여요.'));
-    syncControls(st);
-    return controls;
   }
 
   /* ---------- 장 ---------- */
@@ -484,7 +450,7 @@
     };
     cur.title = cur.card.text === null ? cur.editorTitle || cur.line : cur.card.text;
     position(cur);
-    if (studio) { fig.append(makeField(cur)); box.append(makeControls(cur)); }
+    if (studio) fig.append(makeField(cur));
     box.append(acts);
     setMeta(cur.editorTitle);
 
@@ -517,8 +483,7 @@
     cur.card = window.GeulCardSettings.normalize(d.ending);
     cur.title = cur.card.text === null ? cur.editorTitle || cur.line : cur.card.text;
     if (cur.field && document.activeElement !== cur.field) cur.field.value = cur.title;
-    if (cur.follow) cur.follow.checked = cur.card.text === null;
-    syncControls(cur); sizeField(cur); later();
+    sizeField(cur); later();
   });
 
   /* 다 그린 카드: { canvas(1200×630), blob(PNG), url, title }. 아직 그리기 전이면 null */

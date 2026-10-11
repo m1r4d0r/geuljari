@@ -66,7 +66,7 @@ try:
             pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(150)
             pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(2400)
             print(tag, 'ending', pg.evaluate(cur), '| card', pg.evaluate("() => { const i = document.querySelector('.sheet.ending .end-full'); return i && [i.naturalWidth, i.naturalHeight]; }"),
-                  '| title', repr(pg.evaluate("() => document.title")), '| end dot', pg.evaluate("() => document.querySelector('#dots .dot.end').getAttribute('aria-current')"),
+                  '| title', repr(pg.evaluate("() => document.title")), '| end dot', pg.evaluate("() => document.querySelector('#dots .dot.fin').getAttribute('aria-current')"),
                   '| buttons', pg.evaluate("() => [...document.querySelectorAll('.sheet.ending .end-acts > *')].map(b => b.textContent + (b.href ? '→' + b.getAttribute('href') : '')).join(' / ')"))
             print(tag, '  made', pg.locator('.sheet.ending .end-made').count(), '| card()', pg.evaluate("() => { const c = GeulEnding.card(); return c && [c.canvas.width, c.canvas.height, !!c.blob]; }"))
             pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(300)
@@ -74,7 +74,7 @@ try:
             pg.screenshot(path=str(OUT / f'{tag}-ending.png'))
             pg.click('.sheet.ending .end-again'); pg.wait_for_timeout(700)
             print(tag, 'again from 1', pg.evaluate(state))
-            pg.click('#dots .dot.end'); pg.wait_for_timeout(1200)
+            pg.click('#dots .dot.fin'); pg.wait_for_timeout(1200)
             print(tag, 'dot to ending', pg.evaluate(cur))
             print(tag, 'canvases', pg.evaluate("() => document.querySelectorAll('canvas.ground').length"), 'width', pg.evaluate("() => document.documentElement.scrollWidth"))
             ctx.close()

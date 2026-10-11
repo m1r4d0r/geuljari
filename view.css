@@ -11,8 +11,8 @@
 [data-scene="day"] {
   --paper: #ECEDF0;
   --ink: var(--theme-ink, #2C2F6B);
-  --ink-soft: var(--theme-lead, #4F5280);
-  --wet: var(--theme-wet, #9A9CC2);
+  --ink-soft: var(--theme-lead, #565988);
+  --wet: var(--theme-wet, #8C8EAE);
 }
 [data-scene="night"] {
   --paper: var(--theme-night-paper, #0E1317);

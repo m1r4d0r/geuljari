@@ -134,9 +134,14 @@
 .end-title { min-height: 1.3em; }
 @media(max-width: 540px) {
   .in-studio .sheet.ending .scroll { padding: 30px 16px 80px; }
-  .end-acts { grid-template-columns: auto minmax(0, 1fr); }
-  .end-pair { grid-column: 1; }
-  .end-author { grid-column: 2; }
+  .end-acts { gap: 8px; }
+  .end-pair > * { padding: 0 14px; }
+}
+/* 아주 좁으면 두 단추는 가운데 그대로, 작성자 수정은 그 아래 줄 오른쪽 끝 */
+@media(max-width: 420px) {
+  .end-acts { grid-template-columns: minmax(0, 1fr); }
+  .end-pair { grid-column: 1; justify-self: center; }
+  .end-author { grid-column: 1; padding: 4px 0; }
 }
 
 /* 위치 이동 중 가로·세로 가운데에 붙으면 그 가운데 선 */

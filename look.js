@@ -128,7 +128,7 @@
     const cs = getComputedStyle(doc.documentElement);
     const ink = hex(cs.getPropertyValue('--ink'), '#2C2F6B');
     const paper = hex(cs.getPropertyValue('--paper'), PAPER);
-    return { ink, wet: hex(cs.getPropertyValue('--wet-ink'), mix(ink, paper, 0.45)) };
+    return { ink, wet: hex(cs.getPropertyValue('--wet-ink'), mix(ink, paper, 0.5)) };
   }
 
   /*

@@ -230,12 +230,13 @@
   function themeVars(theme) {
     const ink = themeInk(theme);
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16));
+    /* 종이 위 먹은 네 단계뿐: 먹 · 납 22% · 흐림 50%(젖은 먹도 같음) · 선 74% · 고름 84%(면) */
+    const faint = mix(ink, PAPER, 0.5);
     const night = mix(ink, '#090A0D', 0.8);
     const nightInk = mix(ink, '#F1F2F5', 0.86);
     return {
-      '--ink': ink, '--lead': mix(ink, PAPER, 0.22), '--faint': mix(ink, PAPER, 0.48), '--line': mix(ink, PAPER, 0.74),
-      '--empty': mix(ink, PAPER, 0.6), '--pick': mix(ink, PAPER, 0.84), '--smudge': `rgba(${r}, ${g}, ${b}, .10)`,
-      '--carbon': `.6px .45px 0 rgba(${r}, ${g}, ${b}, .24)`, '--wet-ink': mix(ink, PAPER, 0.45),
+      '--ink': ink, '--lead': mix(ink, PAPER, 0.22), '--faint': faint, '--line': mix(ink, PAPER, 0.74), '--pick': mix(ink, PAPER, 0.84), '--smudge': `rgba(${r}, ${g}, ${b}, .10)`,
+      '--carbon': `.6px .45px 0 rgba(${r}, ${g}, ${b}, .24)`, '--wet-ink': faint,
       '--dark': mix(ink, '#0F1016', 0.72), '--dark-ink': nightInk,
       '--night-paper': night, '--night-ink': nightInk, '--night-soft': mix(nightInk, night, 0.42), '--night-wet': mix(ink, '#FFFFFF', 0.55)
     };

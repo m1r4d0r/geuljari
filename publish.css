@@ -31,7 +31,7 @@
 .pub-fine li, .pub-fine p { margin: 0; word-break: keep-all; }
 .pub-fine a { color: inherit; }
 
-/* 하단바: 왼쪽 공개 스위치와 글 삭제(테라코타로 채움), 오른쪽 하는 일과 먹으로 채운 발행·저장. 단추 높이는 모두 같다 */
+/* 하단바: 왼쪽 공개 스위치와 글 삭제(장미로 채움), 오른쪽 하는 일과 먹으로 채운 발행·저장. 단추 높이는 모두 같다 */
 .publish-bar { flex: none; display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 var(--gut) calc(10px + env(safe-area-inset-bottom, 0px)); min-width: 0; position: relative; }
 .pub-switch { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px 0 10px; border: 1px solid var(--line); background: var(--sheet); color: var(--ink); font: 13px var(--f-ui); white-space: nowrap; }
 .pub-switch:hover:not(:disabled) { border-color: var(--ink); }

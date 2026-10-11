@@ -114,7 +114,7 @@
 .end-card.editing .end-title::placeholder { color: color-mix(in srgb, var(--ink) 30%, transparent); }
 
 /* 편집실 미리보기의 끝 장: 카드 문구는 카드에서 바로 고치고, 크기·폭·정렬은 편집실 하단바에서 고른다. */
-.in-studio .sheet.ending .scroll { display: block; padding: 32px 20px calc(90px + var(--studio-bottom, 0px)); overflow-y: auto; touch-action: pan-y; }
+.in-studio .sheet.ending .scroll { padding: 32px 20px calc(90px + var(--studio-bottom, 0px)); overflow-y: auto; touch-action: pan-y; }
 .in-studio .end { width: min(100%, 740px); }
 .end-acts { margin-top: 18px; align-items: center; flex-wrap: wrap; gap: 8px 28px; }
 .end-acts .end-new { cursor: pointer; }

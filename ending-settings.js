@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const number = (v, min, max, fallback) => typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : fallback;
-  /* 문구 칸이 카드 세로 가운데에 오는 y(ending.js의 자리 계산: 위 40 + 160 × y%, 칸 높이 312, 카드 높이 630) */
+  /* 문구 칸이 카드 세로 가운데에 오는 y(ending.js의 자리 계산: 위 40 + 160 × y%, 칸 높이 312, 카드 높이 630). 위치 이동이 여기에 붙는다 */
   const MID_Y = (630 / 2 - 312 / 2 - 40) / 160 * 100;
   window.GeulCardSettings = {
     MID_Y,
@@ -16,8 +16,7 @@
         /* 카드 글꼴 이름(GeulTune.FONTS). null이면 본문 글꼴 */
         font: typeof o.font === 'string' && o.font.length <= 20 ? o.font : null,
         size: number(o.size, 28, 120, 86), width: number(o.width, 30, 90, 76),
-        /* 저장된 y 43은 세로 가운데로 읽어요. */
-        x: number(o.x, 0, 100, 50), y: o.y === 43 ? MID_Y : number(o.y, 0, 100, MID_Y),
+        x: number(o.x, 0, 100, 50), y: number(o.y, 0, 100, 43),
         align: ['left','center','right'].includes(o.align) ? o.align : 'center'
       };
     }

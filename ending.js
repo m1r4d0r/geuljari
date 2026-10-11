@@ -8,7 +8,7 @@
   const H = 630;
   const SIZES = [100, 86, 74];                       // 제목 글자 크기: 두 줄에 들 때까지 차례로 줄인다
   const LEAD = 1.3;                                  // 제목 줄 간격(글자 크기의 배수)
-  const META_Y = 552;                                // ■□ 글자리 · 날짜 줄의 가운데
+  const META_Y = 552;                                // 로고 · 날짜 줄의 가운데
   const TITLE_MAX = 120;
   const REDRAW_MS = 220;
   const FONT_WAIT = 1500;
@@ -103,7 +103,6 @@
     if (!F || !F.load) return { ready: Promise.resolve(true), late: null };
     const all = Promise.all([
       F.load(`400 ${SIZES[0]}px ${L.title}`, text || '가'),
-      F.load(`400 30px ${FAM.mark}`, '글자리'),
       F.load(`400 22px ${FAM.code}`, date)
     ]).then(() => true, () => true);
     return { ready: Promise.race([all, new Promise((r) => setTimeout(() => r(false), FONT_WAIT))]), late: all };
@@ -217,30 +216,20 @@
     f.lines.forEach((ln, i) => ctx.fillText(ln, x, top + lh * (i + .5)));
   }
 
-  /* 맨 아래 가운데: ■□ 글자리 | 2026.10.10 */
+  /* 맨 아래 가운데: 펼친 글자리 로고(겹네모·글·자·리) | 2026.10.10 */
   function drawMeta(ctx, st) {
     const L = st.look;
-    const sq = 12;
-    const gap = 4;
+    const LOGO_H = 34;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    ctx.font = `400 27px ${FAM.mark}`;
-    const nameW = ctx.measureText('글자리').width;
     ctx.font = `400 20px ${FAM.code}`;
     const dateW = ctx.measureText(st.made.mark).width;
-    const markW = sq * 2 + gap + 10 + nameW;
-    const total = markW + 44 + dateW;
+    const logoW = window.GeulLogo ? LOGO_H * window.GeulLogo.ratio : 0;
+    const total = logoW + 44 + dateW;
     let x = (W - total) / 2;
     const y = META_Y;
-    ctx.fillStyle = L.ink;
-    ctx.fillRect(x, y - sq / 2, sq, sq);
-    ctx.strokeStyle = L.ink;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x + sq + gap + 0.75, y - sq / 2 + 0.75, sq - 1.5, sq - 1.5);
-    x += sq * 2 + gap + 10;
-    ctx.font = `400 27px ${FAM.mark}`;
-    ctx.fillText('글자리', x, y + 1);
-    x += nameW + 22;
+    if (window.GeulLogo) window.GeulLogo.draw(ctx, x, y - LOGO_H / 2, LOGO_H, L.ink);
+    x += logoW + 22;
     ctx.fillStyle = rgba(L.soft, 0.6);
     ctx.fillRect(x - 0.5, y - 9, 1, 18);
     x += 22;

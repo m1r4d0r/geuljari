@@ -74,7 +74,7 @@ input[type=range]::-moz-range-thumb { width: 11px; height: 11px; background: var
 .logo { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0; background: none; border: 0; }
 /* 로고: 원고지 네 칸 SVG(글자는 송명 윤곽이라 글꼴이 늦거나 없어도 같은 모양). 넷째 칸 왼쪽 아래에 마침표 */
 .logo { color: var(--ink); }
-.logo-svg { display: block; height: 40px; width: auto; }
+.logo-svg { display: block; height: 30px; width: auto; }
 .steps { display: flex; gap: 2px; margin-left: auto; align-self: stretch; }
 .steps button { height: 100%; padding: 0 12px; background: none; border: 0; color: var(--faint); white-space: nowrap; }
 .steps button:hover:not(:disabled) { color: var(--ink); }
@@ -401,7 +401,7 @@ body[data-step="tune"] .toast { top: 76px; bottom: auto; }
 @media (max-width: 760px) {
   :root { --gut: 16px; }
   .top { gap: 12px; height: 52px; }
-  .logo-svg { height: 34px; }
+  .logo-svg { height: 26px; }
   .steps button { padding: 0 7px; }
   /* 폰: 안내는 아래에서 올라오는 판. 무대를 위에, 설명과 다음 단추를 엄지 닿는 아래에 */
   .guide { place-items: end stretch; padding: 0; }
@@ -431,6 +431,6 @@ body[data-step="tune"] .toast { top: 76px; bottom: auto; }
 
 @media(max-width: 760px) {
   .top { gap: 8px; padding-inline: 12px; height: 52px; }
-  .logo-svg { height: 34px; }
+  .logo-svg { height: 22px; }
   .steps button { padding-inline: 6px; }
 }

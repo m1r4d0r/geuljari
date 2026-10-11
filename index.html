@@ -66,13 +66,15 @@
     </div>
     <footer class="tune-bar write-bar" aria-label="글 전체 설정">
       <div class="tb-left" id="write-tools"></div>
-      <div class="tb-side"><span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span></div>
+      <div class="tb-side">
+        <span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span>
+        <div class="tb-tools" role="group" aria-label="글">
+          <button type="button" id="load-open">불러오기</button><button type="button" id="file-save">저장</button><button type="button" id="clear">새로 쓰기</button>
+        </div>
+      </div>
     </footer>
     <div id="write-spare" hidden>
       <button type="button" class="tb-val tb-act" id="mood-look">살펴보기</button>
-      <button type="button" class="tb-val tb-act" id="load-open">불러오기</button>
-      <button type="button" class="tb-val tb-act" id="file-save">초안 저장</button>
-      <button type="button" class="tb-val tb-act" id="clear">새로 쓰기</button>
     </div>
   </section>
 

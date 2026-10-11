@@ -2,11 +2,8 @@
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
-// 편집 하단바의 글 갈래에 있는 단추(불러오기·초안 저장·새로 쓰기)를 누른다
-const fileBtn = async (pg, id) => {
-  if (!(await pg.isVisible(id))) { await pg.click('.write-bar .tb-cat'); await pg.click('.write-bar .tb-cat-item .tb-li:has-text("글")'); }
-  await pg.click(id);
-};
+// 불러오기·저장·새로 쓰기는 편집 하단바 오른쪽에 늘 있다
+const fileBtn = (pg, id) => pg.click(id);
 (async () => {
   const { serve } = await import('./publish-server.mjs');
   const { store, blobs, close, origin } = await serve();

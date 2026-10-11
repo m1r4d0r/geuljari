@@ -13,12 +13,10 @@ const fs = require('node:fs/promises');
       await pg.goto(origin);
       assert.equal(await pg.isVisible('#guide'),false);
       assert.equal(await pg.isVisible('#guide-open'),true);
-      // 편집 하단바: 분위기(축마다 값 단추)·테마·글. 글 갈래를 고르면 불러오기·초안 저장·새로 쓰기
+      // 편집 하단바: 분위기(축마다 값 단추)·테마. 불러오기·저장·새로 쓰기는 오른쪽 아래에 늘
       assert.equal(await pg.textContent('.write-bar .tb-cat .tb-label'),'분위기');
       assert.equal(await pg.locator('.write-bar .tb-val[data-key^=ax-]').count(),3);
-      for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('#'+id),false,id);
-      await pg.click('.write-bar .tb-cat'); await pg.click('.write-bar .tb-cat-item .tb-li:has-text("글")');
-      for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('#'+id),true,id);
+      for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('.write-bar .tb-side #'+id),true,id);
       assert.equal(await pg.locator('.write-help li').count(),3); assert.equal(await pg.isVisible('.write-help'),true);
       assert.equal(await pg.locator('#sample, #go-tune').count(),0);
       assert.equal(await pg.locator('button').filter({hasText:/^미리보기$/}).count(),1);

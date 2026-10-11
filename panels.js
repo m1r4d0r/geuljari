@@ -446,11 +446,12 @@
   }
 
   /*
-   * 편집 하단바: 글 전체에 거는 것. 갈래는 분위기(축마다 값 단추 하나, 그리고 살펴보기)·테마(주색·글꼴·시작)·글(불러오기·초안 저장·새로 쓰기).
-   * ctx: moods(), setMoods(list), settings(), setSettings(part), look 살펴보기 단추, files 글 단추들,
-   *      spare 그 단추들을 쉬게 둘 숨은 칸(편집실이 만들어 두고 다른 코드도 id로 찾으므로 문서 밖으로 빼지 않는다)
+   * 편집 하단바: 글 전체에 거는 것. 갈래는 분위기(축마다 값 단추 하나, 그리고 살펴보기)·테마(주색·글꼴·시작).
+   * 글 단추(불러오기·저장·새로 쓰기)는 갈래 밖, 하단바 오른쪽에 늘 둔다(index.html).
+   * ctx: moods(), setMoods(list), settings(), setSettings(part), look 살펴보기 단추,
+   *      spare 살펴보기를 쉬게 둘 숨은 칸(편집실이 만들어 두고 다른 코드도 id로 찾으므로 문서 밖으로 빼지 않는다)
    */
-  const WRITE_CATS = { mood: '분위기', theme: '테마', file: '글' };
+  const WRITE_CATS = { mood: '분위기', theme: '테마' };
   function mountWrite(root, ctx) {
     let cat = 'mood';
     const ui = bar(root, {
@@ -461,7 +462,6 @@
       }),
       vals() {
         const st = ctx.settings();
-        if (cat === 'file') return ctx.files.map((node) => ({ key: node.id, node }));
         if (cat === 'theme') {
           const custom = T.HEX_RE.test(String(st.theme));
           return [{
@@ -494,7 +494,7 @@
         }), ...(ctx.look ? [{ key: 'look', node: ctx.look }] : [])];
       },
       drop: 'wb-drop-',
-      before() { [ctx.look, ...ctx.files].forEach((n) => { if (n) ctx.spare.append(n); }); },
+      before() { if (ctx.look) ctx.spare.append(ctx.look); },
       name: () => cat
     });
     return { refresh: () => ui.refresh(), close: () => ui.close() };

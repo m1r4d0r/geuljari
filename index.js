@@ -166,7 +166,7 @@
     save();
   }
 
-  /* 편집 하단바: 분위기(심상 세 축)·테마(주색·글꼴·시작 장면)·글(불러오기·초안 저장·새로 쓰기) */
+  /* 편집 하단바: 분위기(심상 세 축)·테마(주색·글꼴·시작 장면). 불러오기·저장·새로 쓰기는 오른쪽에 늘 */
   let writeBar = null;
   function drawRail() { if (writeBar) writeBar.refresh(); }
 
@@ -193,7 +193,6 @@
       requestAnimationFrame(() => writeEd.draw());
     },
     look: window.GeulLook ? $('mood-look') : null,
-    files: ['load-open', 'file-save', 'clear'].map($),
     spare: $('write-spare')
   });
 

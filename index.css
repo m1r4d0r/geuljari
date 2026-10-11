@@ -197,7 +197,11 @@ body:not([data-step="write"]) .top-info { display: none; }
 @media (max-width: 420px) { .count-chars { display: none; } .top-info { gap: 10px; } .top .steps button { padding-inline: 5px; } .top { gap: 8px; } }
 
 /* 편집 하단바: 미리보기와 같은 한 줄(panels.js mountWrite). 넓은 화면은 본문 아래 제자리, 오른쪽에 발행 상태 */
-.write-bar .tb-side { margin-left: auto; min-width: 0; display: flex; align-items: center; pointer-events: auto; }
+.write-bar .tb-side { margin-left: auto; min-width: 0; display: flex; align-items: center; gap: 16px; pointer-events: auto; }
+.write-bar .tb-tools { margin-left: 0; }
+.write-bar .tb-side > * { max-width: 100%; }
+/* 발행 단계 하단바: 오른쪽에 발행 상태 */
+.publish-bar { flex: none; display: flex; align-items: center; min-height: 52px; padding: 6px var(--gut) calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--sheet); min-width: 0; }
 @media (min-width: 1001px) {
   .tune-bar.write-bar { position: relative; left: auto; right: auto; bottom: auto; flex: none; padding: 0 var(--gut) 10px; }
 }
@@ -209,7 +213,8 @@ body:not([data-step="write"]) .top-info { display: none; }
   .write-help li + li { padding-left: 10px; border-left: 1px solid var(--line); }
   .hm-cut { width: 22px; }
   .hm-rest { width: 18px; height: 12px; }
-  .write-bar .tb-side { position: absolute; right: 0; bottom: 0; max-width: calc(100% - 150px); font-size: 11px; }
+  .write-bar .tb-side { position: absolute; right: 0; bottom: 0; max-width: calc(100% - 150px); flex-direction: column; align-items: flex-end; gap: 6px; font-size: 11px; }
+  .write-bar .tb-tools { position: static; }
   /* 쓰는 동안(자판이 올라온 동안)은 하단바를 거둔다 */
   body.typing .write-bar { display: none; }
 }
@@ -338,12 +343,13 @@ body:not([data-step="write"]) .top-info { display: none; }
 .tb-range input::-webkit-slider-thumb { width: 14px; height: 14px; }
 .tb-range input::-moz-range-thumb { width: 14px; height: 14px; }
 
-.tb-tools { flex: none; margin-left: auto; display: flex; align-items: stretch; height: 36px; border: 1px solid var(--line); background: var(--sheet); pointer-events: auto; }
-.tb-tools button { min-width: 44px; padding: 0 12px; border: 0; background: none; font: 12px var(--f-ui); color: var(--lead); }
+.tb-tools { flex: none; margin-left: auto; display: flex; align-items: stretch; height: 32px; border: 1px solid var(--line); background: var(--sheet); pointer-events: auto; }
+.tb-tools button { min-width: 0; padding: 0 10px; border: 0; background: none; font: 12px var(--f-ui); color: var(--lead); white-space: nowrap; }
+.tb-tools button:hover:not(:disabled):not([aria-pressed="true"]) { color: var(--ink); background: var(--paper); }
 .tb-tools button + button { border-left: 1px solid var(--line); }
 .tb-tools button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
 .tb-tools button[aria-pressed="true"] + button { border-left-color: var(--ink); }
-.tb-replay { position: relative; width: 40px; min-width: 0 !important; padding: 0 !important; display: grid; place-items: center; color: var(--ink) !important; }
+.tb-replay { position: relative; width: 34px; min-width: 0 !important; padding: 0 !important; display: grid; place-items: center; color: var(--ink) !important; }
 .tb-replay svg { display: block; }
 @media (max-width: 1000px) {
   /* 1000px 이하(태블릿·폰) 하단바: 왼쪽 아래에 세로로 쌓는다. 갈래가 맨 아래, 그 위로 값 단추. 판은 오른쪽으로 한 줄 */
@@ -368,9 +374,9 @@ body:not([data-step="write"]) .top-info { display: none; }
   .tb-range { height: 44px; flex-direction: row; align-items: center; gap: 10px; padding: 0 14px; }
   body[data-step="tune"] .toast { top: 96px; }
   .tb-range input { writing-mode: horizontal-tb; direction: ltr; width: auto; min-width: 0; height: 24px; margin: 0; background: linear-gradient(var(--line), var(--line)) center / 100% 2px no-repeat; }
-  .tb-tools { position: absolute; right: 0; bottom: 0; height: 44px; }
-  .tb-tools button { min-width: 44px; }
-  .tb-replay { width: 44px; }
+  .tb-tools { position: absolute; right: 0; bottom: 0; height: 40px; }
+  .tb-tools button { min-width: 40px; }
+  .tb-replay { width: 40px; }
   body.tune-cat-open .tb-tools, body[data-tune-cat="pick"] .tb-tools { visibility: hidden; }
   .tb-left.cat-open .tb-vals { opacity: .45; pointer-events: none; }
   .wide-only { display: none; }

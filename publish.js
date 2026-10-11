@@ -23,7 +23,8 @@
     // 발행한 글의 열쇠·비밀번호·기록은 이 브라우저(localStorage)에 남겨 새로 고침해도 발행 관리가 이어져요. 본문은 넣지 않아요.
     const KEEP = 'geul.publication';
     let active = null, pending = null, busy = false, live = true;
-    const link = a => location.origin + '/t/' + a.id + '#' + a.key;
+    // 공유 그림이 바뀌면 주소 뒤 ?v=도 바뀌어, 미리보기를 기억해 둔 X·마스토돈 등이 새로 읽어요. 읽기에는 쓰지 않아요.
+    const link = a => location.origin + '/t/' + a.id + (a.record && a.record.ogHash ? '?v=' + a.record.ogHash.slice(0, 8) : '') + '#' + a.key;
     const slim = r => { const { cipher, iv, ...rest } = r; return rest; };
     function keep() {
       try {

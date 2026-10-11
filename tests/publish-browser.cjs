@@ -29,7 +29,8 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
 
     await pg.click('#publish-submit'); await pg.waitForSelector('#publish-result:not([hidden])');
-    const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}#[\w-]{43}$/);
+    const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}\?v=[a-f0-9]{8}#[\w-]{43}$/);
+    const bare = u => u.replace(/\?[^#]*/, '');
     const id = new URL(link).pathname.split('/')[2]; const key = new URL(link).hash.slice(1);
     // 발행 기록(열쇠·비밀번호)은 이 브라우저에 남지만 본문 암호문은 넣지 않아요.
     const kept = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.publication'))); assert.equal(kept.key,key); assert.equal(kept.password,'4821'); assert.equal(kept.record.cipher,undefined);
@@ -92,7 +93,7 @@ const fileBtn = (pg, id) => pg.click(id);
     const savedRevision=(await store.get(id)).revision;
     await pg.click('#publish-submit');
     await pg.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.includes('수정한 제목'));
-    assert.equal(await pg.inputValue('#publish-url'),link);assert.equal((await store.get(id)).revision,savedRevision);
+    assert.equal(bare(await pg.inputValue('#publish-url')),bare(link));assert.notEqual(await pg.inputValue('#publish-url'),link);assert.equal((await store.get(id)).revision,savedRevision);
     const updatedRecord = await store.get(id); assert.notEqual(updatedRecord.ogHash,firstRecord.ogHash);
     assert.equal((await fetch(imageURL(firstRecord))).status,404); assert.equal((await fetch(imageURL(updatedRecord))).status,200);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});

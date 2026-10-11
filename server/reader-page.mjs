@@ -13,7 +13,11 @@ export function createReaderHandler(getStore, template) {
         else {
           title = record.title || '제목 없는 글';
           page = new URL(`/t/${id}`, req.url).href;
-          if (record.ogImage && /^[a-f0-9]{64}$/.test(record.ogHash || '')) image = new URL(`/og/${id}/${record.ogHash}.png`, req.url).href;
+          if (record.ogImage && /^[a-f0-9]{64}$/.test(record.ogHash || '')) {
+            image = new URL(`/og/${id}/${record.ogHash}.png`, req.url).href;
+            // 편집실이 건네는 링크와 같은 판(?v=)을 대표 주소로 둬요.
+            page += '?v=' + record.ogHash.slice(0, 8);
+          }
         }
       }
     } catch { status = 503; }

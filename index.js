@@ -30,7 +30,6 @@
   const STEPS = ['write', 'tune', 'publish'];
   let publication;
   const OPPOSITE = { '라이트': '다크', '다크': '라이트' };
-  const LONG = 240;
   const ZOOM_MAX = 4;
   const phone = window.matchMedia('(max-width: 760px)');
 
@@ -125,21 +124,28 @@
     countLine();
   }
 
+  /* 본문·제목에 쓰는 동안(폰에서는 자판이 올라온 동안) 하단바를 거둔다 */
+  ['focusin', 'focusout'].forEach((t) => document.addEventListener(t, () => {
+    const a = document.activeElement;
+    document.body.classList.toggle('typing', a === ta || a === $('title'));
+  }));
+
   $('title').value = st.title;
   $('title').addEventListener('input', (e) => { st.title = e.target.value; save(); handOff(); });
 
+  /* 헤더 집계: 쪽 수와 글자 수 */
   function countLine() {
     document.querySelectorAll('.steps [data-go]').forEach((b) => {
       b.disabled = b.dataset.go !== 'write' && !st.source.trim();
     });
     if (!st.source.trim()) { $('count').textContent = ''; return; }
     const pgs = allPages();
-    const chars = pgs.reduce((n, p) => n + p.count, 0);
-    const dark = pgs.filter((p) => p.scene === 'night').length;
-    const marks = S.blocks(st.source).length;
-    const long = pgs.map((p, k) => (p.count > LONG ? k + 1 : 0)).filter(Boolean);
-    $('count').textContent = [`${pgs.length}쪽 · ${chars}자`, dark ? `다크 ${dark}쪽` : '', marks ? `강조 ${marks}` : '', long.length ? `긴 쪽 ${long.join('·')}` : '']
-      .filter(Boolean).join(' · ');
+    const pages = document.createElement('span');
+    pages.textContent = `${pgs.length}쪽`;
+    const chars = document.createElement('span');
+    chars.className = 'count-chars';
+    chars.textContent = ` · ${pgs.reduce((n, p) => n + p.count, 0)}자`;
+    $('count').replaceChildren(pages, chars);
   }
 
   /* 분위기를 직접 고르기 전에는 글을 읽어 짐작한 분위기를 둔다 */
@@ -160,24 +166,9 @@
     save();
   }
 
-  /* 오른쪽 칸: 분위기(심상 세 축)와 테마(주색·글꼴·시작 장면) */
-  function drawRail() {
-    P.moodGrid($('moods'), st.moods, (list) => { st.moodsTouched = true; setMoods(list); drawRail(); });
-    P.themeSwatches($('themes'), st.settings.theme, (theme) => setSettings({ theme }));
-    const fonts = P.pieces(T.FONT_NAMES, st.settings.font, (font) => {
-      setSettings({ font });
-      drawRail();
-      requestAnimationFrame(() => writeEd.draw());
-    }, 'fonts');
-    fonts.querySelectorAll('.piece').forEach((b) => { b.style.fontFamily = `${T.FONTS[b.dataset.v].css}, var(--f-body)`; });
-    $('fonts').replaceChildren(fonts);
-    $('start-scene').replaceChildren(P.pieces(Object.keys(T.GROUNDS), st.settings.scene, (scene) => {
-      setSettings({ scene });
-      writeEd.draw();
-      drawRail();
-      countLine();
-    }, 'scenes'));
-  }
+  /* 편집 하단바: 분위기(심상 세 축)·테마(주색·글꼴·시작 장면)·글(불러오기·초안 저장·새로 쓰기) */
+  let writeBar = null;
+  function drawRail() { if (writeBar) writeBar.refresh(); }
 
   /* 분위기 살펴보기: 낱말마다 움직임을 견주는 덮개(look.js). 거기서 고르면 이쪽 고름도 바뀐다 */
   function openLook() {
@@ -191,8 +182,20 @@
       }
     });
   }
-  $('mood-look').hidden = !window.GeulLook;
   $('mood-look').addEventListener('click', openLook);
+  writeBar = P.mountWrite($('write-tools'), {
+    moods: () => st.moods,
+    setMoods(list) { st.moodsTouched = true; setMoods(list); drawRail(); },
+    settings: () => st.settings,
+    setSettings(part) {
+      setSettings(part);
+      if (part.scene) countLine();
+      requestAnimationFrame(() => writeEd.draw());
+    },
+    look: window.GeulLook ? $('mood-look') : null,
+    files: ['load-open', 'file-save', 'clear'].map($),
+    spare: $('write-spare')
+  });
 
   const snapshot = () => ({ version:1, title:st.title, source:st.source, made:st.made || today(), settings:st.settings, moods:st.moods, moodsTouched:st.moodsTouched, ending:st.ending });
 
@@ -310,7 +313,6 @@
 
   function setStep(step) {
     if (step !== 'write' && !st.source.trim()) { toast('글을 먼저 놓아 주세요.'); ta.focus(); return; }
-    if ($('write-settings').open) $('write-settings').close();
     const from = st.step;
     st.step = step;
     document.body.dataset.step = step;
@@ -320,6 +322,7 @@
       else b.removeAttribute('aria-current');
       b.disabled = b.dataset.go !== 'write' && !st.source.trim();
     });
+    if (from === 'write' && step !== 'write') writeBar.close();
     if (from === 'tune' && step !== 'tune') leaveTune();
     if (step === 'write') { if (ta.value !== st.source) ta.value = st.source; writeEd.draw(); drawRail(); }
     if (step === 'tune') enterTune(from !== 'tune');

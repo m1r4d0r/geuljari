@@ -2,6 +2,11 @@
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
+// 편집 하단바의 글 갈래에 있는 단추(불러오기·초안 저장·새로 쓰기)를 누른다
+const fileBtn = async (pg, id) => {
+  if (!(await pg.isVisible(id))) { await pg.click('.write-bar .tb-cat'); await pg.click('.write-bar .tb-cat-item .tb-li:has-text("글")'); }
+  await pg.click(id);
+};
 (async () => {
   const { serve } = await import('./publish-server.mjs');
   const { store, blobs, close, origin } = await serve();
@@ -34,23 +39,23 @@ const fs = require('node:fs/promises');
     await reader.goto(link.split('#')[0]+'#'+'A'.repeat(43)); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('열쇠'));
     await pg.uncheck('#publish-live'); await pg.click('#publish-submit'); await pg.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.startsWith('발행 중단'));
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('발행이 중단'));
-    await pg.reload(); await pg.click('#load-open');
+    await pg.reload(); await fileBtn(pg,'#load-open');
     await pg.fill('#load-url',link); await pg.fill('#load-password','incorrect-password'); await pg.click('#load-form button[type=submit]');
     await pg.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('맞지'));
     await pg.click('#load-close');
     // 발행 글 파일을 놓으면 글이 돌아오고 발행 관리도 이어져요.
-    await pg.click('#clear'); await pg.click('#load-open');
+    await fileBtn(pg,'#clear'); await fileBtn(pg,'#load-open');
     await pg.setInputFiles('#load-file',file); await pg.waitForSelector('#load-dialog',{state:'hidden'});
     await pg.waitForSelector('.write-bar .publication-strip:not([hidden])');
     assert.equal(await pg.inputValue('#title'),'발행 확인');
     // 예전 관리 파일(JSON·줄글)도 읽어요.
     await fs.mkdir('tests/out',{recursive:true});
     await fs.writeFile('tests/out/legacy-key.txt',JSON.stringify({format:'geuljari-key',version:1,url:link,password:'4821'}));
-    await pg.click('#load-open'); await pg.setInputFiles('#load-file','tests/out/legacy-key.txt');
+    await fileBtn(pg,'#load-open'); await pg.setInputFiles('#load-file','tests/out/legacy-key.txt');
     await pg.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('관리 파일을 읽었'));
     assert.equal(await pg.inputValue('#load-url'),link); await pg.click('#load-close');
     await fs.writeFile('tests/out/legacy-key2.txt','글자리 관리 파일\n\n링크: '+link+'\n비밀번호: 4821\n');
-    await pg.click('#load-open'); await pg.setInputFiles('#load-file','tests/out/legacy-key2.txt');
+    await fileBtn(pg,'#load-open'); await pg.setInputFiles('#load-file','tests/out/legacy-key2.txt');
     await pg.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('관리 파일을 읽었'));
     assert.equal(await pg.inputValue('#load-password'),'4821'); await pg.click('#load-close');
     await pg.click('[data-go=publish]'); assert.equal(await pg.isChecked('#publish-live'),false);
@@ -73,19 +78,19 @@ const fs = require('node:fs/promises');
     await pg.fill('#publish-title','충돌해도 남을 제목'); await pg.click('#publish-submit');
     await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('다른 곳'));
     assert.equal(await pg.inputValue('#publish-title'),'충돌해도 남을 제목');
-    await pg.click('[data-go=write]'); await pg.click('#load-open'); await pg.fill('#load-url',link); await pg.fill('#load-password','4821'); await pg.click('#load-form button[type=submit]'); await pg.waitForSelector('#load-dialog',{state:'hidden'});
+    await pg.click('[data-go=write]'); await fileBtn(pg,'#load-open'); await pg.fill('#load-url',link); await pg.fill('#load-password','4821'); await pg.click('#load-form button[type=submit]'); await pg.waitForSelector('#load-dialog',{state:'hidden'});
     await pg.click('[data-go=publish]'); await pg.click('#publish-delete');
     await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('삭제했어요'));
     assert.equal(await store.get(id),null); assert.equal((await blobs.get(id,{type:'json'})).deleted,true); await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('삭제'));
     // 글 파일: 받아서 새로 쓰기로 비운 뒤 다시 불러오면 글과 설정이 돌아와요.
     await pg.click('[data-go=write]');
     const before = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')));
-    const docPromise = pg.waitForEvent('download'); await pg.click('#file-save'); const docDownload = await docPromise;
+    const docPromise = pg.waitForEvent('download'); await fileBtn(pg,'#file-save'); const docDownload = await docPromise;
     assert.match(docDownload.suggestedFilename(),/^\[초안\] .+ \d{4}-\d{2}-\d{2}\.txt$/);
     const docFile = await docDownload.path(); const docText = await fs.readFile(docFile,'utf8');
     assert.ok(docText.startsWith('글자리 글 파일')); assert.ok(!docText.includes('\n비밀번호: ')); assert.ok(docText.includes(before.source)); assert.ok(docText.includes('\n글꼴: '+before.settings.font+'\n'));
-    await pg.click('#clear'); assert.equal(await pg.inputValue('#src'),'');
-    await pg.click('#load-open'); await pg.setInputFiles('#load-file',docFile); await pg.waitForSelector('#load-dialog',{state:'hidden'});
+    await fileBtn(pg,'#clear'); assert.equal(await pg.inputValue('#src'),'');
+    await fileBtn(pg,'#load-open'); await pg.setInputFiles('#load-file',docFile); await pg.waitForSelector('#load-dialog',{state:'hidden'});
     const after = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')));
     for (const k of ['title','source','made','settings','moods','moodsTouched','ending']) assert.deepEqual(after[k],before[k],k);
     assert.equal(await pg.isVisible('.write-bar .publication-strip'),false);

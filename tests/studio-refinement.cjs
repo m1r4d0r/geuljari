@@ -14,12 +14,14 @@ const fs = require('node:fs/promises');
       await context.route('**/fonts.g*/**',r=>r.abort());
       const pg=await context.newPage(); pg.on('pageerror',e=>errors.push(e.message));
       await pg.goto(origin);
-      assert.equal(await pg.isVisible('#write-settings'),false);
-      if (width < 761) {
-        await pg.click('#settings-open'); assert.equal(await pg.isVisible('#write-settings'),true);
-        await pg.keyboard.press('Escape'); assert.equal(await pg.isVisible('#write-settings'),false);
-        assert.equal(await pg.locator('#settings-open').evaluate(n=>n===document.activeElement),true);
-      } else assert.equal(await pg.isVisible('#write-settings-slot .rail'),true);
+      // 편집 하단바: 분위기 축 판은 같은 폭으로 붙고, 고르면 그 축 값만 바뀜
+      await pg.click('.write-bar [data-key="ax-온도"]');
+      await pg.click('#wb-drop-ax-온도 .tb-li:has-text("따뜻한")');
+      await pg.waitForFunction(()=>(JSON.parse(localStorage.getItem('geul.studio'))||{}).moods?.includes('따뜻한'));
+      assert.equal(await pg.textContent('.write-bar [data-key="ax-온도"] .tb-label'),'온도 따뜻한');
+      await pg.click('.write-bar .tb-cat'); await pg.click('.write-bar .tb-cat-item .tb-li:has-text("테마")');
+      await pg.click('.write-bar [data-key=font]'); await pg.click('#wb-drop-font .tb-li:has-text("함렛")');
+      await pg.waitForFunction(()=>(JSON.parse(localStorage.getItem('geul.studio'))||{}).settings?.font==='함렛');
       await pg.fill('#src', await pg.evaluate(()=>Geulgyeol.stripMarks(GeulgyeolSample.text).replace(/\n{4,}/g,'\n\n\n')));
       await pg.fill('#title','밤에 쓰는 편지');
       assert.ok(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -27,22 +29,22 @@ const fs = require('node:fs/promises');
       await pg.screenshot({path:`tests/out/refined-write-${width}.png`});
       await pg.click('[data-go=tune]');
       // 하단바: 갈래 단추를 눌러 글씨로 바꾸고, 값 단추는 같은 폭의 판으로 펼쳐요.
-      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("글씨")');
-      assert.equal(await pg.textContent('.tb-cat .tb-label'),'글씨');
-      await pg.click('.tb-val[data-key=align]');
-      const [vb,db]=[await pg.locator('.tb-val[data-key=align]').boundingBox(), await pg.locator('#tb-drop-align').boundingBox()];
+      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("글씨")');
+      assert.equal(await pg.textContent('#s-tune .tb-cat .tb-label'),'글씨');
+      await pg.click('#s-tune .tb-val[data-key=align]');
+      const [vb,db]=[await pg.locator('#s-tune .tb-val[data-key=align]').boundingBox(), await pg.locator('#tb-drop-align').boundingBox()];
       // 1000px 넘게: 같은 폭으로 단추 위에 붙음. 그 아래: 단추 오른쪽에 같은 높이로 붙음
       if (width > 1000) { assert.equal(Math.round(vb.width),Math.round(db.width)); assert.ok(Math.abs(db.y+db.height-vb.y)<1); }
       else { assert.equal(Math.round(vb.height),Math.round(db.height)); assert.ok(Math.abs(db.x-(vb.x+vb.width))<1); }
       await pg.screenshot({path:`tests/out/refined-bar-${width}.png`});
       // 값 단추 이름은 잘리지 않음(갈래마다)
       for (const c of ['바탕','움직임','글씨']) {
-        await pg.keyboard.press('Escape'); await pg.click('.tb-cat'); await pg.click(`.tb-cat-item .tb-li:has-text("${c}")`);
-        const cut=await pg.evaluate(()=>[...document.querySelectorAll('.tune-bar .tb-label')].filter(n=>n.getBoundingClientRect().right>n.closest('button').getBoundingClientRect().right-8).map(n=>n.textContent));
+        await pg.keyboard.press('Escape'); await pg.click('#s-tune .tb-cat'); await pg.click(`#s-tune .tb-cat-item .tb-li:has-text("${c}")`);
+        const cut=await pg.evaluate(()=>[...document.querySelectorAll('#s-tune .tb-label')].filter(n=>n.getBoundingClientRect().right>n.closest('button').getBoundingClientRect().right-8).map(n=>n.textContent));
         assert.deepEqual(cut,[],c);
       }
-      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("글씨")'); await pg.click('.tb-val[data-key=align]');
-      await pg.keyboard.press('Escape'); assert.equal(await pg.locator('.tb-drop').count(),0);
+      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("글씨")'); await pg.click('#s-tune .tb-val[data-key=align]');
+      await pg.keyboard.press('Escape'); assert.equal(await pg.locator('#s-tune .tb-drop').count(),0);
       // 끝 장: 눈금 끝 네모를 누르면 갈래가 끝 장·카드로 바뀌어요.
       let frame=pg.frameLocator('#screen-main .frame.on');
       await frame.locator('#dots .dot.fin').click();
@@ -52,14 +54,14 @@ const fs = require('node:fs/promises');
       const title=frame.getByRole('textbox',{name:'카드 문구'});
       assert.equal(await title.inputValue(),'밤에 쓰는 편지');
       await title.fill('그리고 잉크 한 방울이'); await title.press('Tab');
-      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("카드")');
-      await pg.click('.tb-val[data-key=card-follow]');
+      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("카드")');
+      await pg.click('#s-tune .tb-val[data-key=card-follow]');
       await frame.locator('.end-title').evaluate(n=>new Promise(r=>setTimeout(r,50)));
       assert.equal(await title.inputValue(),'밤에 쓰는 편지');
       await title.fill('그리고 잉크 한 방울이'); await title.press('Tab');
-      const slide=async(key,v)=>{ await pg.click(`.tb-val[data-key=${key}]`); await pg.locator(`#tb-drop-${key} input`).evaluate((n,v)=>{n.value=String(v);n.dispatchEvent(new Event('input',{bubbles:true}));},v); await pg.keyboard.press('Escape'); };
+      const slide=async(key,v)=>{ await pg.click(`#s-tune .tb-val[data-key=${key}]`); await pg.locator(`#tb-drop-${key} input`).evaluate((n,v)=>{n.value=String(v);n.dispatchEvent(new Event('input',{bubbles:true}));},v); await pg.keyboard.press('Escape'); };
       await slide('card-size',64); await slide('card-width',55);
-      await pg.click('.tb-val[data-key=card-align]'); await pg.click('#tb-drop-card-align .tb-li:has-text("왼쪽")');
+      await pg.click('#s-tune .tb-val[data-key=card-align]'); await pg.click('#tb-drop-card-align .tb-li:has-text("왼쪽")');
       const move=frame.locator('.end-move');
       const x0=()=>pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')).ending.x);
       if (width === 1280) {
@@ -85,8 +87,8 @@ const fs = require('node:fs/promises');
       frame=pg.frameLocator('#screen-main .frame.on');
       await frame.locator('.ending.is-current .end-full[src]').waitFor();
       assert.equal(await frame.getByRole('textbox',{name:'카드 문구'}).inputValue(),'그리고 잉크 한 방울이');
-      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("카드")');
-      assert.equal(await pg.textContent('.tb-val[data-key=card-size] .tb-label'),'크기 64');
+      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("카드")');
+      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=card-size] .tb-label'),'크기 64');
       if(width===1280) {
         await frame.getByRole('button',{name:'이대로 발행하기'}).click();
         await pg.fill('#publish-password','test-only-password');
@@ -111,7 +113,7 @@ const fs = require('node:fs/promises');
         const saved=await reader.evaluate(()=>JSON.stringify(localStorage)); assert.ok(!saved.includes('test-only-password')); assert.ok(!saved.includes(new URL(link).hash.slice(1)));
         const record=await store.get(new URL(link).pathname.split('/')[2]); assert.equal(record.live,false);
       }
-      await context.close(); console.log(`${width}×${height}: 설정 서랍·하단바 갈래·카드 문구/배치·발행 연결 통과`);
+      await context.close(); console.log(`${width}×${height}: 편집 하단바·미리보기 갈래·카드 문구/배치·발행 연결 통과`);
     }
     assert.deepEqual(errors,[]);
   } finally { await browser?.close(); await close(); }

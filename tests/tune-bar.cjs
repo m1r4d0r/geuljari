@@ -31,20 +31,20 @@ const fs = require('node:fs/promises');
       assert.equal((await frame.locator('#dots').textContent()).trim(), '');
 
       // 첫 쪽은 전환 없음. 둘째 쪽으로 가면 전환이 생기고, 고르면 쪽 표시로 들어감
-      assert.equal(await pg.textContent('.tb-cat .tb-label'), '바탕');
-      assert.equal(await pg.locator('.tb-val[data-key=turn]').count(), 0);
+      assert.equal(await pg.textContent('#s-tune .tb-cat .tb-label'), '바탕');
+      assert.equal(await pg.locator('#s-tune .tb-val[data-key=turn]').count(), 0);
       await frame.locator('#dots .dot').nth(1).click();
-      await pg.waitForFunction(() => document.querySelector('.tb-val[data-key=turn]'));
-      await pg.click('.tb-val[data-key=turn]'); await pg.click('#tb-drop-turn .tb-li:has-text("조리개")');
+      await pg.waitForFunction(() => document.querySelector('#s-tune .tb-val[data-key=turn]'));
+      await pg.click('#s-tune .tb-val[data-key=turn]'); await pg.click('#tb-drop-turn .tb-li:has-text("조리개")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('[[조리개]]'));
-      assert.equal(await pg.textContent('.tb-val[data-key=turn] .tb-label'), '전환 조리개');
-      await pg.click('.tb-val[data-key=ground]'); await pg.click('#tb-drop-ground .tb-li:has-text("원고지")');
+      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=turn] .tb-label'), '전환 조리개');
+      await pg.click('#s-tune .tb-val[data-key=ground]'); await pg.click('#tb-drop-ground .tb-li:has-text("원고지")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('원고지'));
 
       // 움직임: 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
-      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("움직임")');
-      await pg.click('.tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');
-      assert.equal(await pg.textContent('.tb-val[data-key=flow] .tb-label'), '바로');
+      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("움직임")');
+      await pg.click('#s-tune .tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');
+      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=flow] .tb-label'), '바로');
       assert.ok(await pg.locator('#replay.due').count() === 1);
       await pg.click('#replay');
       assert.ok(await pg.locator('#replay.due').count() === 0);
@@ -58,7 +58,7 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 0);
       await frame.locator('.sheet.is-current .column').click({ position: { x: 6, y: 6 } });
       await pg.waitForFunction(() => document.body.dataset.tuneCat === 'type');
-      await pg.click('.tb-val[data-key=place]'); await pg.click('#tb-drop-place .tb-li:has-text("가운데")');
+      await pg.click('#s-tune .tb-val[data-key=place]'); await pg.click('#tb-drop-place .tb-li:has-text("가운데")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('가운데]]'));
 
       // 두 번 눌러 고치기
@@ -68,7 +68,7 @@ const fs = require('node:fs/promises');
       await frame.locator('.sheet.is-current .column').dblclick({ position: { x: 10, y: 10 } });
       await frame.locator('.ip').waitFor();
       await pg.waitForFunction(() => document.body.dataset.tuneCat === 'pick');
-      assert.equal(await pg.locator('.tb-val[data-key=em]').isDisabled(), true, '고르기 전에는 쉼');
+      assert.equal(await pg.locator('#s-tune .tb-val[data-key=em]').isDisabled(), true, '고르기 전에는 쉼');
       const geo = await frame.locator('.ip').evaluate(() => {
         const f = document.querySelector('.ip-frame').getBoundingClientRect();
         const a = document.querySelector('.ip-acts').getBoundingClientRect();
@@ -76,10 +76,10 @@ const fs = require('node:fs/promises');
       });
       assert.deepEqual(geo, { right: 0, top: 0 }, 'X·체크는 상자 선에 겹쳐 붙음');
       await frame.locator('.ip-input').evaluate((ta) => { ta.focus(); ta.setSelectionRange(0, 4); document.dispatchEvent(new Event('selectionchange')); });
-      await pg.waitForFunction(() => !document.querySelector('.tb-val[data-key=em]').disabled);
-      await pg.click('.tb-val[data-key=em]'); await pg.click('#tb-drop-em .tb-li:has-text("번짐")');
+      await pg.waitForFunction(() => !document.querySelector('#s-tune .tb-val[data-key=em]').disabled);
+      await pg.click('#s-tune .tb-val[data-key=em]'); await pg.click('#tb-drop-em .tb-li:has-text("번짐")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐:'));
-      await pg.click('.tb-val[data-key=style]'); await pg.click('#tb-drop-style .tb-li:has-text("굵게")');
+      await pg.click('#s-tune .tb-val[data-key=style]'); await pg.click('#tb-drop-style .tb-li:has-text("굵게")');
       assert.equal(await pg.locator('#tb-drop-style').count(), 1, '꾸밈은 여러 개라 판이 남음');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐+굵게:'));
       await pg.screenshot({ path: `tests/out/tune-bar-edit-${width}.png` });
@@ -93,8 +93,8 @@ const fs = require('node:fs/promises');
       await frame.locator('.sheet.is-current .column').dblclick({ position: { x: 10, y: 10 } });
       await frame.locator('.ip').waitFor();
       await frame.locator('.ip-input').evaluate((ta) => { ta.focus(); ta.setSelectionRange(0, 4); document.dispatchEvent(new Event('selectionchange')); });
-      await pg.waitForFunction(() => !document.querySelector('.tb-val[data-key=color]').disabled);
-      await pg.click('.tb-val[data-key=color]'); await pg.click('#tb-drop-color .tb-li:has-text("파랑")');
+      await pg.waitForFunction(() => !document.querySelector('#s-tune .tb-val[data-key=color]').disabled);
+      await pg.click('#s-tune .tb-val[data-key=color]'); await pg.click('#tb-drop-color .tb-li:has-text("파랑")');
       await frame.locator('.ip-acts button').last().click();
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{파랑:'));
       await pg.waitForFunction(() => document.body.dataset.tuneCat !== 'pick');

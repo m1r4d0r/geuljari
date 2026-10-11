@@ -13,42 +13,43 @@ const fs = require('node:fs/promises');
       await pg.goto(origin);
       assert.equal(await pg.isVisible('#guide'),false);
       assert.equal(await pg.isVisible('#guide-open'),true);
-      for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('#'+id),width>760,id);
+      // 편집 하단바: 분위기(축마다 값 단추)·테마·글. 글 갈래를 고르면 불러오기·초안 저장·새로 쓰기
+      assert.equal(await pg.textContent('.write-bar .tb-cat .tb-label'),'분위기');
+      assert.equal(await pg.locator('.write-bar .tb-val[data-key^=ax-]').count(),3);
+      for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('#'+id),false,id);
+      await pg.click('.write-bar .tb-cat'); await pg.click('.write-bar .tb-cat-item .tb-li:has-text("글")');
+      for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('#'+id),true,id);
       assert.equal(await pg.locator('.write-help li').count(),3); assert.equal(await pg.isVisible('.write-help'),true);
       assert.equal(await pg.locator('#sample, #go-tune').count(),0);
       assert.equal(await pg.locator('button').filter({hasText:/^미리보기$/}).count(),1);
-      assert.equal(await pg.isVisible('#settings-open'),width<=760);
-      assert.equal(await pg.isVisible('#write-settings-slot .rail'),width>760);
-      assert.equal(await pg.getAttribute('link[rel=icon]','href'),'favicon.svg');
+      assert.equal(await pg.locator('#settings-open, #write-settings, .rail').count(),0);
+      // 쓰는 법 세 줄: 넓은 화면은 본문 오른쪽, 1000px 이하는 편집창 위
+      const [hb,eb]=[await pg.locator('.write-help').boundingBox(), await pg.locator('#write-ed').boundingBox()];
+      if(width>1000) assert.ok(hb.x>=eb.x+eb.width-1); else assert.ok(hb.y+hb.height<=eb.y+1);      assert.equal(await pg.getAttribute('link[rel=icon]','href'),'favicon.svg');
       assert.ok(await pg.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       assert.ok((await pg.locator('#src').boundingBox()).height>150);
       await pg.fill('#src',await pg.evaluate(()=>Geulgyeol.stripMarks(GeulgyeolSample.text)));
       await pg.waitForFunction(()=>JSON.parse(localStorage.getItem('geul.studio')||'{}').source?.length>0);
-      assert.equal(await pg.isVisible('#count'),width>760);
+      assert.match(await pg.textContent('#count'),/^\d+쪽 · \d+자$/);
+      await pg.evaluate(()=>document.activeElement.blur());
       await pg.screenshot({path:`tests/out/editor-visible-${width}.png`});
-      if(width<=760) { await pg.click('#settings-open'); await pg.waitForSelector('#write-settings[open]'); assert.equal(await pg.isVisible('#load-open'),true); }
       await pg.click('#load-open'); await pg.waitForSelector('#load-dialog[open]');
-      assert.equal(await pg.evaluate(()=>document.getElementById('write-settings').open),false);
       assert.equal(await pg.isVisible('#load-file'),true); await pg.click('#load-close');
       await pg.click('#guide-open'); assert.equal(await pg.isVisible('#guide'),true); await pg.click('#g-skip');
-      if(width<=760) {
-        await pg.click('#settings-open'); await pg.waitForSelector('#write-settings[open]');
-        await pg.setViewportSize({width:1280,height:800});
-        await pg.waitForFunction(()=>!document.getElementById('write-settings').open);
-        assert.equal(await pg.isVisible('#write-settings-slot .rail'),true);
-        await pg.setViewportSize({width,height}); await pg.click('#settings-open'); await pg.keyboard.press('Escape');
-      }
+      // 1000px 이하: 쓰는 동안 하단바를 거둠
+      await pg.click('#src'); assert.equal(await pg.isVisible('.write-bar'),width>1000);
+      await pg.locator('#src').blur(); await pg.evaluate(()=>document.activeElement.blur()); assert.equal(await pg.isVisible('.write-bar'),true);
       await pg.reload(); assert.ok((await pg.inputValue('#src')).length>0);
       // 미리보기: 하단바 갈래. 글 상자를 한 번 누르면 글씨, 빈 바탕을 누르면 바탕
       await pg.click('[data-go=tune]');
-      assert.equal(await pg.textContent('.tb-cat'),'바탕');
+      assert.equal(await pg.textContent('#s-tune .tb-cat'),'바탕');
       const frame=pg.frameLocator('#screen-main .frame.on');
       await frame.locator('.sheet.is-current .column').click({position:{x:8,y:8}});
       await pg.waitForFunction(()=>document.body.dataset.tuneCat==='type');
-      assert.ok(await pg.locator('.tb-val[data-key=font]').count()===1);
+      assert.ok(await pg.locator('#s-tune .tb-val[data-key=font]').count()===1);
       await frame.locator('.sheet.is-current .scroll').click({position:{x:4,y:4}});
       await pg.waitForFunction(()=>document.body.dataset.tuneCat==='ground');
-      await ctx.close(); console.log(`${width}×${height}: 하단 안내·집계, 설정 칸·모바일 서랍, 저장·불러오기 유지, 누른 곳의 갈래 통과`);
+      await ctx.close(); console.log(`${width}×${height}: 머리 안내·집계, 쓰는 법 자리, 편집 하단바·쓰는 동안 거둠, 저장·불러오기 유지, 누른 곳의 갈래 통과`);
     }
     assert.deepEqual(errors,[]);
   } finally {await browser?.close(); await close();}

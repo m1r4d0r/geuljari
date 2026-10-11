@@ -8,7 +8,7 @@
  * - 끝 장에 있으면 갈래가 끝 장(장면·바탕)과 카드(크기·폭·정렬·편집 제목으로)로 바뀐다.
  * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 강조(등장·머묾)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
  * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글씨' 갈래가 먼저 열린다(hint).
- * 심상 고르기(moodGrid), 주색 고르기(themeSwatches), 조각 고르기(pieces)는 편집실 글 화면의 설정 칸이 쓴다. 전역 GeulPanels.
+ * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마·글. 전역 GeulPanels.
  */
 (function (global) {
   'use strict';
@@ -25,82 +25,194 @@
     return n;
   }
 
-  /* 조각 고르기: 이름마다 떨어진 조각 하나. 고른 것은 먹으로 채운다. names의 항목은 이름 또는 [값, 보이는 이름] */
-  function pieces(names, current, onPick, cls) {
-    const box = el('div', 'pieces' + (cls ? ' ' + cls : ''));
-    box.setAttribute('role', 'group');
-    names.forEach((n) => {
-      const v = Array.isArray(n) ? n[0] : n;
-      const b = el('button', 'piece', Array.isArray(n) ? n[1] : n);
-      b.type = 'button';
-      b.dataset.v = v;
-      b.setAttribute('aria-pressed', String(v === current));
-      b.addEventListener('click', () => onPick(v));
-      box.append(b);
-    });
-    return box;
-  }
-
-  /* 심상: 축(반대말 한 쌍)마다 이름과 조각 둘. 축 안에서 하나만 고르고, 고른 것을 다시 누르면 뺀다 */
-  function moodGrid(box, moods, onPick) {
-    box.replaceChildren();
-    T.AXES.forEach((ax) => {
-      const r = el('div', 'mood-ax');
-      r.setAttribute('role', 'group');
-      r.setAttribute('aria-label', ax.name);
-      r.append(el('span', 'ax', ax.name));
-      ax.words.forEach((w) => {
-        const b = el('button', 'piece', w);
-        b.type = 'button';
-        b.setAttribute('aria-pressed', String(moods.includes(w)));
-        b.addEventListener('click', () => {
-          const list = moods.filter((x) => !ax.words.includes(x));
-          if (!moods.includes(w)) list.push(w);
-          onPick(list);
-        });
-        r.append(b);
-      });
-      box.append(r);
-    });
-  }
-
-  /*
-   * 주색: 이름 있는 색마다 네모 하나, 마지막 칸은 색 고르기. 고르면 onPick(이름 또는 #rrggbb).
-   * 고른 표시는 그 자리에서 바꾸므로 색을 끌어 고르는 동안에도 고르기 창이 닫히지 않는다.
-   */
-  function themeSwatches(box, current, onPick) {
-    box.replaceChildren();
-    box.setAttribute('role', 'group');
-    const named = T.THEME_NAMES.map((name) => {
-      const b = el('button', 'swatch');
-      b.type = 'button';
-      b.style.setProperty('--sw', T.THEMES[name]);
-      b.setAttribute('aria-label', '주색 ' + name);
-      b.addEventListener('click', () => { mark(name); onPick(name); });
-      return [name, b];
-    });
-    const pick = el('label', 'swatch picker');
-    const input = el('input');
-    input.type = 'color';
-    input.setAttribute('aria-label', '주색 직접 고르기');
-    input.addEventListener('input', () => { mark(input.value); onPick(input.value); });
-    pick.append(input);
-    box.append(...named.map(([, b]) => b), pick);
-    function mark(v) {
-      const custom = T.HEX_RE.test(String(v));
-      named.forEach(([n, b]) => b.setAttribute('aria-pressed', String(n === v)));
-      pick.classList.toggle('on', custom);
-      if (custom) pick.style.setProperty('--sw', v); else pick.style.removeProperty('--sw');
-      const hex = custom ? v.toLowerCase() : T.themeInk(v).toLowerCase();
-      if (input.value !== hex) input.value = hex;
-    }
-    mark(current);
-  }
-
   const CATS = { ground: '바탕', motion: '움직임', type: '글씨', end: '끝 장', card: '카드' };
   const CARD_ALIGN = { left: '왼쪽', center: '가운데', right: '오른쪽' };
   const opt = (v, label, extra) => Object.assign({ v, label: label == null ? String(v) : label }, extra);
   const num = (v) => (Math.round(v * 100) / 100).toFixed(Math.round(v * 100) % 10 ? 2 : 1);
+
+  /*
+   * 하단바 한 줄: 갈래 단추(또는 멈춘 이름)와 값 단추들, 값 단추마다 같은 폭의 판. 한 번에 하나만 열린다.
+   * model: head() 갈래 단추 {key, title, label, current, options, pick} 또는 {still: 이름}, vals() 값 단추 목록,
+   *        name() 지금 갈래 이름, before() 그리기 전에 갈래 고치기, changed() 그린 뒤, drop 판 id 머리(기본 tb-drop-)
+   * 값 단추: {key, title, label, current, options, pick} 판, {range} 막대, {act} 바로 하는 단추, {node} 늘 같은 단추
+   */
+  function bar(root, model) {
+    let openKey = null;
+
+    function caret() { const c = el('i', 'car'); c.setAttribute('aria-hidden', 'true'); return c; }
+
+    /* 지금 값이 단추에서 가장 가깝게: 지금 값이 든 무리를 먼저, 무리 안에서도 지금 값을 먼저 */
+    function ordered(spec) {
+      const isOn = (o) => (spec.multi ? false : o.v === spec.current);
+      const names = [];
+      spec.options.forEach((o) => { if (!names.includes(o.group || null)) names.push(o.group || null); });
+      const lists = names.map((g) => ({ g, items: spec.options.filter((o) => (o.group || null) === g) }));
+      lists.forEach((l) => { const i = l.items.findIndex(isOn); if (i > 0) l.items.unshift(...l.items.splice(i, 1)); });
+      const j = lists.findIndex((l) => l.items.some(isOn));
+      if (j > 0) lists.unshift(...lists.splice(j, 1));
+      return lists;
+    }
+
+    function listDrop(spec, id) {
+      const d = el('div', 'tb-drop');
+      d.id = id;
+      d.setAttribute('role', 'listbox');
+      d.setAttribute('aria-label', spec.title);
+      if (spec.multi) d.setAttribute('aria-multiselectable', 'true');
+      ordered(spec).forEach((l) => {
+        const g = el('div', 'tb-grp');
+        g.setAttribute('role', 'group');
+        l.items.forEach((o) => {
+          if (o.picker) { g.append(pickerItem(spec, o)); return; }
+          const on = spec.multi ? spec.current.includes(o.v) : o.v === spec.current;
+          const b = el('button', 'tb-li' + (on ? ' on' : '') + (o.cls ? ' ' + o.cls : ''), o.label);
+          b.type = 'button';
+          b.setAttribute('role', 'option');
+          b.setAttribute('aria-selected', String(on));
+          if (o.font) b.style.fontFamily = `${o.font}, var(--f-body)`;
+          if (o.swatch || o.color) { const sw = el('i', 'tb-sw' + (o.swatch ? ' c-' + o.swatch : '')); if (o.color) sw.style.background = o.color; sw.setAttribute('aria-hidden', 'true'); b.prepend(sw); }
+          b.addEventListener('click', () => {
+            if (!spec.multi) openKey = null;
+            spec.pick(o.v);
+            render();
+          });
+          g.append(b);
+        });
+        if (l.g) { g.setAttribute('aria-label', l.g); g.append(el('span', 'tb-gname', l.g)); }
+        d.append(g);
+      });
+      d.append(el('span', 'tb-ttl', spec.title));
+      return d;
+    }
+
+    /* 직접 고르는 색: 끄는 동안은 그 자리에서 바로 걸고, 다 고르면 다시 그린다 */
+    function pickerItem(spec, o) {
+      const lab = el('label', 'tb-li tb-picker' + (o.on ? ' on' : ''));
+      const sw = el('i', 'tb-sw');
+      sw.setAttribute('aria-hidden', 'true');
+      sw.style.background = o.value;
+      const input = el('input');
+      input.type = 'color';
+      input.value = o.value;
+      input.setAttribute('aria-label', o.label);
+      input.addEventListener('input', () => { sw.style.background = input.value; spec.pick(input.value); });
+      input.addEventListener('change', () => render());
+      lab.append(sw, o.label, input);
+      return lab;
+    }
+
+    function rangeDrop(spec, id, btn) {
+      const r = spec.range;
+      const d = el('div', 'tb-drop tb-range');
+      d.id = id;
+      d.setAttribute('role', 'group');
+      d.setAttribute('aria-label', spec.title);
+      const input = el('input');
+      input.type = 'range';
+      input.min = String(r.min);
+      input.max = String(r.max);
+      input.step = String(r.step);
+      input.value = String(r.value);
+      input.setAttribute('aria-label', spec.title);
+      input.setAttribute('aria-valuetext', r.shown(r.value));
+      input.addEventListener('input', () => {
+        const v = Number(input.value);
+        input.setAttribute('aria-valuetext', r.shown(v));
+        btn.querySelector('.tb-label').textContent = r.label(v);
+        r.input(v);
+      });
+      d.append(el('span', 'k', r.shown(r.min)), input, el('span', 'k', r.shown(r.max)), el('span', 'tb-ttl', spec.title));
+      return d;
+    }
+
+    function item(spec, isCat) {
+      const box = el('div', 'tb-item' + (isCat ? ' tb-cat-item' : ''));
+      /* 늘 같은 단추(편집실이 만들고 다른 코드가 붙잡고 있음)는 그대로 옮겨 단다 */
+      if (spec.node) { box.append(spec.node); return box; }
+      const id = (model.drop || 'tb-drop-') + spec.key;
+      const b = el('button', isCat ? 'tb-cat' : spec.act ? 'tb-val tb-act' : 'tb-val');
+      b.type = 'button';
+      b.dataset.key = spec.key;
+      const label = el('span', 'tb-label', spec.label);
+      if (spec.font) label.style.fontFamily = `${spec.font}, var(--f-body)`;
+      b.append(label);
+      if (spec.off) b.disabled = true;
+      if (spec.act) {
+        b.addEventListener('click', () => { openKey = null; spec.act(); render(); });
+        box.append(b);
+        return box;
+      }
+      b.append(caret());
+      const on = openKey === spec.key;
+      b.setAttribute('aria-expanded', String(on));
+      b.setAttribute('aria-controls', id);
+      b.setAttribute('aria-haspopup', isCat ? 'menu' : 'listbox');
+      b.classList.toggle('open', on);
+      b.addEventListener('click', () => { openKey = openKey === spec.key ? null : spec.key; render(); focusDrop(); });
+      box.append(b);
+      if (on) box.append(spec.range ? rangeDrop(spec, id, b) : listDrop(spec, id));
+      return box;
+    }
+
+    function focusDrop() {
+      const d = root.querySelector('.tb-drop');
+      if (!d) return;
+      const t = d.querySelector('.tb-li.on, input, .tb-li');
+      if (t) t.focus({ preventScroll: true });
+    }
+
+    function render() {
+      if (model.before) model.before();
+      const list = model.vals();
+      const head = model.head();
+      if (openKey && openKey !== 'cat' && !list.some((v) => v.key === openKey && !v.act && !v.node && !v.off)) openKey = null;
+      if (head.still && openKey === 'cat') openKey = null;
+      root.replaceChildren();
+      if (head.still) {
+        const c = el('span', 'tb-cat tb-cat-still', head.still);
+        c.setAttribute('role', 'status');
+        const box = el('div', 'tb-item tb-cat-item');
+        box.append(c);
+        root.append(box);
+      } else root.append(item(head, true));
+      root.append(el('span', 'tb-sep'));
+      const row = el('div', 'tb-vals');
+      list.forEach((v) => row.append(item(v)));
+      root.append(row);
+      root.dataset.cat = model.name();
+      root.classList.toggle('cat-open', openKey === 'cat');
+      root.classList.toggle('is-open', !!openKey);
+      if (model.changed) model.changed();
+    }
+
+    /* 펼친 판 밖을 누르면 접는다 */
+    document.addEventListener('pointerdown', (e) => {
+      if (openKey && !root.contains(e.target)) { openKey = null; render(); }
+    });
+    root.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !openKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const key = openKey;
+      openKey = null;
+      render();
+      const b = root.querySelector(`[data-key="${key}"]`);
+      if (b) b.focus();
+    });
+
+    return {
+      render,
+      refresh() {
+        /* 속도·크기를 끄는 중에는 다시 그리지 않는다(끄는 손을 놓치지 않게) */
+        const a = document.activeElement;
+        if (a && a.type === 'range' && root.contains(a)) return;
+        render();
+      },
+      shut() { openKey = null; },
+      close() { if (!openKey) return false; openKey = null; render(); return true; },
+      open: () => openKey
+    };
+  }
 
   /*
    * root: 하단바의 왼쪽 칸(갈래와 값 단추가 들어갈 자리)
@@ -111,7 +223,6 @@
    */
   function mount(root, ctx) {
     let cat = 'ground';
-    let openKey = null;
     let edit = null;
     let onState = () => {};
 
@@ -298,177 +409,96 @@
     }
     const cats = () => (ctx.atEnd() ? ['end', 'card'] : ['ground', 'motion', 'type']);
 
-    /* ---------- 그리기 ---------- */
-
-    function caret() { const c = el('i', 'car'); c.setAttribute('aria-hidden', 'true'); return c; }
-
-    /* 지금 값이 단추에서 가장 가깝게: 지금 값이 든 무리를 먼저, 무리 안에서도 지금 값을 먼저 */
-    function ordered(spec) {
-      const isOn = (o) => (spec.multi ? false : o.v === spec.current);
-      const names = [];
-      spec.options.forEach((o) => { if (!names.includes(o.group || null)) names.push(o.group || null); });
-      const lists = names.map((g) => ({ g, items: spec.options.filter((o) => (o.group || null) === g) }));
-      lists.forEach((l) => { const i = l.items.findIndex(isOn); if (i > 0) l.items.unshift(...l.items.splice(i, 1)); });
-      const j = lists.findIndex((l) => l.items.some(isOn));
-      if (j > 0) lists.unshift(...lists.splice(j, 1));
-      return lists;
-    }
-
-    function listDrop(spec, id) {
-      const d = el('div', 'tb-drop');
-      d.id = id;
-      d.setAttribute('role', 'listbox');
-      d.setAttribute('aria-label', spec.title);
-      if (spec.multi) d.setAttribute('aria-multiselectable', 'true');
-      ordered(spec).forEach((l) => {
-        const g = el('div', 'tb-grp');
-        g.setAttribute('role', 'group');
-        l.items.forEach((o) => {
-          const on = spec.multi ? spec.current.includes(o.v) : o.v === spec.current;
-          const b = el('button', 'tb-li' + (on ? ' on' : '') + (o.cls ? ' ' + o.cls : ''), o.label);
-          b.type = 'button';
-          b.setAttribute('role', 'option');
-          b.setAttribute('aria-selected', String(on));
-          if (o.font) b.style.fontFamily = `${o.font}, var(--f-body)`;
-          if (o.swatch) { const sw = el('i', 'tb-sw c-' + o.swatch); sw.setAttribute('aria-hidden', 'true'); b.prepend(sw); }
-          b.addEventListener('click', () => {
-            if (!spec.multi) openKey = null;
-            spec.pick(o.v);
-            render();
-          });
-          g.append(b);
-        });
-        if (l.g) { g.setAttribute('aria-label', l.g); g.append(el('span', 'tb-gname', l.g)); }
-        d.append(g);
-      });
-      d.append(el('span', 'tb-ttl', spec.title));
-      return d;
-    }
-
-    function rangeDrop(spec, id, btn) {
-      const r = spec.range;
-      const d = el('div', 'tb-drop tb-range');
-      d.id = id;
-      d.setAttribute('role', 'group');
-      d.setAttribute('aria-label', spec.title);
-      const input = el('input');
-      input.type = 'range';
-      input.min = String(r.min);
-      input.max = String(r.max);
-      input.step = String(r.step);
-      input.value = String(r.value);
-      input.setAttribute('aria-label', spec.title);
-      input.setAttribute('aria-valuetext', r.shown(r.value));
-      input.addEventListener('input', () => {
-        const v = Number(input.value);
-        input.setAttribute('aria-valuetext', r.shown(v));
-        btn.querySelector('.tb-label').textContent = r.label(v);
-        r.input(v);
-      });
-      d.append(el('span', 'k', r.shown(r.min)), input, el('span', 'k', r.shown(r.max)), el('span', 'tb-ttl', spec.title));
-      return d;
-    }
-
-    function item(spec, isCat) {
-      const box = el('div', 'tb-item' + (isCat ? ' tb-cat-item' : ''));
-      const id = 'tb-drop-' + spec.key;
-      const b = el('button', isCat ? 'tb-cat' : spec.act ? 'tb-val tb-act' : 'tb-val');
-      b.type = 'button';
-      b.dataset.key = spec.key;
-      const label = el('span', 'tb-label', spec.label);
-      if (spec.font) label.style.fontFamily = `${spec.font}, var(--f-body)`;
-      b.append(label);
-      if (spec.off) b.disabled = true;
-      if (spec.act) {
-        b.addEventListener('click', () => { openKey = null; spec.act(); render(); });
-        box.append(b);
-        return box;
-      }
-      b.append(caret());
-      const on = openKey === spec.key;
-      b.setAttribute('aria-expanded', String(on));
-      b.setAttribute('aria-controls', id);
-      b.setAttribute('aria-haspopup', isCat ? 'menu' : 'listbox');
-      b.classList.toggle('open', on);
-      b.addEventListener('click', () => { openKey = openKey === spec.key ? null : spec.key; render(); focusDrop(); });
-      box.append(b);
-      if (on) box.append(spec.range ? rangeDrop(spec, id, b) : listDrop(spec, id));
-      return box;
-    }
-
-    function focusDrop() {
-      const d = root.querySelector('.tb-drop');
-      if (!d) return;
-      const t = d.querySelector('.tb-li.on, input, .tb-li');
-      if (t) t.focus({ preventScroll: true });
-    }
-
-    function render() {
-      if (ctx.atEnd() && !['end', 'card'].includes(cat)) cat = 'end';
-      if (!ctx.atEnd() && ['end', 'card'].includes(cat)) cat = 'ground';
-      const list = vals();
-      if (openKey && openKey !== 'cat' && !list.some((v) => v.key === openKey && !v.act && !v.off)) openKey = null;
-      if (edit && openKey === 'cat') openKey = null;
-      root.replaceChildren();
-      if (edit) {
-        const c = el('span', 'tb-cat tb-cat-still', '고른 곳');
-        c.setAttribute('role', 'status');
-        const box = el('div', 'tb-item tb-cat-item');
-        box.append(c);
-        root.append(box);
-      } else {
-        root.append(item({
+    const ui = bar(root, {
+      head() {
+        if (edit) return { still: '고른 곳' };
+        return {
           key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat,
           options: cats().map((v) => opt(v, CATS[v])),
           pick: (v) => { cat = v; }
-        }, true));
-      }
-      root.append(el('span', 'tb-sep'));
-      const row = el('div', 'tb-vals');
-      list.forEach((v) => row.append(item(v)));
-      root.append(row);
-      root.dataset.cat = edit ? 'pick' : cat;
-      root.classList.toggle('cat-open', openKey === 'cat');
-      root.classList.toggle('is-open', !!openKey);
-      onState();
-    }
-
-    /* 펼친 판 밖을 누르면 접는다 */
-    document.addEventListener('pointerdown', (e) => {
-      if (openKey && !root.contains(e.target)) { openKey = null; render(); }
+        };
+      },
+      before() {
+        if (ctx.atEnd() && !['end', 'card'].includes(cat)) cat = 'end';
+        if (!ctx.atEnd() && ['end', 'card'].includes(cat)) cat = 'ground';
+      },
+      vals,
+      name: () => (edit ? 'pick' : cat),
+      changed: () => onState()
     });
-    root.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !openKey) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const key = openKey;
-      openKey = null;
-      render();
-      const b = root.querySelector(`[data-key="${key}"]`);
-      if (b) b.focus();
-    });
+    const render = ui.render;
 
     return {
-      refresh() {
-        /* 속도·크기를 끄는 중에는 다시 그리지 않는다(끄는 손을 놓치지 않게) */
-        const a = document.activeElement;
-        if (a && a.type === 'range' && root.contains(a)) return;
-        render();
-      },
+      refresh: () => ui.refresh(),
       /* 누른 곳: 'box' 글 상자, 'ground' 빈 바탕 */
       hint(on) {
         if (edit) return;
-        openKey = null;
+        ui.shut();
         cat = ctx.atEnd() ? (on === 'box' ? 'card' : 'end') : on === 'box' ? 'type' : 'ground';
         render();
       },
-      editing(on) { edit = on ? { sel: null } : null; openKey = null; render(); },
+      editing(on) { edit = on ? { sel: null } : null; ui.shut(); render(); },
       selection(sel) { if (edit) { edit.sel = sel; render(); } },
-      close() { if (!openKey) return false; openKey = null; render(); return true; },
-      state: () => ({ cat: edit ? 'pick' : cat, open: openKey }),
+      close: () => ui.close(),
+      state: () => ({ cat: edit ? 'pick' : cat, open: ui.open() }),
       set onState(fn) { onState = fn; }
     };
   }
 
-  global.GeulPanels = { mount, moodGrid, themeSwatches, pieces };
+  /*
+   * 편집 하단바: 글 전체에 거는 것. 갈래는 분위기(축마다 값 단추 하나, 그리고 살펴보기)·테마(주색·글꼴·시작)·글(불러오기·초안 저장·새로 쓰기).
+   * ctx: moods(), setMoods(list), settings(), setSettings(part), look 살펴보기 단추, files 글 단추들,
+   *      spare 그 단추들을 쉬게 둘 숨은 칸(편집실이 만들어 두고 다른 코드도 id로 찾으므로 문서 밖으로 빼지 않는다)
+   */
+  const WRITE_CATS = { mood: '분위기', theme: '테마', file: '글' };
+  function mountWrite(root, ctx) {
+    let cat = 'mood';
+    const ui = bar(root, {
+      head: () => ({
+        key: 'cat', title: '갈래', label: WRITE_CATS[cat], current: cat,
+        options: Object.keys(WRITE_CATS).map((v) => opt(v, WRITE_CATS[v])),
+        pick: (v) => { cat = v; }
+      }),
+      vals() {
+        const st = ctx.settings();
+        if (cat === 'file') return ctx.files.map((node) => ({ key: node.id, node }));
+        if (cat === 'theme') {
+          const custom = T.HEX_RE.test(String(st.theme));
+          return [{
+            key: 'theme', title: '주색', label: '주색 ' + (custom ? '직접' : st.theme), current: st.theme,
+            options: [...T.THEME_NAMES.map((n) => opt(n, n, { color: T.THEMES[n] })),
+              { v: '#', label: '직접 고르기', picker: true, on: custom, value: (custom ? st.theme : T.themeInk(st.theme)).toLowerCase() }],
+            pick: (v) => ctx.setSettings({ theme: v })
+          }, {
+            key: 'font', title: '글꼴', label: st.font, current: st.font, font: T.FONTS[st.font].css,
+            options: T.FONT_NAMES.map((v) => opt(v, v, { font: T.FONTS[v].css })),
+            pick: (v) => ctx.setSettings({ font: v })
+          }, {
+            key: 'scene', title: '시작', label: '시작 ' + st.scene, current: st.scene,
+            options: Object.keys(T.GROUNDS).map((v) => opt(v)),
+            pick: (v) => ctx.setSettings({ scene: v })
+          }];
+        }
+        const moods = ctx.moods();
+        return [...T.AXES.map((ax) => {
+          const now = moods.find((w) => ax.words.includes(w)) || null;
+          return {
+            key: 'ax-' + ax.name, title: ax.name, label: `${ax.name} ${now || '없음'}`, current: now,
+            options: [...ax.words.map((w) => opt(w)), opt(null, '없음')],
+            pick(v) {
+              const list = moods.filter((w) => !ax.words.includes(w));
+              if (v) list.push(v);
+              ctx.setMoods(list);
+            }
+          };
+        }), ...(ctx.look ? [{ key: 'look', node: ctx.look }] : [])];
+      },
+      drop: 'wb-drop-',
+      before() { [ctx.look, ...ctx.files].forEach((n) => { if (n) ctx.spare.append(n); }); },
+      name: () => cat
+    });
+    return { refresh: () => ui.refresh(), close: () => ui.close() };
+  }
+
+  global.GeulPanels = { mount, mountWrite };
 })(typeof window !== 'undefined' ? window : globalThis);

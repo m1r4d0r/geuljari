@@ -127,18 +127,23 @@ const fs = require('node:fs/promises');
         await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
         assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.ending.text),'그리고 잉크 한 방울이\n두 번째 줄');
         assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.ending.size),64);
-        await reader.click('#author-edit'); await reader.waitForSelector('#load-dialog[open]');
+        // 작성자 수정은 떠 있지 않고 카드 아래 작은 줄에만 있어요.
+        assert.equal(await reader.locator('#author-edit').isVisible(),false);
+        await reader.click('#dots .dot.fin'); await reader.click('.ending.is-current .end-author a'); await reader.waitForSelector('#load-dialog[open]');
         assert.equal(await reader.inputValue('#load-url'),link);
         assert.equal(new URL(reader.url()).hash,'');
         await reader.fill('#load-password','wrong-password'); await reader.click('#load-form button[type=submit]');
         await reader.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('맞지'));
         await reader.fill('#load-password','test-only-password'); await reader.click('#load-form button[type=submit]');
         await reader.waitForSelector('#load-dialog',{state:'hidden'});
-        await reader.click('.write-bar .publication-manage'); await reader.uncheck('#publish-live'); await reader.click('#publish-submit');
-        await reader.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.startsWith('발행 중단'));
+        // 공개 스위치는 누르는 즉시 발행을 멈춰요.
+        await reader.click('.write-bar .publication-manage'); await reader.click('#publish-live');
+        await reader.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.startsWith('발행 중단'));
+        assert.equal(await reader.getAttribute('#publish-live','aria-checked'),'false');
         const stopped=await context.newPage(); await stopped.goto(link); await stopped.click('#author-edit');
         await stopped.waitForSelector('#load-dialog[open]'); assert.equal(await stopped.inputValue('#load-url'),link);
-        const saved=await reader.evaluate(()=>JSON.stringify(localStorage)); assert.ok(!saved.includes('test-only-password')); assert.ok(!saved.includes(new URL(link).hash.slice(1)));
+        // 발행 기록은 새로 고침해도 남아요.
+        await reader.reload(); await reader.waitForSelector('.write-bar .publication-strip:not([hidden])');
         const record=await store.get(new URL(link).pathname.split('/')[2]); assert.equal(record.live,false);
       }
       await context.close(); console.log(`${width}×${height}: 편집 하단바·미리보기 갈래·카드 문구/배치·발행 연결 통과`);

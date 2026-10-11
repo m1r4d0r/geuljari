@@ -99,46 +99,40 @@
   </section>
   <section class="step publish" id="s-publish" aria-labelledby="publish-heading" hidden>
     <div class="publish-scroll"><div class="publish-sheet">
-      <p class="k">03 / 발행</p>
       <h1 id="publish-heading">글의 자리를 찾아요.</h1>
-      <p class="publish-intro" id="publish-intro">다듬은 모습 그대로 링크 하나에 놓아 둬요.</p>
-      <section id="publish-result" class="pub-result" aria-label="발행한 글 링크" hidden>
-        <label class="pub-field">전체 링크<input id="publish-url" readonly></label>
-        <div class="pub-actions"><button class="btn fill" id="publish-copy" type="button">링크 복사</button><a class="btn" id="publish-visit" target="_blank" rel="noopener noreferrer">글 열기</a></div>
-        <h2 class="pub-keep">링크와 비밀번호 남겨 두기</h2>
-        <p class="pub-note">비밀번호는 이 화면을 닫으면 다시 볼 수 없어요.</p>
-        <div class="pub-actions"><button class="btn" id="publish-share" type="button" hidden>보내기</button><button class="btn" id="publish-copy-all" type="button">텍스트 복사</button><button class="btn" id="publish-download" type="button">글 파일 받기</button></div>
-      </section>
-      <dl class="pub-keys" aria-label="링크와 비밀번호">
-        <div class="pub-key">
-          <dt><b>링크</b><span>읽는 열쇠</span></dt>
-          <dd>
-            <p class="pub-url k" aria-hidden="true">geuljari.netlify.app/t/<i>글</i><em>#<i>열쇠</i></em></p>
-            <ul><li># 뒤까지 한 덩어리예요. 전체 링크를 가진 사람만 읽어요.</li><li>본문은 이 브라우저에서 잠근 채로 보관돼요. 서버도 열어 볼 수 없어요.</li></ul>
-          </dd>
-        </div>
-        <div class="pub-key">
-          <dt><b>비밀번호</b><span>고치는 열쇠</span></dt>
-          <dd><ul><li>읽는 사람에게는 필요 없어요.</li><li>글을 고치거나 닫거나 지울 때 써요.</li><li>읽기 화면의 ‘작성자 수정’이나 편집의 ‘불러오기’에 넣어요.</li><li>잊으면 되찾을 수 없어요.</li></ul></dd>
-        </div>
-      </dl>
+      <p class="publish-intro">다듬은 모습 그대로 링크 하나에 놓아 둬요.</p>
+      <ul class="pub-help" aria-label="링크와 비밀번호">
+        <li><b>링크</b><span># 뒤까지가 읽는 열쇠. 가진 사람만 읽어요.</span></li>
+        <li><b>비밀번호</b><span>고칠 때만 써요. 잊으면 되찾을 수 없어요.</span></li>
+      </ul>
       <form id="publish-form">
         <fieldset id="publish-fields">
           <label class="pub-field">공개 제목<input id="publish-title" maxlength="40" placeholder="제목 없는 글" autocomplete="off"></label>
-          <p class="pub-note">링크 미리보기에 보여요. 본문은 보이지 않아요.</p>
           <div id="publish-new">
-            <label class="pub-field">작성자 비밀번호<input id="publish-password" type="text" minlength="4" maxlength="128" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>
-            <p class="pub-note">4자 이상</p>
+            <label class="pub-field">작성자 비밀번호<input id="publish-password" type="text" minlength="4" maxlength="128" placeholder="4자 이상" autocomplete="off" autocapitalize="off" spellcheck="false" required></label>
           </div>
-          <label class="pub-check"><input id="publish-live" type="checkbox" checked>링크로 읽을 수 있게 열어 두기</label>
-          <p class="pub-note">닫아도 이미 읽거나 저장한 사본은 거둘 수 없어요.</p>
-          <div class="pub-actions"><button class="btn fill" id="publish-submit" type="submit">이대로 발행하기</button><button class="link" id="publish-delete" type="button" hidden>글 삭제</button></div>
         </fieldset>
       </form>
+      <section id="publish-result" class="pub-result" aria-label="발행한 글 링크" hidden>
+        <label class="pub-field">전체 링크<input id="publish-url" readonly></label>
+        <a class="link" id="publish-visit" target="_blank" rel="noopener noreferrer">글 열기</a>
+      </section>
       <p id="publish-message" class="pub-message" role="status" aria-live="polite"></p>
+      <button class="link pub-delete" id="publish-delete" type="button" hidden>글 삭제</button>
+      <footer class="pub-fine">
+        <p>본문은 이 브라우저에서 잠근 뒤 글자리 서버(Netlify)에 보관돼요. 서버에는 열쇠가 없어 본문을 열어 볼 수 없고, 공개 제목만 링크 미리보기에 보여요. 발행을 중단하거나 지워도 이미 읽거나 저장한 사본은 거둘 수 없어요. 발행한 글의 링크와 비밀번호는 이 브라우저에도 남아 있어요.</p>
+        <p>이용 문의 <a href="mailto:M1r4d0r0715@gmail.com">M1r4d0r0715@gmail.com</a></p>
+      </footer>
     </div></div>
-    <footer class="bar publish-bar">
-      <span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span>
+    <footer class="publish-bar" aria-label="발행">
+      <button type="button" class="pub-switch" id="publish-live" role="switch" aria-checked="true"><i aria-hidden="true"></i><span class="pub-switch-label">바로 공개</span></button>
+      <button type="button" class="tb-more pub-more-btn" aria-label="더 보기" aria-expanded="false"><i></i><i></i><i></i></button>
+      <div class="pub-acts" role="group" aria-label="발행한 글">
+        <div class="pub-more">
+          <button type="button" class="tb-val tb-act" id="publish-copy" hidden>링크 복사</button><button type="button" class="tb-val tb-act" id="publish-share" hidden>비밀번호 보내기</button><button type="button" class="tb-val tb-act" id="publish-download" hidden>글 파일 받기</button>
+        </div>
+        <button type="submit" class="tb-val tb-act pub-go" id="publish-submit" form="publish-form">이대로 발행하기</button>
+      </div>
     </footer>
   </section>
 </main>

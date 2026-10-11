@@ -138,3 +138,8 @@
 }
 .end-card.snap-x::before { left: 50%; top: 0; bottom: 0; width: 1px; }
 .end-card.snap-y::after { top: 50%; left: 0; right: 0; height: 1px; }
+
+/* 공개 뷰어의 작성자 수정: 단추 줄 아래 작은 글씨 */
+.end-author { margin: 6px 0 0; text-align: center; font-size: 11px; }
+.end-author a { color: var(--ink-soft); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .35em; }
+.end-author a:hover { color: var(--ink); }

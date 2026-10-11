@@ -20,11 +20,15 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.click('#publish-submit'); await pg.waitForSelector('#publish-result:not([hidden])');
     const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}#[\w-]{43}$/);
     const id = new URL(link).pathname.split('/')[2]; const key = new URL(link).hash.slice(1);
-    const local = await pg.evaluate(()=>JSON.stringify(localStorage)); assert.ok(!local.includes('4821')); assert.ok(!local.includes(key));
+    // 발행 기록(열쇠·비밀번호)은 이 브라우저에 남지만 본문 암호문은 넣지 않아요.
+    const kept = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.publication'))); assert.equal(kept.key,key); assert.equal(kept.password,'4821'); assert.equal(kept.record.cipher,undefined);
+    // 링크 칸을 누르면 바로 복사돼요.
     assert.ok(!JSON.stringify(await store.get(id)).includes('4821'));
     // 텍스트 복사: 제목·링크·비밀번호 세 줄
     await context.grantPermissions(['clipboard-read','clipboard-write'],{origin});
-    await pg.click('#publish-copy-all'); assert.equal(await pg.evaluate(()=>navigator.clipboard.readText()),'글자리 · 발행 확인\n링크: '+link+'\n비밀번호: 4821');
+    await pg.click('#publish-url'); assert.equal(await pg.evaluate(()=>navigator.clipboard.readText()),link);
+    await pg.waitForFunction(()=>document.querySelector('#toast').textContent.includes('클립보드에 복사'));
+    await pg.click('#publish-share'); assert.equal(await pg.evaluate(()=>navigator.clipboard.readText()),'글자리 · 발행 확인\n링크: '+link+'\n비밀번호: 4821');
     // 발행 뒤 글 파일: [발행] 이름에 링크·비밀번호를 담아요.
     const downloadPromise = pg.waitForEvent('download'); await pg.click('#publish-download'); const download = await downloadPromise;
     assert.match(download.suggestedFilename(),/^\[발행\] 발행 확인 \d{4}-\d{2}-\d{2}\.txt$/);
@@ -34,7 +38,7 @@ const fileBtn = (pg, id) => pg.click(id);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'발행 확인');
     await reader.goto(link.split('#')[0]+'#'+'A'.repeat(43)); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('열쇠'));
-    await pg.uncheck('#publish-live'); await pg.click('#publish-submit'); await pg.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.startsWith('발행 중단'));
+    await pg.click('#publish-live'); await pg.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.startsWith('발행 중단'));
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('발행이 중단'));
     await pg.reload(); await fileBtn(pg,'#load-open');
     await pg.fill('#load-url',link); await pg.fill('#load-password','incorrect-password'); await pg.click('#load-form button[type=submit]');
@@ -55,9 +59,10 @@ const fileBtn = (pg, id) => pg.click(id);
     await fileBtn(pg,'#load-open'); await pg.setInputFiles('#load-file','tests/out/legacy-key2.txt');
     await pg.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('관리 파일을 읽었'));
     assert.equal(await pg.inputValue('#load-password'),'4821'); await pg.click('#load-close');
-    await pg.click('[data-go=publish]'); assert.equal(await pg.isChecked('#publish-live'),false);
-    await pg.fill('#publish-title','수정한 제목'); await pg.check('#publish-live'); await pg.click('#publish-submit');
-    await pg.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.includes('수정한 제목'));
+    await pg.click('[data-go=publish]'); assert.equal(await pg.getAttribute('#publish-live','aria-checked'),'false');
+    await pg.click('#publish-live'); await pg.waitForFunction(()=>document.querySelector('#publish-live').getAttribute('aria-checked')==='true'&&!document.querySelector('#publish-live').disabled);
+    await pg.fill('#publish-title','수정한 제목'); await pg.click('#publish-submit');
+    await pg.waitForFunction(()=>document.querySelector('.write-bar .publication-label').textContent.includes('수정한 제목'));
     assert.equal(await pg.inputValue('#publish-url'),link);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'수정한 제목');

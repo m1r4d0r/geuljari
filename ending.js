@@ -475,10 +475,14 @@
     const again = el('button', 'end-again', '다시 보기');
     again.type = 'button';
     again.addEventListener('click', () => { if (o.onReplay) o.onReplay(); });
-    const fresh = el(studio ? 'button' : 'a', 'end-new', studio ? '이대로 발행하기' : '새로 만들기');
+    const fresh = el(studio ? 'button' : 'a', 'end-new', studio ? '이대로 발행하기' : '새로 쓰기');
     if (studio) { fresh.type = 'button'; fresh.onclick = () => window.parent.postMessage({ type:'geulgyeol:publish' }, location.origin); }
     else fresh.href = '/';
     acts.append(again, fresh);
+    /* 공개 뷰어: 다시 보기 · 새로 쓰기 아래에 작은 글씨로 작성자 수정 */
+    const editHref = !studio && window.GeulReaderOpts && window.GeulReaderOpts.editHref;
+    const author = editHref ? el('p', 'end-author') : null;
+    if (author) { const a = el('a', null, '작성자 수정하기'); a.href = editHref; author.append(a); }
     box.append(fig);
     scroll.append(box);
     sheet.append(scroll);
@@ -497,6 +501,7 @@
     position(cur);
     if (studio) fig.append(makeField(cur));
     box.append(acts);
+    if (author) box.append(author);
     setMeta(cur.editorTitle);
 
     /* 무대에 붙은 뒤(장면 색이 걸린 뒤) 그린다 */

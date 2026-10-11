@@ -753,7 +753,7 @@
   $('replay-top').addEventListener('click', () => replay());
 
   /* 1000px 이하의 ⋯: 하단바 오른쪽 묶음을 작은 판으로 접는다. 고르면, 밖을 누르면, Esc면 닫는다 */
-  document.querySelectorAll('.tb-more').forEach((b) => {
+  document.querySelectorAll('.tune-bar .tb-more').forEach((b) => {
     const barEl = b.closest('.tune-bar');
     const set = (on) => { barEl.classList.toggle('more-open', on); b.setAttribute('aria-expanded', String(on)); };
     b.addEventListener('click', () => set(!barEl.classList.contains('more-open')));

@@ -16,48 +16,66 @@
     return result;
   }
   window.GeulPublish = { mount(ctx) {
-    // 비밀번호와 열쇠는 메모리에만 두어요. 편집실 저장 자료에는 넣지 않아요.
-    let active = null, pending = null, busy = false;
+    // 발행한 글의 열쇠·비밀번호·기록은 이 브라우저(localStorage)에 남겨 새로 고침해도 발행 관리가 이어져요. 본문은 넣지 않아요.
+    const KEEP = 'geul.publication';
+    let active = null, pending = null, busy = false, live = true;
     const link = a => location.origin + '/t/' + a.id + '#' + a.key;
+    const slim = r => { const { cipher, iv, ...rest } = r; return rest; };
+    function keep() {
+      try {
+        if (active) localStorage.setItem(KEEP, JSON.stringify({ id:active.id, key:active.key, password:active.password, record:slim(active.record) }));
+        else localStorage.removeItem(KEEP);
+      } catch { /* 저장소를 쓸 수 없으면 이번 화면에서만 이어져요 */ }
+    }
+    function restore() {
+      try {
+        const d = JSON.parse(localStorage.getItem(KEEP) || 'null');
+        if (d && /^[\w-]{22}$/.test(d.id) && /^[\w-]{43}$/.test(d.key) && typeof d.password === 'string' && d.record) active = d;
+      } catch { active = null; }
+    }
+    function switchLabel() {
+      const sw = $('publish-live');
+      sw.setAttribute('aria-checked', String(live));
+      sw.querySelector('.pub-switch-label').textContent = active ? (live ? '발행 중' : '발행 중단') : (live ? '바로 공개' : '닫아 두기');
+    }
     function render() {
       $('publish-new').hidden = !!active;
       $('publish-password').required = !active;
       $('publish-delete').hidden = !active;
       $('publish-submit').textContent = active ? '고친 내용 저장' : '이대로 발행하기';
       $('publish-result').hidden = !active;
-      // 발행 상태는 편집·발행 하단바 오른쪽에 같은 모양으로 보여요.
+      for (const id of ['publish-copy','publish-share','publish-download']) $(id).hidden = !active;
+      document.querySelector('.publish-bar').classList.toggle('is-live', !!active);
+      if (active) live = active.record.live;
+      switchLabel();
+      // 발행 상태는 편집 하단바 오른쪽에 보여요.
       const label = active ? `${active.record.live ? '발행 중' : '발행 중단'} · ${active.record.title || '제목 없는 글'} · ${new Date(active.record.updatedAt).toLocaleDateString('ko-KR')}` : '';
       document.querySelectorAll('.publication-strip').forEach(n => { n.hidden = !active; n.querySelector('.publication-label').textContent = label; });
       if (active) {
         $('publish-url').value = link(active); $('publish-visit').href = link(active);
         $('publish-visit').hidden = !active.record.live;
       }
-      // 머리말은 지금 상태를 말해요: 아직 · 자리를 찾음 · 닫아 둠
-      const live = active && active.record.live;
-      $('publish-heading').textContent = !active ? '글의 자리를 찾아요.' : live ? '글이 자리를 찾았어요.' : '글이 자리에서 쉬고 있어요.';
-      $('publish-intro').textContent = !active ? '다듬은 모습 그대로 링크 하나에 놓아 둬요.'
-        : live ? '아래 링크로 읽을 수 있어요. 글을 고친 뒤 저장하면 같은 링크에 바로 반영돼요.'
-        : '지금은 아무도 읽을 수 없어요. 다시 열려면 아래에서 열어 두기를 고르고 저장해 주세요.';
     }
     function lock(on) {
       busy = on;
       $('publish-fields').disabled = on; $('load-fields').disabled = on;
       // 요청 중 다른 글로 바뀌는 일을 막아요.
-      for (const id of ['clear','load-open','file-save']) $(id).disabled = on;
+      for (const id of ['clear','load-open','file-save','publish-submit','publish-live']) $(id).disabled = on;
       $('s-publish').setAttribute('aria-busy', String(on));
     }
+    const say = msg => { $('publish-message').textContent = msg; };
     const reset = () => {
-      active = pending = null; $('publish-password').value = '';
-      $('publish-live').checked = true;
-      $('publish-message').textContent = ''; render();
+      active = pending = null; live = true; $('publish-password').value = '';
+      say(''); keep(); render();
     };
     $('publish-title').addEventListener('input', e => ctx.title(e.target.value));
     document.querySelectorAll('.publication-manage').forEach(b => { b.onclick = ctx.manage; });
-    $('publish-form').onsubmit = async e => {
-      e.preventDefault(); if (busy) return;
-      lock(true); $('publish-message').textContent = '글을 잠가서 자리에 놓고 있어요.';
+    async function publish() {
+      if (busy) return;
+      if (!active && !$('publish-form').reportValidity()) return;
+      lock(true); say('글을 잠가서 자리에 놓고 있어요.');
       try {
-        const snapshot = structuredClone(ctx.snapshot()), live = $('publish-live').checked;
+        const snapshot = structuredClone(ctx.snapshot());
         const password = active ? active.password : $('publish-password').value;
         // 응답이 유실돼도 같은 생성 요청을 재사용해 중복 글을 만들지 않아요.
         const signature = JSON.stringify([snapshot, live, password]);
@@ -69,38 +87,63 @@
         const sealed = active ? await C.seal(snapshot, target.id, target.key) : pending.sealed;
         const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, password, revision:active?.record.revision });
         const first = !active;
-        active = { id:target.id, key:target.key, password, record }; pending = null;
+        active = { id:target.id, key:target.key, password, record:slim(record) }; pending = null;
         $('publish-password').value = '';
-        render();
-        // 처음 발행하면 맨 위에 생긴 링크 면으로 올라가요.
-        if (first) document.querySelector('.publish-scroll').scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); $('publish-message').textContent = live ? '저장했어요. 링크와 비밀번호를 남겨 두세요.' : '저장했어요. 지금은 닫혀 있어요.';
-      } catch (err) { $('publish-message').textContent = err.message; }
+        keep(); render();
+        say(first ? (live ? '글이 자리를 찾았어요. 링크를 누르면 복사돼요.' : '글을 닫아 둔 채로 놓았어요.') : '고친 내용을 저장했어요.');
+        if (first) document.querySelector('.publish-scroll').scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      } catch (err) { say(err.message); }
+      finally { lock(false); }
+    }
+    $('publish-form').onsubmit = e => { e.preventDefault(); publish(); };
+    // 스위치: 발행 전에는 처음 상태를 고르고, 발행한 뒤에는 누르는 즉시 공개·중단만 바꿔요(본문은 그대로).
+    $('publish-live').onclick = async () => {
+      if (busy) return;
+      live = !live;
+      if (!active) { switchLabel(); return; }
+      lock(true); switchLabel();
+      try {
+        const fresh = await api('/' + active.id + '/unlock', 'POST', { password:active.password });
+        const record = await api('/' + active.id, 'PUT', { id:active.id, title:fresh.title, cipher:fresh.cipher, iv:fresh.iv, live, password:active.password, revision:fresh.revision });
+        active.record = slim(record); keep(); render();
+        say(live ? '다시 읽을 수 있게 열었어요.' : '발행을 멈췄어요. 이미 읽거나 저장한 사본은 거둘 수 없어요.');
+      } catch (err) { live = !live; switchLabel(); say(err.message); }
       finally { lock(false); }
     };
     $('publish-delete').onclick = async () => {
       if (!active || busy || !confirm('발행한 글을 삭제할까요? 되돌릴 수 없어요. 편집창의 글은 남아요.')) return;
       lock(true);
-      try { await api('/' + active.id, 'DELETE', { password:active.password, revision:active.record.revision }); reset(); $('publish-message').textContent = '발행한 글을 삭제했어요. 편집창에는 글이 남아 있어요.'; }
-      catch (err) { $('publish-message').textContent = err.message; }
+      try { await api('/' + active.id, 'DELETE', { password:active.password, revision:active.record.revision }); reset(); say('발행한 글을 삭제했어요. 편집창에는 글이 남아 있어요.'); }
+      catch (err) { say(err.message); }
       finally { lock(false); }
     };
     async function copy(text, done) {
-      try { await navigator.clipboard.writeText(text); $('publish-message').textContent = done; return true; }
+      try { await navigator.clipboard.writeText(text); ctx.notice(done); return true; }
       catch { return false; }
     }
-    $('publish-copy').onclick = async () => {
-      if (!await copy(link(active), '전체 링크를 복사했어요.')) { $('publish-url').focus(); $('publish-url').select(); $('publish-message').textContent = '링크를 선택했어요. 직접 복사해 주세요.'; }
+    const copyLink = async () => {
+      if (!active) return;
+      if (!await copy(link(active), '링크를 클립보드에 복사했어요.')) { $('publish-url').focus(); $('publish-url').select(); say('링크를 선택했어요. 직접 복사해 주세요.'); }
     };
+    $('publish-copy').onclick = copyLink;
+    $('publish-url').addEventListener('click', () => { $('publish-url').select(); copyLink(); });
     const keepText = () => F.shareText(active.record.title, link(active), active.password);
-    $('publish-share').hidden = !navigator.share;
+    // 비밀번호 보내기: 기기의 보내기가 있으면 그것으로, 없으면 제목·링크·비밀번호를 복사해요.
     $('publish-share').onclick = async () => {
-      try { await F.share(active.record.title || '글자리', keepText()); }
-      catch { if (!await copy(keepText(), '보낼 수 없어서 대신 복사했어요.')) $('publish-message').textContent = '보내지 못했어요. 글 파일로 받아 주세요.'; }
-    };
-    $('publish-copy-all').onclick = async () => {
-      if (!await copy(keepText(), '제목·링크·비밀번호를 복사했어요.')) $('publish-message').textContent = '복사하지 못했어요. 글 파일로 받아 주세요.';
+      if (!active) return;
+      if (navigator.share) {
+        try { await F.share(active.record.title || '글자리', keepText()); return; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+      if (!await copy(keepText(), '제목·링크·비밀번호를 복사했어요.')) say('복사하지 못했어요. 글 파일로 받아 주세요.');
     };
     $('publish-download').onclick = () => { if (active) ctx.saveFile(); };
+    // 1000px 이하: 링크 복사·비밀번호 보내기·글 파일 받기를 ⋯ 안에 접어요.
+    const bar = document.querySelector('.publish-bar'), more = bar.querySelector('.pub-more-btn');
+    const fold = on => { bar.classList.toggle('more-open', on); more.setAttribute('aria-expanded', String(on)); };
+    more.onclick = () => fold(!bar.classList.contains('more-open'));
+    bar.querySelectorAll('.pub-more button').forEach(x => x.addEventListener('click', () => fold(false)));
+    document.addEventListener('pointerdown', e => { if (!bar.contains(e.target)) fold(false); });
     $('load-open').onclick = () => { if (!busy) { $('load-message').textContent = ''; $('load-dialog').showModal(); } };
     $('load-close').onclick = () => $('load-dialog').close();
     $('load-dialog').addEventListener('cancel', e => { if (busy) e.preventDefault(); });
@@ -112,8 +155,8 @@
       try {
         const target = C.parseLink(p.url);
         const record = await api('/' + target.id + '/unlock', 'POST', { password:p.password });
-        active = { ...target, password:p.password, record }; pending = null;
-        $('publish-live').checked = record.live; render(); return true;
+        active = { ...target, password:p.password, record:slim(record) }; pending = null;
+        keep(); render(); return true;
       } catch { return false; }
       finally { lock(false); }
     }
@@ -145,12 +188,16 @@
         const record = await api('/' + target.id + '/unlock', 'POST', { password });
         const doc = await C.open(record, target.key);
         if (ctx.snapshot().source.trim() && !confirm('편집 중인 글을 불러온 글로 바꿀까요?')) { $('load-message').textContent = '불러오기를 취소했어요.'; return; }
-        ctx.import(doc); active = { ...target, password, record }; pending = null;
-        $('publish-live').checked = record.live; render(); $('load-dialog').close();
+        ctx.import(doc); active = { ...target, password, record:slim(record) }; pending = null;
+        keep(); render(); $('load-dialog').close();
       } catch (err) { $('load-message').textContent = err.message; }
       finally { lock(false); }
     };
-    render();
+    restore(); render();
+    // 남겨 둔 발행 기록은 서버의 지금 상태로 맞춰요. 지워진 글이면 기록을 거둬요.
+    if (active) api('/' + active.id + '/unlock', 'POST', { password:active.password })
+      .then(r => { if (active) { active.record = slim(r); keep(); render(); } })
+      .catch(err => { if (active && /찾을 수 없|맞지 않/.test(err.message)) reset(); });
     const current = () => active && { url:link(active), password:active.password, live:active.record.live, date:new Date(active.record.updatedAt).toLocaleDateString('sv-SE') };
     return { reset, current, resume() {
       const match = /^#edit=([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(location.hash);
@@ -160,6 +207,6 @@
       $('load-heading').textContent = '작성자 비밀번호를 확인해요.';
       $('load-message').textContent = '확인하면 이 글을 편집실로 불러와요. 지금 쓰던 초안은 먼저 확인하고 바꿔요.';
       $('load-dialog').showModal(); $('load-password').focus();
-    }, enter() { $('publish-title').value = ctx.snapshot().title; $('publish-message').textContent = ''; render(); } };
+    }, enter() { $('publish-title').value = ctx.snapshot().title; say(''); render(); } };
   } };
 })();

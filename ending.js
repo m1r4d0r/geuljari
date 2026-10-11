@@ -435,7 +435,7 @@
     again.type = 'button';
     again.addEventListener('click', () => { if (o.onReplay) o.onReplay(); });
     const fresh = el('a', 'end-new', '새로 만들기');
-    if (!studio) fresh.href = 'index.html';
+    if (!studio) fresh.href = '/';
     acts.append(again, fresh);
     box.append(fig, madeLine, acts);
     scroll.append(box);

@@ -1,6 +1,6 @@
 /*
  * 글결 편집실
- * 글 → 미리보기 두 단계를 잇는다.
+ * 편집 → 미리보기 → 발행 세 단계를 잇는다.
  * - 글: 입력창 하나. 그 위에 쪽 짜임을 얹어(compose.js) 줄 사이를 눌러 쪽을 나누고, 쪽 사이에서 반전·잇기를 하고,
  *   끌어 고른 곳을 강조한다. 오른쪽 칸(폰은 위)에서 분위기(심상 세 축)와 테마(주색·글꼴·시작 장면)를 고르고, 그 아래에 쓰는 법 세 줄을 늘 둔다.
  *   분위기는 고르기 전에는 글을 읽어 짐작한 것을 두고, '살펴보기'는 낱말마다 움직임을 견주어 보는 덮개(look.js)를 연다.
@@ -25,7 +25,8 @@
 
   const $ = (id) => document.getElementById(id);
   const KEY = 'geul.studio';
-  const STEPS = ['write', 'tune'];
+  const STEPS = ['write', 'tune', 'publish'];
+  let publication;
   const OPPOSITE = { '라이트': '다크', '다크': '라이트' };
   const LONG = 240;
   const ZOOM_MAX = 4;
@@ -196,6 +197,7 @@
   }
   $('sample').addEventListener('click', () => {
     if (st.source.trim() && !window.confirm('지금 글을 예시 글로 바꿀까요?')) return;
+    publication.reset();
     st.moodsTouched = false;
     st.made = '';
     setStep('write');
@@ -205,6 +207,7 @@
   });
   $('clear').addEventListener('click', () => {
     if (st.source.trim() && !window.confirm('지금 글을 지우고 새로 쓸까요?')) return;
+    publication.reset();
     st.title = '';
     $('title').value = '';
     st.made = '';
@@ -320,6 +323,7 @@
     if (from === 'tune' && step !== 'tune') leaveTune();
     if (step === 'write') { if (ta.value !== st.source) ta.value = st.source; writeEd.draw(); drawRail(); }
     if (step === 'tune') enterTune(from !== 'tune');
+    if (step === 'publish') publication.enter();
     countLine();
     save();
   }
@@ -771,6 +775,23 @@
 
   /* ---------- 시작 ---------- */
 
+  publication = window.GeulPublish.mount({
+    snapshot: () => ({ version:1, title:st.title, source:st.source, made:st.made || today(), settings:st.settings, moods:st.moods, moodsTouched:st.moodsTouched, ending:st.ending }),
+    title(value) { st.title = value; $('title').value = value; save(); },
+    manage: () => setStep('publish'),
+    import(d) {
+      clearTimeout(guessTimer);
+      st.title = d.title; $('title').value = d.title;
+      st.made = /^\d{4}-\d{2}-\d{2}$/.test(d.made) ? d.made : today();
+      st.settings = T.normalize(d.settings);
+      st.moods = T.oneEach(Array.isArray(d.moods) ? d.moods : []);
+      st.moodsTouched = !!d.moodsTouched;
+      st.ending = normEnding(d.ending); st.page = 0;
+      setStep('write'); setSource(d.source, [0,0]);
+      T.useFont(document, st.settings); T.useTheme(document, st.settings);
+      drawRail(); handOff();
+    }
+  });
   ta.value = st.source;
   T.useFont(document, st.settings);
   T.useTheme(document, st.settings);

@@ -1,0 +1,6 @@
+{
+  "name": "geuljari", "private": true,
+  "scripts": {"build": "node scripts/build.mjs", "test": "node --test tests/publish.test.mjs", "test:publish-ui": "node tests/publish-browser.cjs"},
+  "engines": {"node": ">=22"},
+  "dependencies": {"firebase-admin": "^13.0.0"}
+}

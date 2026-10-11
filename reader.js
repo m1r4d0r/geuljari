@@ -56,6 +56,7 @@
    * 제목(title)·처음 만든 날(made, YYYY-MM-DD)·끝 장 바탕(ending {scene, ground})도 함께 읽는다. 글만 있는 옛 자료도 읽힌다.
    */
   function readSource() {
+    if (OPTS.source) return OPTS.source;
     const holder = document.getElementById('glog-text');
     const src = { text: holder ? holder.textContent : '', title: '', made: '', ending: null };
     const asked = location.hash === '#preview' || store.get('sessionStorage', 'geulgyeol.go') === '1';

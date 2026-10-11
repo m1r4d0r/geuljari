@@ -1,0 +1,4 @@
+.read-status { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 24px; padding: 32px; text-align: center; background: #ECEDF0; color: #2C2F6B; font: 14px/1.8 'Noto Sans KR', sans-serif; z-index: 100; }
+.read-status[hidden] { display: none; }
+.read-status h1 { font: 28px/1.5 'Song Myung', serif; }
+.read-status a { color: inherit; }

@@ -15,8 +15,8 @@
   const DEFAULT = { scene: '라이트', ground: '편지지' };
   /* 장면마다 쓸 수 있는 바탕(엔진 값). 편지지·오로라는 두 장면 모두 */
   const SCENE_GROUNDS = {
-    day: ['window', 'wongoji', 'leaf', 'dawn', 'letter', 'aurora'],
-    night: ['projector', 'drape', 'caustic', 'typing', 'letter', 'aurora']
+    day: ['window', 'wongoji', 'leaf', 'dawn', 'letter', 'aurora', 'plain'],
+    night: ['projector', 'drape', 'caustic', 'typing', 'letter', 'aurora', 'plain']
   };
   const FAM = {
     mark: "'Song Myung', 'Noto Serif KR', serif",

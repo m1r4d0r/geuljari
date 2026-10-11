@@ -195,7 +195,7 @@
           const own = markLn ? S.readMarkLine(markLn.text).turn : null;
           const sel = el('select', 'cp-turn');
           sel.setAttribute('aria-label', '넘어오는 결');
-          Object.keys(E.TURNS).filter((n) => n !== '스밈').forEach((n) => {
+          (window.GeulTune ? window.GeulTune.SCENE_TURNS : Object.keys(E.TURNS).filter((n) => n !== '스밈')).forEach((n) => {
             const o = el('option', null, n === (own || ctx.turn()) && !own ? `${n} (기본)` : n);
             o.value = n;
             o.selected = n === (own || ctx.turn());

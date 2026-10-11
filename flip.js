@@ -4,6 +4,7 @@
  * - sweep(쓸기): 바닥에 누워 있던 바늘이 축을 중심으로 180도를 휙 쓸고, 바늘이 지나간 자리부터 새 장이 보인다. 장 자체는 움직이지 않는다.
  * - disc(회전): 두 장이 한 몸처럼 축을 중심으로 180도 돈다. 새 장은 처음에 바닥 아래에 거꾸로 붙어 있다가 돌아 올라온다.
  *   돌아가는 동안 장이 비운 자리로 무대 뒤의 어둠이 잠깐 드러난다.
+ * iris(조리개)·blinds(셔터)·curtain(막)은 고르는 판에서 뺐고, 이미 쪽 표시에 적힌 글만 이 모양으로 넘긴다.
  * - iris(조리개): 영사기 조리개가 열리듯 화면 가운데의 빛점에서 둥근 구멍이 넓어지며 새 장이 드러난다. 가장자리에 빛 고리가 돈다.
  * - bloom(피어남): 바닥 가운데의 빛점에서 둥근 원이 부풀어 오르며 새 장이 드러난다. 다크로 가면 어두운 원, 라이트로 가면 밝은 원이다.
  *   원 가장자리는 살짝 번지고 얇은 빛테가 두르며, 빛테는 원이 가장 빨리 부푸는 한가운데에서 가장 밝다. 되돌아갈 때는 원이 바닥으로 오므라든다.
@@ -13,7 +14,7 @@
  * - sunset(해넘이): 새 장이 위에서부터 내려오고, 끝 아래로 빛이 지며 앞 장은 노을빛으로 저문다.
  * - glass(유리): 앞 장에 균열이 드러난 뒤 불규칙한 면이 기울어 떨어진다. 파편은 같은 진행값에서 같은 자리로 돌아온다.
  * - flash(섬광): 찰칵 하고 하얗게 번쩍이는 사이에 장이 바뀌고, 빛이 빠지며 새 장이 드러난다.
- * - drift(스밈): 장면이 같은 페이지끼리. 새 장이 위에서 옅게 겹쳐 오고, 글은 넘기는 방향으로 조금 밀리며 바뀐다.
+ * - drift(스밈): 장면이 같은 페이지끼리. 움직임 없이 새 장이 위에서 옅게 겹쳐 오는 디졸브.
  * dir=1이면 시계방향(앞으로), dir=-1이면 반시계방향(되돌아가기).
  * 장(.sheet)은 무대 크기 그대로 겹쳐 있어야 하고, 무대는 position이 있는 요소여야 한다.
  *
@@ -274,17 +275,12 @@
         lights.forEach((n) => { n.style.opacity = '0'; });
       } else if (mode === 'drift') {
         const e = smooth(q);
-        const shift = (pair.axis === 'x' ? g.W : g.H) * 0.06;
-        const mv = (v) => (pair.axis === 'x' ? `translate3d(${v}px,0,0)` : `translate3d(0,${v}px,0)`);
         to.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
         to.style.opacity = String(e);
         from.style.transform = '';
         to.style.transform = '';
-        if (pair.fromText) {
-          pair.fromText.style.opacity = String(1 - e);
-          pair.fromText.style.transform = mv(-shift * e);
-        }
-        if (pair.toText) pair.toText.style.transform = mv(shift * (1 - e));
+        if (pair.fromText) { pair.fromText.style.opacity = String(1 - e); pair.fromText.style.transform = ''; }
+        if (pair.toText) pair.toText.style.transform = '';
         lights.forEach((n) => { n.style.opacity = '0'; });
       } else if (mode === 'iris') {
         /* 구멍이 막 열릴 때는 고리가 가운데의 빛점으로 보이고, 열리는 한가운데에서 가장 밝다 */

@@ -132,11 +132,11 @@
    * 넘김·자리·크기·폭·속도·결·정렬·전환 속도는 그 쪽에만 걸린다.
    */
   const SCENES = { '밤': 'night', '낮': 'day', '라이트': 'day', '다크': 'night' };
-  const GROUNDS = { '창빛': 'window', '원고지': 'wongoji', '잎그늘': 'leaf', '새벽': 'dawn', '편지지': 'letter', '오로라': 'aurora', '영사광': 'projector', '빛커튼': 'drape', '물빛': 'caustic', '타자': 'typing' };
+  const GROUNDS = { '창빛': 'window', '원고지': 'wongoji', '잎그늘': 'leaf', '새벽': 'dawn', '편지지': 'letter', '오로라': 'aurora', '영사광': 'projector', '빛커튼': 'drape', '물빛': 'caustic', '타자': 'typing', '단색': 'plain' };
   const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash', '잠수': 'dive', '먹자국': 'ink', '글리치': 'glitch', '피어남': 'bloom' };
   const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
   const DEFAULT_GROUND = { day: 'window', night: 'projector' };
-  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES), '크기\\d{2,3}', '폭\\d{2}', '속도\\d{2,3}', '전환속도\\d{2,3}', '결(?:바로|이어쓰기|번짐|떠오름|타자)', '정렬(?:저절로|왼쪽|가운데|오른쪽|양쪽)'].join('|');
+  const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES), '크기\\d{2,3}', '폭\\d{2}', '속도\\d{2,3}', '전환속도\\d{2,3}', '결(?:바로|이어쓰기|번짐|떠오름|초점|타자)', '정렬(?:저절로|왼쪽|가운데|오른쪽|양쪽)'].join('|');
   const MARK_BODY = `(?:${MARK_WORD})(?:\\s*[:·]\\s*(?:${MARK_WORD}))*`;
   const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(${MARK_BODY})\\]\\][^\\S\\n]*$`);
   const SCENE_LINES_RE = new RegExp(`^[^\\S\\n]*\\[\\[${MARK_BODY}\\]\\][^\\S\\n]*$`, 'gm');

@@ -35,9 +35,9 @@ const fs = require('node:fs/promises');
       assert.equal(await pg.locator('#s-tune .tb-val[data-key=turn]').count(), 0);
       await frame.locator('#dots .dot').nth(1).click();
       await pg.waitForFunction(() => document.querySelector('#s-tune .tb-val[data-key=turn]'));
-      await pg.click('#s-tune .tb-val[data-key=turn]'); await pg.click('#tb-drop-turn .tb-li:has-text("조리개")');
-      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('[[조리개]]'));
-      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=turn] .tb-label'), '전환 조리개');
+      await pg.click('#s-tune .tb-val[data-key=turn]'); await pg.click('#tb-drop-turn .tb-li:has-text("섬광")');
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('[[섬광]]'));
+      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=turn] .tb-label'), '전환 섬광');
       await pg.click('#s-tune .tb-val[data-key=ground]'); await pg.click('#tb-drop-ground .tb-li:has-text("원고지")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('원고지'));
 

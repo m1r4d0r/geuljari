@@ -1,8 +1,8 @@
 /*
  * 글결 분위기 살펴보기
- * 편집실 위에 뜨는 판. 심상 세 축(온도·물기·숨)을 한 장에 한 축씩 보이고, 축의 두 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
- * - 온도: 강조한 글자가 젖은 먹으로 떠올라 마르는 시간(마름)과, 다크 쪽으로 넘어가는 결(피어남·섬광).
- * - 물기: 보통 글자가 나타나는 결(번짐·이어 쓰기).
+ * 편집실 위에 뜨는 판. 심상 세 축(심상·물기·숨)을 한 장에 한 축씩 보이고, 축의 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
+ * - 심상: 다섯 벌(빛·바람·물·시간·종이)의 라이트 바탕에서 다크 바탕으로 그 심상의 넘김으로 넘어가는 모습. 바탕은 그 바탕의 빛깔을 닮은 면으로 줄여 그린다.
+ * - 물기: 보통 글자가 나타나는 결(번짐·이어 쓰기)과, 강조 글자가 마르는 빠르기.
  * - 숨: 쓰는 빠르기와 두 번 띄어 쓴 쉼의 길이. 쓰는 자리에 커서가 깜박인다.
  * 카드 아래 시간 막대에는 글자가 나온 때와 낱말이 바꾸는 시간(나타나는 동안·쉼·마름·넘김)을 두 낱말이 같은 눈금으로 그린다.
  * 시간은 낱말의 조판값(GeulTune.fromMoods)을 엔진(Geulgyeol)에 걸어 짠 실제 시간표를 쓰고, 짠 뒤에는 엔진 값을 되돌린다.
@@ -27,15 +27,15 @@
   /* 장마다 축 하나. text는 엔진 문법 그대로(빈 줄 없는 한 문단), next는 넘어간 다크 쪽에 놓이는 글 */
   const PAGES = [
     {
-      axis: '온도', kind: 'temp',
-      body: '강조한 글자가 마르는 빠르기와, 장면이 바뀌는 쪽에서 넘기는 결이 달라져요.',
-      tip: '마름은 떠오르는 강조 글자에서, 넘김은 라이트와 다크가 바뀌는 쪽에서 보여요.',
-      text: '밤이 깊어지면\n{{소리가 지워진다.}}',
-      next: '그리고 잉크\n한 방울이'
+      axis: '심상', kind: 'image',
+      body: '두 장면의 바탕과, 라이트·다크가 바뀌는 쪽에서 넘기는 결을 한 벌로 정해요.',
+      tip: '라이트에서 다크로 넘어가는 모습이에요. 시간·종이는 라이트로 돌아올 때 넘김이 달라요.',
+      text: '밤이 깊어지면',
+      next: '그리고 잉크'
     },
     {
       axis: '물기', kind: 'wet',
-      body: '보통 글자가 종이에 나타나는 결이 달라져요.',
+      body: '보통 글자가 종이에 나타나는 결과, 강조한 글자가 마르는 빠르기가 달라져요.',
       tip: '강조한 곳은 따로 고른 효과 그대로 나와요.',
       text: '밤이 깊어지면\n소리가 지워진다.'
     },
@@ -182,6 +182,9 @@
     }
   }
 
+  /* 바탕 이름 → 엔진 이름(lk-g-* 면의 이름) */
+  const groundKey = (name) => (global.Geulgyeol && global.Geulgyeol.GROUNDS[name]) || 'plain';
+
   /* ---------- 낱말 하나의 장면 ---------- */
 
   function option(word, pg, pal, canPick) {
@@ -226,22 +229,14 @@
     o.until = o.end;
     if (pg.kind === 'wet') o.marks.show = [items[0].t, o.end];
 
-    if (pg.kind === 'temp') {
-      /* 떠오른 강조 글자는 젖은 먹으로 나와 잠깐 머문 뒤 마름 시간 동안 마른다(fx.js의 wet) */
-      const wetHold = 1000 / speed;
-      const dry = T.dryTime(s) * 1000;
-      const wets = items.filter((it) => it.fx === 'rise');
-      wets.forEach((it) => push(held(it.el, [
-        { color: pal.wet, easing: 'linear' },
-        { color: pal.wet, offset: wetHold / (wetHold + dry), easing: 'ease-in-out' },
-        { color: pal.ink }
-      ], { duration: wetHold + dry, delay: it.t })));
-      const w0 = wets.length ? wets[0].t : o.end;
-      o.marks.wet = [w0, w0 + wetHold, w0 + wetHold + dry];
-      o.dryEnd = w0 + wetHold + dry;
-      o.mode = T.TURNS[s.turn];
+    if (pg.kind === 'image') {
+      /* 라이트 바탕 면에 쓰고, 다 쓴 뒤 그 심상의 넘김으로 다크 바탕 면으로 넘어간다 */
+      const img = m.image;
+      day.classList.add('lk-g-' + groundKey(img.day));
+      o.dryEnd = o.end;
+      o.mode = T.TURNS[img.toNight];
       o.tm = turnTiming(o.mode);
-      const night = el('div', 'lk-face night');
+      const night = el('div', 'lk-face night lk-g-' + groundKey(img.night));
       pg.next.split('\n').forEach((line) => night.append(el('div', 'lk-ln', line)));
       o.night = night;
       o.ring = el('i', 'lk-ring');
@@ -274,7 +269,10 @@
     const T = global.GeulTune;
     const m = T.MOOD[word];
     const out = [];
-    if (m.turn) out.push('넘김 ' + m.turn);
+    if (m.image) {
+      out.push(`라이트 ${m.image.day} · 다크 ${m.image.night}`);
+      out.push(m.image.toDay === m.image.toNight ? '넘김 ' + m.image.toNight : `넘김 ${m.image.toNight}·${m.image.toDay}`);
+    }
     if (m.dry) out.push('마름 ' + (T.DRY[m.dry] / T.PACE).toFixed(1) + '초');
     if (m.flow) out.push('흐름 ' + m.flow);
     if (m.speed != null) out.push('속도 ' + m.speed.toFixed(2) + '×');
@@ -283,7 +281,7 @@
   }
 
   /*
-   * 다크 쪽으로 넘김: flip.js의 섬광(하얗게 번쩍이는 사이에 바뀜)과 피어남(바닥 가운데에서 둥글게 부풂)을 카드 크기로. 섬광이 아니면 피어남으로 그린다.
+   * 다크 쪽으로 넘김을 카드 크기로: 쓸기·잠수·해넘이·먹자국은 덮는 가장자리로, 섬광은 하얗게 번쩍이는 사이에, 그 밖은 피어남(바닥 가운데에서 둥글게 부풂)으로 그린다.
    * flip.js처럼 모양은 진행값에 곧게 따르고, 움직임의 결은 timing의 곡선(ease)이 정한다.
    */
   function turn(o, t) {
@@ -296,7 +294,21 @@
     const mid = Math.sin(Math.PI * q);
     const moving = q > 0.0005 && q < 0.9995;
     night.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
-    if (o.mode === 'flash') {
+    const pc = (v) => (v * 100).toFixed(2) + '%';
+    const EDGES = {
+      sweep: () => `inset(0 ${pc(1 - q)} 0 0)`,            // 쓸기: 왼쪽에서 오른쪽으로 덮음
+      dive: () => `inset(${pc(1 - q)} 0 0 0)`,             // 잠수: 아래에서 물이 차오름
+      sunset: () => `inset(0 0 ${pc(1 - q)} 0)`,           // 해넘이: 위에서 어둠이 내려옴
+      sunrise: () => `inset(${pc(1 - q)} 0 0 0)`,
+      ink: () => `circle(${(Math.hypot(W, H) * 0.62 * q).toFixed(1)}px at 42% 46%)`  // 먹자국: 가운데서 번져 나감
+    };
+    if (EDGES[o.mode]) {
+      night.style.opacity = '';
+      night.style.transform = '';
+      night.style.clipPath = moving ? EDGES[o.mode]() : '';
+      ring.style.opacity = '0';
+      glint.style.opacity = '0';
+    } else if (o.mode === 'flash') {
       night.style.clipPath = '';
       night.style.opacity = moving ? (q < 0.5 ? '0' : '1') : '';
       glint.style.background = moving ? 'rgba(255,250,240,1)' : '';
@@ -490,11 +502,11 @@
       return o;
     });
     /* end: 두 장면이 다 끝나는 때, span: 시간 막대 눈금 길이,
-       still: 움직임 줄이기에서 멈춰 둘 순간(온도는 넘기는 한가운데, 물기는 마지막 글자들이 막 나타나는 때, 숨은 다 쓴 뒤) */
+       still: 움직임 줄이기에서 멈춰 둘 순간(심상은 넘기는 한가운데, 물기는 마지막 글자들이 막 나타나는 때, 숨은 다 쓴 뒤) */
     let end = Math.max(...list.map((o) => o.end));
     let still = end;
     let span = end + 400;
-    if (pg.kind === 'temp') {
+    if (pg.kind === 'image') {
       const turnAt = Math.max(end, ...list.map((o) => o.dryEnd)) + TURN_WAIT;
       list.forEach((o) => { o.turnAt = turnAt; o.until = turnAt + o.tm.lead + o.tm.run; });
       end = Math.max(...list.map((o) => turnAt + o.tm.lead + o.tm.run + o.tm.tail));

@@ -51,7 +51,7 @@
     if (window.GeulFx) window.GeulFx.recolor();
     window.dispatchEvent(new Event('resize'));
   });
-  window.GeulReaderOpts = { turn: T.TURNS[s.turn], turnPace: T.turnPace(s) };
+  window.GeulReaderOpts = Object.assign(T.turnsOf(s), { turnPace: T.turnPace(s) });
   document.documentElement.style.setProperty('--dry', T.dryTime(s) + 's');
   if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');
 

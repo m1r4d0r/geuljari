@@ -6,7 +6,7 @@
  * pos는 끌기가 직접 밀고, 손을 떼면 스프링이 가까운 장으로 마저 데려간다. 키·휠·눈금은 정해진 시간과 곡선으로 휙 넘긴다.
  *   그 시간과 곡선은 넘김마다 GeulFlip.timing이 정한다(바닥 빛이 먼저 드는 lead, 움직이는 run, 빛이 빠지는 tail).
  * 두 장의 장면(라이트·다크)이 다르면 반전 넘김으로, 같으면 스며들듯 겹쳐 넘긴다.
- *   쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(기본 쓸기).
+ *   쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(다크로, 기본 쓸기)·turnLight(라이트로, 없으면 turn).
  * 장에 도착하면 그 장의 글을 엔진 시간표대로 써 내려간다. 쓰는 중에 넘기려 하면 처음 한 번은 그 장을 다 쓰고, 그다음에 넘긴다.
  * 화면에는 아래 가운데의 쪽 눈금 말고 글자를 띄우지 않는다. 지금 장의 눈금은 써 나간 만큼 차고, 끝 장은 네모 하나로 따로 보인다.
  * 글이 화면보다 긴 장은 안에서 위아래로 스크롤되고, 그때만 화면 가운데 줄이 또렷한 초점 띠가 켜진다.
@@ -35,7 +35,10 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   const OPTS = window.GeulReaderOpts || {};
-  const TURN = Object.values(E.TURNS).includes(OPTS.turn) && OPTS.turn !== 'drift' ? OPTS.turn : 'sweep';
+  const turnOr = (t, d) => (Object.values(E.TURNS).includes(t) && t !== 'drift' ? t : d);
+  const TURN = turnOr(OPTS.turn, 'sweep');
+  /* 라이트로 돌아올 때의 넘김(심상 시간·종이처럼 방향마다 다를 때). 없으면 TURN */
+  const TURN_LIGHT = turnOr(OPTS.turnLight, TURN);
   const PARA_GAP = 650;       // 한 장 안에서 문단과 문단 사이(ms)
   const WHEEL_KICK = 40;      // 휠을 이만큼(px) 굴리면 넘김이 걸린다
   const WHEEL_REST = 260;     // 휠이 이만큼 멈추면 다음 넘김을 받는다
@@ -324,7 +327,7 @@
   /* a 장에서 b 장으로 넘어갈 때의 넘김(되돌아갈 때도 같은 넘김을 거꾸로 돌린다) */
   function modeOf(a, b) {
     if (b.turn) return b.turn;
-    return a.scene !== b.scene ? TURN : 'drift';
+    return a.scene !== b.scene ? (b.scene === 'day' ? TURN_LIGHT : TURN) : 'drift';
   }
 
   /* 장 k에 멈췄다. from을 주면 그 시각부터 쓴다 */

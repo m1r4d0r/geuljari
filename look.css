@@ -124,3 +124,26 @@
   .lk-dots { flex: 1 1 auto; }
   .lk-btn { height: 46px; }
 }
+
+/* 심상 장: 다섯 벌을 세 칸씩. 카드는 낮게, 바탕은 그 바탕의 빛깔을 닮은 면으로 */
+.lk-pair.lk-image { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
+.lk-image .lk-card { height: 92px; font-size: 15px; }
+.lk-image .lk-face { padding: 0 12px; }
+.lk-image .lk-note { font-size: 11px; }
+.lk-g-window { background: linear-gradient(155deg, #F6F1E6 0%, #EEEDEA 55%, #E4E7EE 100%); }
+.lk-g-leaf { background: radial-gradient(60% 50% at 25% 30%, rgba(92, 118, 84, .16), transparent 70%), radial-gradient(50% 45% at 78% 72%, rgba(92, 118, 84, .12), transparent 70%), #EEF0EA; }
+.lk-g-aurora:not(.night) { background: radial-gradient(70% 60% at 20% 20%, rgba(160, 200, 214, .35), transparent 70%), radial-gradient(60% 60% at 85% 80%, rgba(204, 186, 226, .35), transparent 70%), #EEF0F3; }
+.lk-g-dawn { background: linear-gradient(180deg, #E9E3EE 0%, #F2E6E2 60%, #F6EEE4 100%); }
+.lk-g-wongoji { background: repeating-linear-gradient(90deg, transparent 0 21px, rgba(176, 82, 66, .16) 21px 22px), repeating-linear-gradient(0deg, transparent 0 21px, rgba(176, 82, 66, .16) 21px 22px), #F3F1EA; }
+.lk-face.night.lk-g-projector { background: radial-gradient(90% 70% at 50% 0%, rgba(232, 226, 204, .14), transparent 70%), var(--dark); }
+.lk-face.night.lk-g-drape { background: repeating-linear-gradient(90deg, rgba(220, 214, 240, .05) 0 6px, transparent 6px 15px), var(--dark); }
+.lk-face.night.lk-g-caustic { background: radial-gradient(45% 35% at 30% 65%, rgba(110, 168, 196, .2), transparent 70%), radial-gradient(40% 30% at 72% 30%, rgba(110, 168, 196, .14), transparent 70%), #141B24; }
+.lk-face.night.lk-g-aurora { background: radial-gradient(60% 50% at 25% 25%, rgba(96, 196, 160, .22), transparent 70%), radial-gradient(55% 50% at 80% 75%, rgba(150, 120, 210, .22), transparent 70%), var(--dark); }
+.lk-face.night.lk-g-typing { background: repeating-linear-gradient(0deg, transparent 0 17px, rgba(230, 226, 214, .05) 17px 18px), #1C1B19; }
+/* 심상 장의 시간 막대는 넘김 차례만 보여 줄어든 카드에서는 뺀다 */
+.lk-image .lk-track { display: none; }
+@media (max-width: 760px) {
+  .lk-pair.lk-image { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; }
+  .lk-image .lk-card { height: 58px; font-size: 13px; }
+  .lk-image .lk-note { display: none; }
+}

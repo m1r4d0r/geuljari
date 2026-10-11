@@ -1,10 +1,11 @@
 /*
  * 글결 조판값
  * 편집실(index.js)·심상 검수(simsang.js)·읽기 틀(view.js)이 같은 조판값을 같은 방식으로 엔진에 건다.
- * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 마름, 넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때), 글꼴,
+ * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 바뀐 장면의 바탕(altGround), 마름,
+ *   넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때: turn은 다크로, turnLight는 라이트로, 비면 turn과 같음), 글꼴,
  *   글자 크기(배율), 글 상자 폭(PC, 0이면 저절로), 정렬(저절로·왼쪽·가운데·오른쪽·양쪽), 주색(테마).
- * 심상은 반대말 세 쌍(축)이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
- *   온도 → 넘김·마름 / 물기 → 흐름 / 숨 → 속도·쉼
+ * 심상은 세 축이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
+ *   심상(빛·바람·물·시간·종이) → 두 장면의 바탕과 장면이 바뀔 때의 넘김 / 물기 → 흐름·마름 / 숨 → 속도·쉼
  * 속도는 흐름·블록·효과 움직임의 시간과 띄어 쓴 쉼·마르는 시간을 함께 늘이고 줄인다(docs/효과-규칙.md).
  * 넘김은 따로 전환 속도(turnSpeed)를 따른다. 둘 다 화면의 1.0×가 엔진 기본보다 조금 빠르다(PACE·TURN_PACE).
  * 전역 GeulTune.
@@ -13,18 +14,29 @@
   'use strict';
 
   const AXES = [
-    { name: '온도', words: ['따뜻한', '차가운'] },
+    { name: '심상', words: ['빛', '바람', '물', '시간', '종이'] },
     { name: '물기', words: ['젖은', '마른'] },
     { name: '숨', words: ['고요한', '숨찬'] }
   ];
   const WORDS = AXES.flatMap((a) => a.words);
 
   /* 낱말마다 조판값에 주는 영향과 고를 때 보이는 짧은 풀이 */
+  /* 심상 한 벌: 라이트·다크 바탕과, 다크로·라이트로 바뀔 때의 넘김 */
+  const IMAGES = {
+    '빛': { day: '창빛', night: '영사광', toNight: '피어남', toDay: '피어남' },
+    '바람': { day: '잎그늘', night: '빛커튼', toNight: '쓸기', toDay: '쓸기' },
+    '물': { day: '오로라', night: '물빛', toNight: '잠수', toDay: '잠수' },
+    '시간': { day: '새벽', night: '오로라', toNight: '해넘이', toDay: '해돋이' },
+    '종이': { day: '원고지', night: '타자', toNight: '먹자국', toDay: '글리치' }
+  };
   const MOOD = {
-    '따뜻한': { turn: '피어남', dry: '느리게', note: '천천히 마르고, 빛이 피어나듯 넘겨요' },
-    '차가운': { turn: '섬광', dry: '빨리', note: '빨리 마르고, 번쩍 넘겨요' },
-    '젖은': { flow: '번짐', note: '글자가 번지며 나타나요' },
-    '마른': { flow: '이어 쓰기', note: '번짐 없이 또박또박 나타나요' },
+    '빛': { image: IMAGES['빛'], note: '창으로 드는 빛과 영사기 빛, 빛이 피어나듯 넘겨요' },
+    '바람': { image: IMAGES['바람'], note: '잎 그늘과 빛 커튼이 흔들리고, 바람이 쓸듯 넘겨요' },
+    '물': { image: IMAGES['물'], note: '물빛이 일렁이고, 물속으로 잠기듯 넘겨요' },
+    '시간': { image: IMAGES['시간'], note: '새벽과 오로라, 해가 지고 뜨듯 넘겨요' },
+    '종이': { image: IMAGES['종이'], note: '원고지와 타자, 먹이 번지고 글자가 튀듯 넘겨요' },
+    '젖은': { flow: '번짐', dry: '느리게', note: '글자가 번지며 나타나고 천천히 말라요' },
+    '마른': { flow: '이어 쓰기', dry: '빨리', note: '번짐 없이 또박또박 나타나고 빨리 말라요' },
     '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 오래 쉬어요' },
     '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 짧게 쉬어요' }
   };
@@ -79,10 +91,12 @@
 
   function defaults() {
     return {
-      flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', dry: '보통', turn: '쓸기', font: '송명',
+      flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', altGround: '', dry: '보통', turn: '쓸기', turnLight: '', font: '송명',
       size: 1, measure: 0, align: '저절로', theme: '남보라', turnSpeed: 1
     };
   }
+
+  const otherScene = (sc) => (sc === '다크' ? '라이트' : '다크');
 
   /* 빠진 값·어긋난 값을 기본값으로 메운다 */
   function normalize(s) {
@@ -97,6 +111,8 @@
     if (!GROUNDS[o.scene].includes(o.ground)) o.ground = GROUNDS[o.scene][0];
     if (!(o.dry in DRY)) o.dry = '보통';
     if (!SCENE_TURNS.includes(o.turn)) o.turn = '쓸기';
+    if (!SCENE_TURNS.includes(o.turnLight)) o.turnLight = '';
+    if (!GROUNDS[otherScene(o.scene)].includes(o.altGround)) o.altGround = '';
     if (!(o.font in FONTS)) o.font = '송명';
     o.size = clamp(Number(o.size) || 1, 0.8, 1.5);
     o.measure = Number(o.measure) >= 14 ? clamp(Math.round(Number(o.measure)), 14, 44) : 0;
@@ -120,16 +136,39 @@
   }
 
   /*
-   * 심상에서 조판값을 만든다. 심상이 맡지 않는 값(장면·바탕·글꼴)은 keep(지금 조판값)을 그대로 둔다.
+   * 심상에서 조판값을 만든다. 심상이 맡지 않는 값(장면·글꼴 등)은 keep(지금 조판값)을 그대로 둔다.
+   * 심상(빛·바람…)을 고르면 처음 장면의 바탕·바뀐 장면의 바탕·두 방향 넘김이 그 한 벌로 바뀌고, 고르지 않으면 바탕은 지금 것을 둔다.
    */
   function fromMoods(words, keep) {
     const s = defaults();
     if (keep) ['scene', 'ground', 'font', 'size', 'measure', 'align', 'theme', 'turnSpeed'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
     oneEach(words).forEach((w) => {
       const m = MOOD[w];
-      ['flow', 'speed', 'rest', 'dry', 'turn'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
+      ['flow', 'speed', 'rest', 'dry'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
+      if (m.image) {
+        const sc = normalize({ scene: s.scene }).scene;
+        s.ground = sc === '다크' ? m.image.night : m.image.day;
+        s.altGround = sc === '다크' ? m.image.day : m.image.night;
+        s.turn = m.image.toNight;
+        s.turnLight = m.image.toDay;
+      }
     });
     return normalize(s);
+  }
+
+  /* 장면이 바뀔 때의 넘김(엔진 이름): 다크로 · 라이트로 */
+  function turnsOf(s) {
+    return { turn: TURNS[s.turn], turnLight: TURNS[s.turnLight || s.turn] };
+  }
+
+  /* 장면마다 바탕(엔진 이름): 처음 장면은 ground, 다른 장면은 altGround(비면 엔진 기본) */
+  function sceneGrounds(E, s) {
+    const key = (n) => (n && E.GROUNDS[n]) || null;
+    const first = s.scene === '다크' ? 'night' : 'day';
+    const out = {};
+    out[first] = key(s.ground);
+    out[first === 'day' ? 'night' : 'day'] = key(s.altGround);
+    return out;
   }
 
   /* 화면에 보일 조판값 [이름, 값] 목록 */
@@ -171,6 +210,7 @@
       });
     });
     if (fx && fx.setPace) fx.setPace(k);
+    if (E.setSceneGrounds) E.setSceneGrounds(sceneGrounds(E, s));
   }
 
   /* 마르는 시간(초): 고른 마름을 속도에 맞춰 줄이고 늘인다 */
@@ -262,9 +302,9 @@
   }
 
   global.GeulTune = {
-    AXES, WORDS, MOOD, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
+    AXES, WORDS, MOOD, IMAGES, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
     PACE, TURN_PACE, dryTime, turnPace, flowName,
-    defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
+    defaults, normalize, oneEach, fromMoods, turnsOf, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
   };
 })(typeof window !== 'undefined' ? window : globalThis);

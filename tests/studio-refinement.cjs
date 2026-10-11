@@ -15,10 +15,13 @@ const fs = require('node:fs/promises');
       const pg=await context.newPage(); pg.on('pageerror',e=>errors.push(e.message));
       await pg.goto(origin);
       // 편집 하단바: 분위기 축 판은 같은 폭으로 붙고, 고르면 그 축 값만 바뀜
-      await pg.click('.write-bar [data-key="ax-온도"]');
-      await pg.click('#wb-drop-ax-온도 .tb-li:has-text("따뜻한")');
-      await pg.waitForFunction(()=>(JSON.parse(localStorage.getItem('geul.studio'))||{}).moods?.includes('따뜻한'));
-      assert.equal(await pg.textContent('.write-bar [data-key="ax-온도"] .tb-label'),'온도 따뜻한');
+      await pg.click('.write-bar [data-key="ax-심상"]');
+      await pg.click('#wb-drop-ax-심상 .tb-li:has-text("시간")');
+      await pg.waitForFunction(()=>(JSON.parse(localStorage.getItem('geul.studio'))||{}).moods?.includes("시간"));
+      assert.equal(await pg.textContent('.write-bar [data-key="ax-심상"] .tb-label'),'심상 시간');
+      // 심상 한 벌: 라이트 새벽·다크 오로라, 다크로 해넘이·라이트로 해돋이
+      const look=await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')).settings);
+      assert.deepEqual([look.ground,look.altGround,look.turn,look.turnLight],['새벽','오로라','해넘이','해돋이']);
       await pg.click('.write-bar .tb-cat'); await pg.click('.write-bar .tb-cat-item .tb-li:has-text("테마")');
       await pg.click('.write-bar [data-key=font]'); await pg.click('#wb-drop-font .tb-li:has-text("함렛")');
       await pg.waitForFunction(()=>(JSON.parse(localStorage.getItem('geul.studio'))||{}).settings?.font==='함렛');

@@ -684,7 +684,11 @@
     const keys = Object.keys(part);
     const before = st.settings.scene;
     st.settings = T.normalize(Object.assign({}, st.settings, part));
-    if (st.settings.scene !== before) setSource(flipMarks(st.source));
+    if (st.settings.scene !== before) {
+      // 심상을 고른 글이면 새 처음 장면에 맞춰 그 한 벌의 바탕을 다시 건다
+      st.settings = T.fromMoods(st.moods, st.settings);
+      setSource(flipMarks(st.source));
+    }
     T.useFont(document, st.settings);
     T.useTheme(document, st.settings);
     handOff();

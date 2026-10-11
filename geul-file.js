@@ -27,6 +27,8 @@
     ['시작 장면', (d) => d.settings.scene, (d, v) => { d.settings.scene = v; }],
     ['시작 바탕', (d) => d.settings.ground, (d, v) => { d.settings.ground = v; }],
     ['장면이 바뀔 때 넘김', (d) => d.settings.turn, (d, v) => { d.settings.turn = v; }],
+    ['라이트로 바뀔 때 넘김', (d) => d.settings.turnLight || '같음', (d, v) => { d.settings.turnLight = v === '같음' ? '' : v; }],
+    ['바뀐 장면의 바탕', (d) => d.settings.altGround || '기본', (d, v) => { d.settings.altGround = v === '기본' ? '' : v; }],
     ['글꼴', (d) => d.settings.font, (d, v) => { d.settings.font = v; }],
     ['글자 크기', (d) => d.settings.size, (d, v) => { d.settings.size = num(v); }],
     ['글 상자 폭', (d) => (d.settings.measure ? d.settings.measure + '자' : '저절로'), (d, v) => { d.settings.measure = num(v.replace(/자$/, '')) || 0; }],

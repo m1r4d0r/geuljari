@@ -135,7 +135,12 @@
   const GROUNDS = { '창빛': 'window', '원고지': 'wongoji', '잎그늘': 'leaf', '새벽': 'dawn', '편지지': 'letter', '오로라': 'aurora', '영사광': 'projector', '빛커튼': 'drape', '물빛': 'caustic', '타자': 'typing', '단색': 'plain' };
   const TURNS = { '스밈': 'drift', '쓸기': 'sweep', '조리개': 'iris', '셔터': 'blinds', '막': 'curtain', '해돋이': 'sunrise', '해넘이': 'sunset', '섬광': 'flash', '잠수': 'dive', '먹자국': 'ink', '글리치': 'glitch', '피어남': 'bloom' };
   const PLACES = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right' };
-  const DEFAULT_GROUND = { day: 'window', night: 'projector' };
+  const BASE_GROUND = { day: 'window', night: 'projector' };
+  /* 장면이 바뀌는 쪽에 바탕을 적지 않았을 때 쓰는 그 장면의 바탕(조판의 심상이 setSceneGrounds로 정한다) */
+  const DEFAULT_GROUND = Object.assign({}, BASE_GROUND);
+  function setSceneGrounds(map) {
+    ['day', 'night'].forEach((k) => { DEFAULT_GROUND[k] = (map && map[k]) || BASE_GROUND[k]; });
+  }
   const MARK_WORD = [...Object.keys(SCENES), ...Object.keys(GROUNDS), ...Object.keys(TURNS), ...Object.keys(PLACES), '크기\\d{2,3}', '폭\\d{2}', '속도\\d{2,3}', '전환속도\\d{2,3}', '결(?:바로|이어쓰기|번짐|떠오름|초점|타자)', '정렬(?:저절로|왼쪽|가운데|오른쪽|양쪽)'].join('|');
   const MARK_BODY = `(?:${MARK_WORD})(?:\\s*[:·]\\s*(?:${MARK_WORD}))*`;
   const SCENE_LINE_RE = new RegExp(`^[^\\S\\n]*\\[\\[(${MARK_BODY})\\]\\][^\\S\\n]*$`);
@@ -624,7 +629,7 @@
   }
 
   global.Geulgyeol = {
-    setFlowHook,
+    setFlowHook, setSceneGrounds,
     RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, DEFAULT_CYCLE, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
     KEEP, STYLES, COLORS, HEAD_SRC, parseHead, headText,
     SCENES, GROUNDS, TURNS, PLACES, DEFAULT_GROUND, SCENE_LINE_RE, readMark,

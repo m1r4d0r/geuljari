@@ -26,14 +26,14 @@ try:
             pg.on('pageerror', lambda e: errors.append(str(e)))
             pg.goto(f'http://127.0.0.1:{PORT}/')
             pg.click('#g-skip')
+            pg.click('#settings-open')
             pg.click('#sample')
             pg.click('[data-go=tune]')
             pg.wait_for_selector('#screen-main .frame.on')
             expect(pg.locator('.top')).to_be_visible()
             expect(pg.locator('.preview-bar')).to_be_visible()
             expect(pg.locator('[data-go=tune]')).to_have_attribute('aria-current', 'step')
-            if width < 761:
-                pg.click('#tab-toggle')
+            pg.click('#tab-toggle')
             before = pg.locator('#tab-motion').bounding_box()['y']
             frame_src = pg.locator('#screen-main .frame.on').get_attribute('src')
             pg.click('#tab-type')
@@ -78,8 +78,7 @@ try:
             assert not pg.evaluate('document.documentElement.scrollWidth > innerWidth')
             # 동작 줄이기에서는 접힘이 즉시 완료된다.
             pg.emulate_media(reduced_motion='reduce')
-            if width < 761:
-                pg.click('#tab-toggle')
+            pg.click('#tab-toggle')
             pg.click('#tab-motion')
             pg.click('#tab-motion')
             expect(pg.locator('#panel-motion')).to_be_hidden()

@@ -1,5 +1,5 @@
-/* 글결 끝 장
-   마지막 쪽 뒤의 장(.sheet.ending, ending.js). 바탕 캔버스 위 가운데에 링크 카드 그림, 그 아래 만든 날 한 줄과 글자 단추 둘.
+/* 끝 장 카드와 문구·배치 도구. 카드 아래 날짜 안내는 두지 않아요. */
+.sheet.ending, ending.js). 바탕 캔버스 위 가운데에 링크 카드 그림, 그 아래 만든 날 한 줄과 글자 단추 둘.
    카드는 1200×630 비율로 화면에 맞춰 줄고, 각진 모서리에 1px 선과 옅은 그림자를 둔다.
    편집실 미리보기 안에서는 카드의 제목 자리에 고치는 칸(.end-edit)이 겹친다. 칸의 글자 크기는 카드 폭에 대한 비율(--ts)이라
    카드에 그려지는 제목과 같은 크기·같은 줄로 보이고, 카드처럼 두 줄까지만 보인다(넘치면 칸 안에서 굴러감).
@@ -44,13 +44,6 @@
 .end-card.is-drawn .end-full { opacity: 1; }
 .end-card.editing .end-full { opacity: 0; transition-duration: .12s; }
 
-.end-made {
-  margin: 1.6rem 0 0;
-  font-size: .8rem;
-  letter-spacing: .02em;
-  color: var(--ink-soft);
-}
-
 .end-acts {
   display: flex;
   justify-content: center;
@@ -77,7 +70,6 @@
   text-decoration-thickness: 1px;
   text-underline-offset: .4em;
 }
-.end-new:not([href]) { cursor: default; }
 .end-acts > *:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
 
 /* 제목 고치기(편집실 미리보기 안): 카드의 제목 자리에 겹친다(자리는 ending.js가 카드 좌표의 비율로 건다) */
@@ -119,3 +111,29 @@
 .end-card.editing .end-title { color: var(--ink); }
 .end-title::placeholder { color: transparent; opacity: 1; }
 .end-card.editing .end-title::placeholder { color: color-mix(in srgb, var(--ink) 30%, transparent); }
+
+/* 끝 장을 편집할 때는 카드 아래 도구도 한 화면에서 스크롤해 닿을 수 있어요. */
+.in-studio .sheet.ending .scroll { display: block; padding: 32px 20px 90px; overflow-y: auto; touch-action: pan-y; }
+.in-studio .end { width: min(100%, 740px); }
+.end-acts { margin-top: 18px; align-items: center; flex-wrap: wrap; gap: 8px 28px; }
+.end-acts .end-new { cursor: pointer; }
+.in-studio .end-new { background: var(--ink); color: var(--paper); padding: 12px 20px; text-decoration: none; font-size: 13px; }
+.end-controls { margin-top: 18px; text-align: left; font-size: 12px; line-height: 1.6; user-select: text; }
+.end-follow { display: flex; gap: 8px; align-items: center; min-height: 36px; }
+.end-follow input, .end-range input { accent-color: var(--ink); }
+.end-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-top: 8px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
+.end-range { display: grid; grid-template-columns: 60px minmax(0,1fr) 42px; gap: 8px; align-items: center; min-height: 36px; }
+.end-range input { width: 100%; min-width: 0; min-height: 32px; }
+.end-range output { text-align: right; font-variant-numeric: tabular-nums; }
+.end-align { display: flex; gap: 12px; align-items: center; min-height: 36px; }
+.end-align select { border: 0; border-bottom: 1px solid currentColor; background: transparent; color: inherit; padding: 6px; font: inherit; }
+.end-hint { margin-top: 12px; color: var(--ink-soft); font-size: 11px; }
+.end-move { position: absolute; right: 0; top: -24px; min-height: 28px; padding: 4px 8px; font: 11px 'Noto Sans KR',sans-serif; background: var(--paper); color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); cursor: grab; touch-action: none; }
+.end-move:active { cursor: grabbing; }
+.in-studio .end-edit { outline: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); }
+.end-title { min-height: 1.3em; }
+@media(max-width: 540px) {
+  .in-studio .sheet.ending .scroll { padding: 30px 16px 80px; }
+  .end-layout { grid-template-columns: minmax(0,1fr); gap: 2px; }
+  .end-acts { justify-content: space-between; }
+}

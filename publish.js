@@ -23,7 +23,7 @@
       $('publish-new').hidden = !!active;
       $('publish-password').required = $('publish-confirm').required = $('publish-agree').required = !active;
       $('publish-delete').hidden = !active;
-      $('publish-submit').textContent = active ? '변경 내용 저장' : '링크 만들기';
+      $('publish-submit').textContent = active ? '변경 내용 저장' : '이대로 발행하기';
       $('publication-strip').hidden = !active;
       $('publish-result').hidden = !active;
       if (active) {
@@ -116,6 +116,14 @@
       finally { lock(false); }
     };
     render();
-    return { reset, enter() { $('publish-title').value = ctx.snapshot().title; $('publish-message').textContent = ''; render(); } };
+    return { reset, resume() {
+      const match = /^#edit=([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(location.hash);
+      if (!match) return;
+      $('load-url').value = location.origin + '/t/' + match[1] + '#' + match[2];
+      history.replaceState(null, '', location.pathname + location.search);
+      $('load-heading').textContent = '작성자 비밀번호를 확인해요.';
+      $('load-message').textContent = '확인하면 이 글을 편집실로 불러와요. 지금 쓰던 초안은 먼저 확인하고 바꿔요.';
+      $('load-dialog').showModal(); $('load-password').focus();
+    }, enter() { $('publish-title').value = ctx.snapshot().title; $('publish-message').textContent = ''; render(); } };
   } };
 })();

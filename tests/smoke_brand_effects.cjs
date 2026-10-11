@@ -18,7 +18,7 @@ const fs = require('node:fs/promises');
       assert.equal(await pg.title(),'글자리');
       assert.equal(await pg.getAttribute('#home','aria-label'),'글자리, 글로');
       assert.ok(await pg.locator('#home svg path').count()>0);
-      await pg.click('#sample'); await pg.screenshot({path:`tests/out/merged-logo-${width}.png`});
+      await pg.click('#settings-open'); await pg.click('#sample'); await pg.screenshot({path:`tests/out/merged-logo-${width}.png`});
       const sample=await pg.inputValue('#src');
       // 저장소 예시 글에 새 바탕 두 개를 적용해 실제 편집실 읽기 틀로 확인해요.
       await pg.fill('#src','[[라이트:원고지]]\n'+sample.split('\n\n\n')[0]+'\n\n\n[[다크:타자]]\n'+sample.split('\n\n\n')[0]);

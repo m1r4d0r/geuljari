@@ -4,6 +4,8 @@
   const status = document.getElementById('read-status');
   try {
     const target = window.GeulCrypto.parseLink(location.href);
+    const edit = document.getElementById('author-edit');
+    edit.href = '/#edit=' + target.id + '.' + target.key; edit.hidden = false;
     const response = await fetch('/api/articles/' + target.id, { cache:'no-store' });
     if (!response.ok) throw new Error(response.status === 404 ? '삭제됐거나 발행이 중단된 글이에요.' : '글을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.');
     const record = await response.json();

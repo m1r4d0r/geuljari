@@ -9,7 +9,7 @@
  *   맞춰 줄이고, 병렬이면 PC와 폰을 나란히 둔다. 설정은 오른쪽 여백 색인(분위기·글씨·움직임·배경) 아래로 하나씩 펼친다(panels.js).
  *   모양을 바꾸면 다시 쓰지 않고 바로 바뀌고, 움직임은 '다시 보기'로 본다. 글 상자를 누르면 그 자리에서 고치고 꾸민다(inplace.js).
  *   손가락 벌리기·Ctrl+휠로 확대하고, 글 상자를 끌면 왼쪽·가운데·오른쪽에 붙는다(view.js가 미리보기 안의 손짓을 알려 준다).
- * - 미리보기의 마지막 쪽 뒤에는 마지막 화면(제목·만든 날)이 한 장 더 있다. 그 화면에서 고친 제목을 받아 두고(geulgyeol:title, 병렬이면 다른 틀에도 건넴),
+ * - 미리보기의 마지막 쪽 뒤에는 마지막 카드 화면이 한 장 더 있다. 그 화면에서 고친 카드 문구·배치를 받아 두고(geulgyeol:ending, 병렬이면 다른 틀에도 건넴),
  *   배경 판에서는 그 화면의 장면·바탕을 고른다.
  * 상태는 이 브라우저의 localStorage에만 두고, 미리보기 글({text, title, made, ending})과 조판값은 storage로 view.html에 넘긴다.
  * 반전·쪽 넘김·자리·강조·효과는 모두 본문 안 표시로 들어가 언제든 되돌아가 바꿀 수 있다.
@@ -48,7 +48,7 @@
     if (!T.GROUNDS[o.scene]) o.scene = '라이트';
     const list = T.GROUNDS[o.scene];
     if (!list.includes(o.ground)) o.ground = list.includes('편지지') ? '편지지' : list[0];
-    return { scene: o.scene, ground: o.ground };
+    return { scene: o.scene, ground: o.ground, ...window.GeulCardSettings.normalize(o) };
   }
 
   const st = Object.assign({
@@ -228,7 +228,7 @@
    * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
    */
   const GUIDE = [
-    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '오른쪽 칸에서 축마다 하나씩 골라요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
+    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '상단 메뉴의 편집 설정에서 축마다 하나씩 골라요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
     { title: '줄 사이를 누르면', body: '거기서부터 다음 쪽으로 넘어가요. 한 쪽에 한 호흡씩 담아 보세요.', tip: '줄 사이에 마우스를 올리면 점선이 보여요. 띠 어디를 눌러도 돼요.' },
     { title: '쪽 사이에서 반전', body: '이 쪽부터 배경이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '분위기가 바뀌는 자리는 반전 단추가 점선으로 먼저 알려 줘요.' },
     { title: '두 번 띄어 쓰면 쉼', body: '띄어쓰기를 두 번 한 곳은 잠깐 쉬었다가 이어서 써요. 화면에는 한 칸으로 보여요.', tip: '편집창에는 쉬는 자리가 호박색으로 표시돼요.' },
@@ -311,6 +311,7 @@
 
   function setStep(step) {
     if (step !== 'write' && !st.source.trim()) { toast('글을 먼저 놓아 주세요.'); ta.focus(); return; }
+    if ($('write-settings').open) $('write-settings').close();
     const from = st.step;
     st.step = step;
     document.body.dataset.step = step;
@@ -572,14 +573,11 @@
       return;
     }
     if (i !== sc.active) return;
-    if (d.type === 'geulgyeol:title') {
-      if (typeof d.title !== 'string') return;
-      st.title = d.title;
-      $('title').value = st.title;
-      save();
-      handOff();
-      /* 병렬이면 다른 틀의 마지막 화면에도 같은 제목을 건다 */
-      screens().forEach((o) => { if (o !== sc) post(o, { type: 'geulgyeol:title', title: st.title }); });
+    if (d.type === 'geulgyeol:publish') { setStep('publish'); return; }
+    if (d.type === 'geulgyeol:ending') {
+      st.ending = normEnding({ ...st.ending, ...window.GeulCardSettings.normalize(d.ending) });
+      save(); handOff();
+      screens().forEach(o => { if (o !== sc) post(o, { type:'geulgyeol:ending', ending:st.ending }); });
       return;
     }
     if (d.type === 'geulgyeol:place') {
@@ -613,7 +611,7 @@
       view.ty += d.dy;
       place();
     } else if (d.type === 'geulgyeol:close') {
-      if (panels.current()) panels.close(); else hideAll($('peek').hidden);
+      if (tabs.classList.contains('open')) { openTabs(false); $('tab-toggle').focus(); } else hideAll($('peek').hidden);
     }
   });
 
@@ -706,11 +704,19 @@
     panels.toggle(b.dataset.panel);
   }));
   function openTabs(on) {
-    if (!on && phone.matches && panels.current()) panels.close();
+    if (!on && panels.current()) panels.close();
+    tabs.hidden = !on; tabs.inert = !on;
+    $('tab-toggle').hidden = on || document.body.classList.contains('preview-clean');
     tabs.classList.toggle('open', on);
     $('tab-toggle').setAttribute('aria-expanded', String(on));
   }
-  $('tab-toggle').addEventListener('click', () => openTabs(!tabs.classList.contains('open')));
+  $('tab-toggle').addEventListener('click', () => { openTabs(true); $('tabs-close').focus(); });
+  $('tabs-close').addEventListener('click', () => { openTabs(false); $('tab-toggle').focus(); });
+  let drawerStart = null;
+  $('tab-toggle').addEventListener('pointerdown', e => { drawerStart = e.clientX; e.currentTarget.setPointerCapture(e.pointerId); });
+  $('tab-toggle').addEventListener('pointerup', e => { if (drawerStart !== null && drawerStart - e.clientX > 16) { openTabs(true); $('tabs-close').focus(); } drawerStart = null; });
+  $('tab-toggle').addEventListener('pointercancel', () => { drawerStart = null; });
+  $('card-open').addEventListener('click', () => { openTabs(false); show({ page:allPages().length - 1, ending:true }); });
   $('replay').addEventListener('click', () => { replay(); if (phone.matches) openTabs(false); });
 
   /* 숨기기: 책갈피와 판을 모두 거두고 미리보기만 남긴다. 구석의 작은 네모로 돌아온다 */
@@ -747,8 +753,8 @@
     if (!store.get('geul.tuneHint3')) {
       store.set('geul.tuneHint3', true);
       toast(phone.matches
-        ? '글 상자를 누르면 그 자리에서 고치고 꾸며요. 설정은 오른쪽 위 ‘다듬기’에서요.'
-        : '글 상자를 누르면 그 자리에서 고치고 꾸며요. 설정은 오른쪽 여백 색인에서요.', 4200);
+        ? '글 상자를 누르면 그 자리에서 고치고 꾸며요. 오른쪽 가장자리를 당기면 설정이 열려요.'
+        : '글 상자를 누르면 그 자리에서 고치고 꾸며요. 오른쪽 가장자리에서 여백 색인을 열어요.', 4200);
     }
   }
 
@@ -769,7 +775,7 @@
     if (!$('guide').hidden) { showGuide(false); return; }
     if (st.step === 'write') compose.hidePop();
     if (st.step !== 'tune') return;
-    if (panels.current()) panels.close();
+    if (tabs.classList.contains('open')) { openTabs(false); $('tab-toggle').focus(); }
     else hideAll($('peek').hidden);
   });
 
@@ -795,7 +801,8 @@
   ta.value = st.source;
   T.useFont(document, st.settings);
   T.useTheme(document, st.settings);
-  if (!store.get('geul.guide')) showGuide(true);
+  if (!store.get('geul.guide') && !location.hash.startsWith('#edit=')) showGuide(true);
   setStep(st.step);
+  publication.resume();
   if (!st.moodsTouched && st.source.trim() && !st.moods.length) guessLater();
 })();

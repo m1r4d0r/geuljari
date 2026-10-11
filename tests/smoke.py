@@ -68,7 +68,7 @@ try:
             print(tag, 'ending', pg.evaluate(cur), '| card', pg.evaluate("() => { const i = document.querySelector('.sheet.ending .end-full'); return i && [i.naturalWidth, i.naturalHeight]; }"),
                   '| title', repr(pg.evaluate("() => document.title")), '| end dot', pg.evaluate("() => document.querySelector('#dots .dot.end').getAttribute('aria-current')"),
                   '| buttons', pg.evaluate("() => [...document.querySelectorAll('.sheet.ending .end-acts > *')].map(b => b.textContent + (b.href ? '→' + b.getAttribute('href') : '')).join(' / ')"))
-            print(tag, '  made', pg.text_content('.sheet.ending .end-made'), '| card()', pg.evaluate("() => { const c = GeulEnding.card(); return c && [c.canvas.width, c.canvas.height, !!c.blob]; }"))
+            print(tag, '  made', pg.locator('.sheet.ending .end-made').count(), '| card()', pg.evaluate("() => { const c = GeulEnding.card(); return c && [c.canvas.width, c.canvas.height, !!c.blob]; }"))
             pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(300)
             print(tag, '  stays on ending', pg.evaluate(cur))
             pg.screenshot(path=str(OUT / f'{tag}-ending.png'))

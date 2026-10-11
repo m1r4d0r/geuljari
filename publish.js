@@ -5,7 +5,8 @@
     wrong_password:'비밀번호가 맞지 않아요.', not_found:'글을 찾을 수 없거나 발행이 중단됐어요.',
     conflict:'다른 곳에서 글이 바뀌었어요. 현재 글을 따로 보관한 뒤 다시 불러와 주세요.',
     storage_unavailable:'발행 서버에 연결할 수 없어요. 잠시 뒤 다시 시도해 주세요.',
-    too_large:'글이 너무 길어요. 나누어 발행해 주세요.', invalid_password:'비밀번호를 4~128자로 입력해 주세요.'
+    too_large:'글이나 카드 이미지가 너무 커요. 내용을 줄인 뒤 다시 시도해 주세요.', invalid_password:'비밀번호를 4~128자로 입력해 주세요.',
+    invalid_og_image:'카드 이미지를 확인하지 못했어요. 다시 시도해 주세요.'
   };
   async function api(path, method, data) {
     let response;
@@ -13,6 +14,9 @@
     catch { throw new Error('연결이 끊겼어요. 입력한 내용은 남아 있으니 다시 시도해 주세요.'); }
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(response.status === 429 ? '요청이 많아요. 1분 뒤 다시 시도해 주세요.' : messages[result.error] || '요청을 완료하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    const valid = method === 'DELETE' ? result.deleted === true
+      : /^[A-Za-z0-9_-]{22}$/.test(result.id || '') && typeof result.cipher === 'string' && typeof result.iv === 'string' && Number.isSafeInteger(result.revision);
+    if (!valid) throw new Error('발행 서버의 응답을 확인할 수 없어요. 입력한 내용은 남아 있으니 잠시 뒤 다시 시도해 주세요.');
     return result;
   }
   window.GeulPublish = { mount(ctx) {
@@ -73,19 +77,19 @@
     async function publish() {
       if (busy) return;
       if (!active && !$('publish-form').reportValidity()) return;
-      lock(true); say('글을 잠가서 자리에 놓고 있어요.');
+      lock(true); say(live ? '공유 이미지를 만들고 글을 잠가서 자리에 놓고 있어요.' : '글을 잠가서 자리에 놓고 있어요.');
       try {
         const snapshot = structuredClone(ctx.snapshot());
         const password = active ? active.password : $('publish-password').value;
-        // 응답이 유실돼도 같은 생성 요청을 재사용해 중복 글을 만들지 않아요.
-        const signature = JSON.stringify([snapshot, live, password]);
-        if (!active && (!pending || pending.signature !== signature)) {
-          const id = C.random(16), key = C.random(32);
-          pending = { id, key, signature, sealed:await C.seal(snapshot, id, key) };
+        // 생성·수정 응답이 유실돼도 같은 암호문과 버전으로 재시도해요.
+        const signature = JSON.stringify([snapshot, live, password, active?.id, active?.record.revision]);
+        if (!pending || pending.signature !== signature) {
+          const id = active?.id || C.random(16), key = active?.key || C.random(32);
+          pending = { id, key, signature, sealed:await C.seal(snapshot, id, key), ogImage:live ? await window.GeulOG.render(snapshot) : undefined };
         }
         const target = active || pending;
-        const sealed = active ? await C.seal(snapshot, target.id, target.key) : pending.sealed;
-        const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, password, revision:active?.record.revision });
+        const sealed = pending.sealed;
+        const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, ogImage:pending.ogImage, password, revision:active?.record.revision });
         const first = !active;
         active = { id:target.id, key:target.key, password, record:slim(record) }; pending = null;
         $('publish-password').value = '';
@@ -104,7 +108,9 @@
       lock(true); switchLabel();
       try {
         const fresh = await api('/' + active.id + '/unlock', 'POST', { password:active.password });
-        const record = await api('/' + active.id, 'PUT', { id:active.id, title:fresh.title, cipher:fresh.cipher, iv:fresh.iv, live, password:active.password, revision:fresh.revision });
+        // 다시 열 때는 서버에 놓인 본문으로 공유 이미지를 새로 그려요(편집 중인 글은 올리지 않아요).
+        const ogImage = live ? await window.GeulOG.render(await C.open(fresh, active.key)) : undefined;
+        const record = await api('/' + active.id, 'PUT', { id:active.id, title:fresh.title, cipher:fresh.cipher, iv:fresh.iv, live, ogImage, password:active.password, revision:fresh.revision });
         active.record = slim(record); keep(); render();
         say(live ? '다시 읽을 수 있게 열었어요.' : '발행을 멈췄어요. 이미 읽거나 저장한 사본은 거둘 수 없어요.');
       } catch (err) { live = !live; switchLabel(); say(err.message); }
@@ -155,6 +161,7 @@
       try {
         const target = C.parseLink(p.url);
         const record = await api('/' + target.id + '/unlock', 'POST', { password:p.password });
+        await C.open(record, target.key);
         active = { ...target, password:p.password, record:slim(record) }; pending = null;
         keep(); render(); return true;
       } catch { return false; }

@@ -551,5 +551,22 @@
     return { canvas: cur.canvas, blob: cur.blob, url: cur.url, title: clean(cur.title) };
   }
 
-  window.GeulEnding = { build, card, W, H };
+  /* 발행용 한 장. 현재 미리보기와 무관하게 전달받은 설정만 그려요. */
+  async function exportCard(o) {
+    const end = pickEnding(o.ending), card = window.GeulCardSettings.normalize(o.ending);
+    const sheet = el('section', 'sheet ending');
+    sheet.dataset.scene = end.scene; sheet.dataset.ground = end.ground;
+    document.body.append(sheet);
+    try {
+      const st = { sheet, end, card, made:madeOn(o.made), title:card.text === null ? clean(o.title).slice(0, 40) || firstSentence(o.text) : card.text };
+      position(st); st.look = readLook(sheet, card);
+      const fonts = fontsFor(st.look, st.title, st.made.mark);
+      await (fonts.late || fonts.ready);
+      const blob = await toBlob(drawCard(st, true));
+      if (!blob) throw new Error('카드 이미지를 만들지 못했어요. 다시 시도해 주세요.');
+      return blob;
+    } finally { sheet.remove(); }
+  }
+
+  window.GeulEnding = { build, card, exportCard, W, H };
 })();

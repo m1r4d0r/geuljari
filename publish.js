@@ -44,7 +44,8 @@
       $('publish-delete').hidden = !active;
       $('publish-submit').textContent = active ? '고친 내용 저장' : '이대로 발행하기';
       $('publish-result').hidden = !active;
-      for (const id of ['publish-copy','publish-share','publish-download']) $(id).hidden = !active;
+      for (const id of ['publish-share','publish-download']) $(id).hidden = !active;
+      document.querySelectorAll('.pub-help-live').forEach(n => { n.hidden = !active; });
       document.querySelector('.publish-bar').classList.toggle('is-live', !!active);
       if (active) live = active.record.live;
       switchLabel();
@@ -138,7 +139,7 @@
       if (!await copy(keepText(), '제목·링크·비밀번호를 복사했어요.')) say('복사하지 못했어요. 글 파일로 받아 주세요.');
     };
     $('publish-download').onclick = () => { if (active) ctx.saveFile(); };
-    // 1000px 이하: 링크 복사·비밀번호 보내기·글 파일 받기를 ⋯ 안에 접어요.
+    // 1000px 이하: 비밀번호 보내기·파일 백업을 ⋯ 안에 접어요.
     const bar = document.querySelector('.publish-bar'), more = bar.querySelector('.pub-more-btn');
     const fold = on => { bar.classList.toggle('more-open', on); more.setAttribute('aria-expanded', String(on)); };
     more.onclick = () => fold(!bar.classList.contains('more-open'));

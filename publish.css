@@ -13,19 +13,23 @@
 /* 편집의 쓰는 법과 같은 모양: 위 먹선, 칸마다 이름과 하는 일 */
 .pub-help { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--line); }
 .pub-help li { display: flex; flex-direction: column; gap: 2px; padding: 12px 12px 14px 0; }
-.pub-help li + li { padding-left: 14px; border-left: 1px solid var(--line); }
+.pub-help li:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--line); }
+.pub-help li:nth-child(n+3) { border-top: 1px solid var(--line); }
 .pub-help b { font: 500 13px/1.5 var(--f-ui); color: var(--ink); }
 .pub-help span { font-size: 12px; line-height: 1.5; color: var(--faint); word-break: keep-all; }
 
-/* 발행한 링크: 누르면 복사 */
-.pub-result { margin-top: 28px; padding: 2px 16px 14px; background: var(--sheet); border-top: 1px solid var(--ink); }
-.pub-result #publish-url { background: var(--paper); font-family: var(--f-num); font-size: 13px; cursor: copy; }
-.pub-result .link { font-size: 12px; }
+/* 발행한 링크: 공개 제목과 같은 칸(이름은 칸 밖, 칸은 교정쇄 면 + 아래 먹선). 칸을 누르면 복사, 오른쪽 끝에 복사·새 창 단추 */
+.pub-link { display: flex; align-items: stretch; height: 44px; background: var(--sheet); border-bottom: 1px solid var(--ink); }
+.pub-field .pub-link input { flex: 1 1 auto; width: auto; border: 0; background: none; font-family: var(--f-num); font-size: 13px; cursor: copy; text-overflow: ellipsis; }
+.pub-icon { flex: none; width: 44px; display: grid; place-items: center; padding: 0; border: 0; border-left: 1px solid var(--line); background: none; color: var(--ink); }
+.pub-icon:hover { background: var(--smudge); }
+.pub-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.2; }
 .pub-delete { margin-top: 14px; font-size: 12px; color: var(--lead); }
 
 /* 맨 아래 주의 글: 선으로 가르고 작게 */
 .pub-fine { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.8; color: var(--lead); }
-.pub-fine p { margin: 0 0 6px; word-break: keep-all; }
+.pub-fine ul { margin: 0 0 8px; padding: 0 0 0 14px; }
+.pub-fine li, .pub-fine p { margin: 0; word-break: keep-all; }
 .pub-fine a { color: inherit; }
 
 /* 하단바: 왼쪽 공개 스위치, 오른쪽 하는 일. 마지막 단추(발행·저장)만 먹으로 채움 */
@@ -52,7 +56,7 @@
 .pub-file { border: 1px dashed var(--line); padding: 16px; font-size: 12px; }
 .pub-file input { max-width: 100%; }
 
-/* 1000px 이하: 스위치 · 발행(저장) · ⋯, 링크 복사·비밀번호 보내기·글 파일 받기는 ⋯ 안 */
+/* 1000px 이하: 스위치 · 발행(저장) · ⋯, 비밀번호 보내기·파일 백업은 ⋯ 안 */
 @media(max-width: 1000px) {
   .publish-bar { padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .publish-bar .tb-more { display: flex; margin-left: 0; order: 2; }

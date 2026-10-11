@@ -418,11 +418,12 @@
    * 병렬은 PC와 폰을 같은 배율로 나란히.
    */
   /* 하단바가 무대 위에 겹치는 높이. 같은 기기 틀은 그 아래까지 채우고 눈금만 올리며, 줄인 틀은 이 높이를 비워 둔다.
-     폰에서는 하단바가 왼쪽 아래 세로 줄이라 줄인 틀을 그 위에 둔다 */
-  const barRoom = () => (phone.matches ? 250 : 64);
+     1000px 이하에서는 하단바가 왼쪽 아래 세로 줄이라 줄인 틀을 그 위에 둔다 */
+  const stacked = window.matchMedia('(max-width: 1000px)');
+  const barRoom = () => (stacked.matches ? 250 : 64);
   function tellInset() {
     const same = mode() === native();
-    post(main, { type: 'geulgyeol:inset', bottom: same && !phone.matches ? 64 : 0 });
+    post(main, { type: 'geulgyeol:inset', bottom: same && !stacked.matches ? 64 : 0 });
   }
 
   function fit() {

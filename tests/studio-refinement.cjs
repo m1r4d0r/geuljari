@@ -31,10 +31,17 @@ const fs = require('node:fs/promises');
       assert.equal(await pg.textContent('.tb-cat .tb-label'),'글씨');
       await pg.click('.tb-val[data-key=align]');
       const [vb,db]=[await pg.locator('.tb-val[data-key=align]').boundingBox(), await pg.locator('#tb-drop-align').boundingBox()];
-      // PC: 같은 폭으로 단추 위에 붙음. 폰: 단추 오른쪽에 같은 높이로 붙음
-      if (width > 760) { assert.equal(Math.round(vb.width),Math.round(db.width)); assert.ok(Math.abs(db.y+db.height-vb.y)<1); }
+      // 1000px 넘게: 같은 폭으로 단추 위에 붙음. 그 아래: 단추 오른쪽에 같은 높이로 붙음
+      if (width > 1000) { assert.equal(Math.round(vb.width),Math.round(db.width)); assert.ok(Math.abs(db.y+db.height-vb.y)<1); }
       else { assert.equal(Math.round(vb.height),Math.round(db.height)); assert.ok(Math.abs(db.x-(vb.x+vb.width))<1); }
       await pg.screenshot({path:`tests/out/refined-bar-${width}.png`});
+      // 값 단추 이름은 잘리지 않음(갈래마다)
+      for (const c of ['바탕','움직임','글씨']) {
+        await pg.keyboard.press('Escape'); await pg.click('.tb-cat'); await pg.click(`.tb-cat-item .tb-li:has-text("${c}")`);
+        const cut=await pg.evaluate(()=>[...document.querySelectorAll('.tune-bar .tb-label')].filter(n=>n.getBoundingClientRect().right>n.closest('button').getBoundingClientRect().right-8).map(n=>n.textContent));
+        assert.deepEqual(cut,[],c);
+      }
+      await pg.click('.tb-cat'); await pg.click('.tb-cat-item .tb-li:has-text("글씨")'); await pg.click('.tb-val[data-key=align]');
       await pg.keyboard.press('Escape'); assert.equal(await pg.locator('.tb-drop').count(),0);
       // 끝 장: 눈금 끝 네모를 누르면 갈래가 끝 장·카드로 바뀌어요.
       let frame=pg.frameLocator('#screen-main .frame.on');

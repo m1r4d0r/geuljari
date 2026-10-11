@@ -17,6 +17,17 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.goto(origin);  await pg.fill('#src', await pg.evaluate(()=>Geulgyeol.stripMarks(GeulgyeolSample.text).replace(/\n{4,}/g,'\n\n\n')));
     await pg.fill('#title','발행 확인'); await pg.click('[data-go=publish]');
     await pg.fill('#publish-password','4821');
+    // 서버 저장 뒤 응답만 유실된 경우를 재현해요.
+    let loseCreate=true,loseUpdate=false,loseDelete=false;
+    await pg.route('**/api/articles**',async route=>{
+      const m=route.request().method();
+      if((m==='POST'&&loseCreate&&!route.request().url().endsWith('/unlock'))||(m==='PUT'&&loseUpdate)||(m==='DELETE'&&loseDelete)){
+        if(m==='POST')loseCreate=false;if(m==='PUT')loseUpdate=false;if(m==='DELETE')loseDelete=false;
+        await route.fetch();await route.abort('failed');
+      }else await route.continue();
+    });
+    await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
+
     await pg.click('#publish-submit'); await pg.waitForSelector('#publish-result:not([hidden])');
     const link = await pg.inputValue('#publish-url'); assert.match(link,/\/t\/[\w-]{22}#[\w-]{43}$/);
     const id = new URL(link).pathname.split('/')[2]; const key = new URL(link).hash.slice(1);
@@ -56,9 +67,12 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.waitForFunction(()=>document.querySelector('#load-message').textContent.includes('관리 파일을 읽었'));
     assert.equal(await pg.inputValue('#load-password'),'4821'); await pg.click('#load-close');
     await pg.click('[data-go=publish]'); assert.equal(await pg.isChecked('#publish-live'),false);
-    await pg.fill('#publish-title','수정한 제목'); await pg.check('#publish-live'); await pg.click('#publish-submit');
+    await pg.fill('#publish-title','수정한 제목'); await pg.check('#publish-live');loseUpdate=true;
+    await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
+    const savedRevision=(await store.get(id)).revision;
+    await pg.click('#publish-submit');
     await pg.waitForFunction(()=>document.querySelector('.publish-bar .publication-label').textContent.includes('수정한 제목'));
-    assert.equal(await pg.inputValue('#publish-url'),link);
+    assert.equal(await pg.inputValue('#publish-url'),link);assert.equal((await store.get(id)).revision,savedRevision);
     await reader.goto('about:blank'); await reader.goto(link); await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
     assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.title),'수정한 제목');
     await fs.mkdir('tests/out',{recursive:true});
@@ -76,7 +90,8 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('다른 곳'));
     assert.equal(await pg.inputValue('#publish-title'),'충돌해도 남을 제목');
     await pg.click('[data-go=write]'); await fileBtn(pg,'#load-open'); await pg.fill('#load-url',link); await pg.fill('#load-password','4821'); await pg.click('#load-form button[type=submit]'); await pg.waitForSelector('#load-dialog',{state:'hidden'});
-    await pg.click('[data-go=publish]'); await pg.click('#publish-delete');
+    await pg.click('[data-go=publish]');loseDelete=true;await pg.click('#publish-delete');
+    await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));await pg.click('#publish-delete');
     await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('삭제했어요'));
     assert.equal(await store.get(id),null); assert.equal((await blobs.get(id,{type:'json'})).deleted,true); await reader.goto('about:blank'); await reader.goto(link); await reader.waitForFunction(()=>document.querySelector('#read-message').textContent.includes('삭제'));
     // 글 파일: 받아서 새로 쓰기로 비운 뒤 다시 불러오면 글과 설정이 돌아와요.

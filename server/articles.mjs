@@ -7,6 +7,11 @@ const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Cont
 const fail = (status, code) => { throw Object.assign(new Error(code), { status }); };
 const publicRecord = r => Object.fromEntries(['id','title','cipher','iv','live','createdAt','updatedAt','revision'].map(k => [k,r[k]]));
 async function hash(password, salt) { return (await scrypt(password, salt, 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 })).toString('base64url'); }
+const sameContent = (a, b) => ['cipher','iv','title','live'].every(k => a[k] === b[k]);
+async function authorize(record, password) {
+  const attempt = await hash(password, record.salt);
+  if (!timingSafeEqual(Buffer.from(attempt), Buffer.from(record.passwordHash))) fail(401, 'wrong_password');
+}
 function validate(d) {
   if (typeof d.title !== 'string' || d.title.length > 40 || typeof d.live !== 'boolean' ||
       typeof d.iv !== 'string' || d.iv.length !== 16 || !b64.test(d.iv) ||
@@ -38,12 +43,14 @@ export function createHandler(getStore) {
       if (!id) {
         if (!ID.test(d.id || '')) fail(400, 'invalid_id');
         validate(d);
+        const existing = await getStore().get(d.id);
+        if (existing) await authorize(existing, d.password);
         const salt = randomBytes(16).toString('base64url');
         const passwordHash = await hash(d.password, salt), now = new Date().toISOString();
         const next = { id:d.id, title:d.title, cipher:d.cipher, iv:d.iv, live:d.live, salt, passwordHash, createdAt:now, updatedAt:now, revision:1 };
         const value = await getStore().change(d.id, r => {
           if (r) { // 응답이 유실돼 같은 암호문을 다시 보내면 같은 결과를 돌려줘요.
-            if (r.cipher === d.cipher && r.iv === d.iv && r.title === d.title && r.live === d.live) return { value: publicRecord(r) };
+            if (existing && r.passwordHash === existing.passwordHash && sameContent(r, d)) return { value: publicRecord(r) };
             fail(409, 'conflict');
           }
           return { next, value:publicRecord(next) };
@@ -51,14 +58,16 @@ export function createHandler(getStore) {
         return new Response(JSON.stringify(value), { status:201, headers });
       }
       const r = await getStore().get(id);
+      // 삭제 응답이 유실돼 다시 요청해도 이미 없는 글은 삭제 완료로 돌려줘요.
+      if (!r && method === 'DELETE') return new Response(JSON.stringify({ deleted:true }), { headers });
       if (!r) fail(404, 'not_found');
-      const attempt = await hash(d.password, r.salt);
-      if (!timingSafeEqual(Buffer.from(attempt), Buffer.from(r.passwordHash))) fail(401, 'wrong_password');
+      await authorize(r, d.password);
       if (unlock) return new Response(JSON.stringify(publicRecord(r)), { headers });
       if (!Number.isSafeInteger(d.revision)) fail(400, 'invalid_revision');
       if (method === 'PUT') validate(d);
       const value = await getStore().change(id, current => {
         if (!current) fail(404, 'not_found');
+        if (method === 'PUT' && current.passwordHash === r.passwordHash && current.revision === d.revision + 1 && sameContent(current, d)) return { value:publicRecord(current) };
         if (current.revision !== d.revision || current.passwordHash !== r.passwordHash) fail(409, 'conflict');
         if (method === 'DELETE') return { next:null, value:{ deleted:true } };
         const next = { ...current, title:d.title, cipher:d.cipher, iv:d.iv, live:d.live, revision:current.revision + 1, updatedAt:new Date().toISOString() };

@@ -13,6 +13,9 @@
     catch { throw new Error('연결이 끊겼어요. 입력한 내용은 남아 있으니 다시 시도해 주세요.'); }
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(response.status === 429 ? '요청이 많아요. 1분 뒤 다시 시도해 주세요.' : messages[result.error] || '요청을 완료하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    const valid = method === 'DELETE' ? result.deleted === true
+      : /^[A-Za-z0-9_-]{22}$/.test(result.id || '') && typeof result.cipher === 'string' && typeof result.iv === 'string' && Number.isSafeInteger(result.revision);
+    if (!valid) throw new Error('발행 서버의 응답을 확인할 수 없어요. 입력한 내용은 남아 있으니 잠시 뒤 다시 시도해 주세요.');
     return result;
   }
   window.GeulPublish = { mount(ctx) {
@@ -54,14 +57,14 @@
       try {
         const snapshot = structuredClone(ctx.snapshot()), live = $('publish-live').checked;
         const password = active ? active.password : $('publish-password').value;
-        // 응답이 유실돼도 같은 생성 요청을 재사용해 중복 글을 만들지 않아요.
-        const signature = JSON.stringify([snapshot, live, password]);
-        if (!active && (!pending || pending.signature !== signature)) {
-          const id = C.random(16), key = C.random(32);
+        // 생성·수정 응답이 유실돼도 같은 암호문과 버전으로 재시도해요.
+        const signature = JSON.stringify([snapshot, live, password, active?.id, active?.record.revision]);
+        if (!pending || pending.signature !== signature) {
+          const id = active?.id || C.random(16), key = active?.key || C.random(32);
           pending = { id, key, signature, sealed:await C.seal(snapshot, id, key) };
         }
         const target = active || pending;
-        const sealed = active ? await C.seal(snapshot, target.id, target.key) : pending.sealed;
+        const sealed = pending.sealed;
         const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, password, revision:active?.record.revision });
         active = { id:target.id, key:target.key, password, record }; pending = null;
         $('publish-password').value = '';
@@ -104,6 +107,7 @@
       try {
         const target = C.parseLink(p.url);
         const record = await api('/' + target.id + '/unlock', 'POST', { password:p.password });
+        await C.open(record, target.key);
         active = { ...target, password:p.password, record }; pending = null;
         $('publish-live').checked = record.live; render(); return true;
       } catch { return false; }

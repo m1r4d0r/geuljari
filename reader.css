@@ -4,7 +4,7 @@
    글 기둥(.column)의 폭(--measure)과 가로 자리(--x: 0 왼쪽 · 0.5 가운데 · 1 오른쪽)는 페이지마다 reader.js가 정한다.
    세로로는 화면 안에 들면 가운데, 넘치면 위에서부터 스크롤한다.
    화면 위의 조작은 아래 가운데의 쪽 눈금 하나뿐이고 글자는 띄우지 않는다.
-   눈금과 기다림 표시는 차이 혼합(difference)으로 칠해 라이트든 다크든 바탕의 반대 색으로 보인다.
+   눈금과 기다림 표시는 지금 장의 장면 먹색(--ink)으로 칠한다(reader.js가 장에 멈출 때 그 장면을 data-scene으로 단다).
    장면 색은 장마다 붙어서 보는 사람의 밝기 설정과 상관없이 글이 정한 라이트·다크를 따른다. */
 
 :root {
@@ -149,8 +149,8 @@ body {
 .ui {
   position: fixed;
   z-index: 10;
-  color: #fff;
-  mix-blend-mode: difference;
+  color: var(--ink, #fff);
+  transition: color .5s ease;
 }
 /* 아래 가운데 쪽 눈금. 막대 자체는 손짓을 막지 않고 눈금만 누른다 */
 .ops {

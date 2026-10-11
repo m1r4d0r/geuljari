@@ -6,7 +6,9 @@
  *   제목을 가장 크게(두 줄까지, 넘치면 글자를 줄이다가 줄임표), 제목이 없으면 글의 첫 문장을 작게 놓는다. 아래에 ■□ 글결과 만든 날.
  * 카드 밑에는 만든 날 한 줄과 글자 단추 둘: '다시 보기'(첫 쪽부터 다시 씀), '새로 만들기'(편집실로. 글을 본 사람을 다시 데려오는 단추라 더 진하게).
  * 편집실 미리보기(html.in-studio) 안에서는 카드의 제목 자리를 눌러 그 자리에서 제목을 고친다.
- *   고칠 때마다 편집실에 geulgyeol:title로 알리고 카드는 잠깐 모았다가 다시 그린다. '새로 만들기'는 새 탭으로 연다.
+ *   고칠 때마다 편집실에 geulgyeol:title로 알리고 카드는 잠깐 모았다가 다시 그린다. 편집실이 보내는 geulgyeol:title(병렬의 다른 틀에서 고친 제목)도 받는다.
+ *   제목이 비어 있으면 고치지 않는 동안에는 읽는 사람이 받을 카드(첫 문장) 그대로 두고, 고칠 때만 자리 글을 보인다.
+ *   '새로 만들기'는 모양만 보이고 어디로도 가지 않는다(편집실은 이미 열려 있고 쓰던 글은 한 벌이라).
  * 제목은 문서 제목(document.title)과 og:title에도 건다. 다 그린 카드는 GeulEnding.card()로 꺼낸다(발행 때 씀).
  * 읽기 틀(reader.js)이 GeulEnding.build로 장을 받아 무대 끝에 붙인다. 전역 GeulEnding.
  */
@@ -17,7 +19,7 @@
 
   const W = 1200;
   const H = 630;
-  /* 제목 자리(카드 좌표). 편지지는 가운데 종이 위에 머물도록 좁게 */
+  /* 제목 자리(카드 좌표). 편지지는 가운데 종이 위에 머물도록 좁게, 이 자리에는 편지지 줄을 긋지 않는다 */
   const ZONES = { wide: { x: 140, y: 92, w: 920, h: 356 }, letter: { x: 270, y: 92, w: 660, h: 356 } };
   const SIZES = [100, 86, 74];                       // 제목 글자 크기: 두 줄에 들 때까지 차례로 줄인다
   const LEAD = 1.3;                                  // 제목 줄 간격(글자 크기의 배수)
@@ -27,6 +29,11 @@
   const REDRAW_MS = 220;
   const FONT_WAIT = 1500;
   const DEFAULT = { scene: '라이트', ground: '편지지' };
+  /* 장면마다 쓸 수 있는 바탕(엔진 값). 편지지·오로라는 두 장면 모두 */
+  const SCENE_GROUNDS = {
+    day: ['window', 'hanji', 'leaf', 'dawn', 'letter', 'aurora'],
+    night: ['projector', 'drape', 'caustic', 'letter', 'aurora']
+  };
   const FAM = {
     mark: "'Song Myung', 'Noto Serif KR', serif",
     code: "'Nanum Gothic Coding', 'Noto Sans KR', monospace"
@@ -45,15 +52,12 @@
 
   /* ---------- 자료 ---------- */
 
-  /* 끝 장 바탕: {scene, ground}(한글 이름)를 엔진 값으로. 어긋나면 라이트 편지지 */
+  /* 끝 장 바탕: {scene, ground}(한글 이름)를 엔진 값으로. 모르는 이름이거나 그 장면에 없는 바탕이면 편지지 */
   function pickEnding(raw) {
     const d = raw && typeof raw === 'object' ? raw : {};
-    const scene = E.SCENES[d.scene] ? d.scene : DEFAULT.scene;
-    let ground = E.GROUNDS[d.ground] ? d.ground : DEFAULT.ground;
-    const T = window.GeulTune;
-    const allowed = T && T.GROUNDS && T.GROUNDS[scene];
-    if (allowed && !allowed.includes(ground)) ground = DEFAULT.ground;
-    return { scene: E.SCENES[scene], ground: E.GROUNDS[ground] || 'letter' };
+    const scene = E.SCENES[d.scene] || E.SCENES[DEFAULT.scene];
+    const ground = E.GROUNDS[d.ground];
+    return { scene, ground: ground && SCENE_GROUNDS[scene].includes(ground) ? ground : E.GROUNDS[DEFAULT.ground] };
   }
 
   /* 만든 날(YYYY-MM-DD, 없으면 오늘) → 안내 한 줄과 카드에 넣을 짧은 꼴 */
@@ -178,7 +182,7 @@
     const B = window.GeulBackdrop;
     let still = null;
     if (B && typeof B.still === 'function') {
-      try { still = B.still(st.end.ground, W, H, st.end.scene); } catch (e) { still = null; }
+      try { still = B.still(st.end.ground, W, H, st.end.scene, { clear: [st.Z.y, st.Z.y + st.Z.h] }); } catch (e) { still = null; }
     }
     if (still) ctx.drawImage(still, 0, 0, W, H);
     else {
@@ -344,7 +348,10 @@
 
   /* ---------- 제목 고치기(편집실 미리보기 안) ---------- */
 
-  /* 고치는 칸의 글자 크기를 카드에 그릴 크기에 맞추고(카드 폭에 대한 비율 --ts), 높이를 글 줄 수에 맞춘다 */
+  /*
+   * 고치는 칸의 글자 크기를 카드에 그릴 크기에 맞추고(카드 폭에 대한 비율 --ts), 높이를 글 줄 수에 맞춘다.
+   * 칸은 카드처럼 두 줄까지만 보이고(ending.css의 max-height), 더 길면 칸 안에서 굴러간다.
+   */
   function sizeField(st) {
     const ta = st.field;
     if (!ta) return;
@@ -354,7 +361,6 @@
     st.zone.style.setProperty('--ts', String(f.size / W));
     ta.style.height = 'auto';
     ta.style.height = ta.scrollHeight + 'px';
-    st.fig.classList.toggle('is-empty', !title);
   }
 
   function makeField(st) {
@@ -368,7 +374,7 @@
     ta.rows = 1;
     ta.maxLength = TITLE_MAX;
     ta.spellcheck = false;
-    ta.placeholder = '제목을 적어 주세요';
+    ta.placeholder = '제목을 적어 주세요.';
     ta.setAttribute('aria-label', '제목');
     ta.value = clean(st.title).slice(0, TITLE_MAX);
     zone.append(ta);
@@ -429,11 +435,7 @@
     again.type = 'button';
     again.addEventListener('click', () => { if (o.onReplay) o.onReplay(); });
     const fresh = el('a', 'end-new', '새로 만들기');
-    fresh.href = 'index.html';
-    if (studio) {
-      fresh.target = '_blank';
-      fresh.rel = 'noopener';
-    }
+    if (!studio) fresh.href = 'index.html';
     acts.append(again, fresh);
     box.append(fig, madeLine, acts);
     scroll.append(box);
@@ -472,6 +474,19 @@
       if (lookKey(L) !== cur.drawnKey) redraw();
       sizeField(cur);
     }, 150);
+  });
+
+  /* 편집실이 건넨 제목(병렬의 다른 틀에서 고친 것)을 건다. 이 틀에서 고치는 중이면 그대로 둔다 */
+  window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (e.origin !== location.origin || e.source !== window.parent || !d || d.type !== 'geulgyeol:title') return;
+    if (!cur || typeof d.title !== 'string') return;
+    if (cur.field && document.activeElement === cur.field) return;
+    cur.title = clean(d.title).slice(0, TITLE_MAX);
+    if (cur.field) cur.field.value = cur.title;
+    setMeta(cur.title);
+    sizeField(cur);
+    later();
   });
 
   /* 다 그린 카드: { canvas(1200×630), blob(PNG), url, title }. 아직 그리기 전이면 null */

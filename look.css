@@ -9,6 +9,7 @@
   background: color-mix(in srgb, var(--paper) 55%, transparent);
   -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
   font: 13px/1.5 var(--f-ui); color: var(--ink);
+  word-break: keep-all;
 }
 .lk[hidden] { display: none; }
 .lk *, .lk *::before, .lk *::after { box-sizing: border-box; }

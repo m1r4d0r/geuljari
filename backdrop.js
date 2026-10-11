@@ -23,8 +23,9 @@
  *   곁에 둔 장의 오로라는 멈춰 있고 지금 그리는 장만 흐른다.
  * setSpeed로 흐르는 빠르기를 바꿀 수 있다(머무르기 때 느려짐).
  * 움직임 줄이기 설정이면 한 번만 그리고 멈춘다(오로라는 처음 자세로 선다). WebGL을 못 쓰면 바탕 없이 종이색만 남는다.
- * still(kind, w, h, scene)은 바탕 하나를 w×h 캔버스에 멈춘 한 장면으로 그려 돌려준다(끝 장의 카드 그림).
+ * still(kind, w, h, scene, opts)은 바탕 하나를 w×h 캔버스에 멈춘 한 장면으로 그려 돌려준다(끝 장의 카드 그림).
  *   종이색까지 칠한 완성된 그림이고, 색은 지금 문서의 장면 색과 주색 변수를 산 바탕과 같은 길로 읽는다.
+ *   opts.clear([위, 아래], 캔버스 좌표)를 주면 편지지는 그 띠에 줄을 긋지 않는다(카드의 제목 자리).
  */
 (function (global) {
   'use strict';
@@ -735,8 +736,8 @@
     c.fillRect(0, 0, w, h);
   }
 
-  /* 편지지: 책상 면 가운데에 줄 그은 종이 한 장(backdrop.css의 편지지와 같은 섞음) */
-  function stillLetter(out, colors, night) {
+  /* 편지지: 책상 면 가운데에 줄 그은 종이 한 장(backdrop.css의 편지지와 같은 섞음). clear 띠([위, 아래])에는 줄을 긋지 않는다 */
+  function stillLetter(out, colors, night, clear) {
     const c = out.getContext('2d');
     const { width: w, height: h } = out;
     const { paper, ink } = colors;
@@ -776,17 +777,21 @@
     const gap = Math.max(14, Math.round(ph / 14));
     const mx = Math.round(pw * 0.07);
     c.fillStyle = night ? css(ink, 0.12) : css(ink, 0.14);
-    for (let ry = y + gap * 1.6; ry < y + ph - gap * 0.9; ry += gap) c.fillRect(x + mx, Math.round(ry), pw - mx * 2, Math.max(1, Math.round(u)));
+    for (let ry = y + gap * 1.6; ry < y + ph - gap * 0.9; ry += gap) {
+      const ly = Math.round(ry);
+      if (clear && ly >= clear[0] && ly <= clear[1]) continue;
+      c.fillRect(x + mx, ly, pw - mx * 2, Math.max(1, Math.round(u)));
+    }
     c.fillStyle = night ? css(ink, 0.1) : css(ink, 0.12);
     c.fillRect(x, y, pw, Math.max(1, Math.round(u)));
   }
 
   /*
-   * 바탕 kind를 w×h 캔버스에 멈춘 한 장면으로 그린다. scene은 'day'|'night'(없으면 바탕으로 짐작).
+   * 바탕 kind를 w×h 캔버스에 멈춘 한 장면으로 그린다. scene은 'day'|'night'(없으면 바탕으로 짐작). opts.clear는 편지지의 줄 없는 띠.
    * 종이색을 먼저 칠하고 그 위에 바탕을 얹은 완성된 그림을 돌려준다. 셰이더 바탕은 잠깐 쓴 WebGL 문맥을 바로 놓는다.
    * WebGL을 못 쓰면 산 바탕처럼 종이색만 남은 그림, 모르는 바탕이거나 캔버스를 못 만들면 null.
    */
-  function still(kind, w, h, scene) {
+  function still(kind, w, h, scene, opts) {
     try {
       if (!KINDS[kind]) return null;
       const W = Math.max(1, Math.round(w || 0));
@@ -804,7 +809,7 @@
       if (engine === 'gl') stillGl(kind, out, colors);
       else if (engine === '2d') stillHanji(out, colors);
       else if (kind === 'aurora') stillAurora(out, colors, night);
-      else if (kind === 'letter') stillLetter(out, colors, night);
+      else if (kind === 'letter') stillLetter(out, colors, night, opts && Array.isArray(opts.clear) ? opts.clear : null);
       return out;
     } catch (err) {
       return null;

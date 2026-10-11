@@ -44,6 +44,7 @@
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:style') return;
     look(T.normalize(e.data.settings));
+    if (window.GeulFx) window.GeulFx.recolor();
     window.dispatchEvent(new Event('resize'));
   });
   window.GeulReaderOpts = { turn: T.TURNS[s.turn] };

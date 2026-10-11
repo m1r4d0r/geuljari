@@ -4,7 +4,6 @@
      종이는 글 기둥에 붙어 있어서 글 상자의 폭·가로 자리·끌기·스크롤을 그대로 따른다.
      종이 여백(--lp-x 옆, --lp-t 위, --lp-b 아래)과 줄 간격(--lp-lh: 글 기둥의 줄 높이), 줄 자리(--lp-r: 한 줄 위에서 줄까지)는
      읽기 틀이 reader.css 끝에서 다시 정한다. 줄은 글 기둥 맨 위부터 줄 높이마다 그어서 글줄 바로 아래에 놓인다.
-     글 기둥이 아닌 상자(끝 장의 제목 등)에 종이만 깔려면 .lp-paper를 단다(줄 없이 종이만).
    - 오로라(.ground-aurora): 흐린 빛 덩이 셋(.au-1~3)이 서로 다른 주기로 긴 길을 오가고, 그 위에 낟알(.au-grain)과 유리 빛(.au-glass).
      덩이 색(--au-1~3, 세기까지 담은 rgba)은 backdrop.js가 주색에서 만들어 얹는다. 지금 장(.is-live)만 흐르고 나머지는 멈춰 있다.
    still()의 그림(backdrop.js)은 여기와 같은 자리·같은 섞음으로 그린다. 한쪽을 바꾸면 다른 쪽도 맞춘다. */
@@ -33,9 +32,7 @@
 }
 
 .sheet[data-ground="letter"] .column { isolation: isolate; }
-/* .lp-paper의 자리 잡기는 가장 약하게 둬서, 그 상자를 놓는 쪽의 position이 이긴다 */
-:where(.sheet[data-ground="letter"] .lp-paper) { position: relative; isolation: isolate; }
-.sheet[data-ground="letter"] :is(.column, .lp-paper)::before,
+.sheet[data-ground="letter"] .column::before,
 .sheet[data-ground="letter"] .column::after {
   content: "";
   position: absolute;
@@ -43,7 +40,7 @@
   pointer-events: none;
 }
 /* 종이: 네모난 한 장, 1px 가장자리와 바닥에서 조금 떠 있는 그늘 */
-.sheet[data-ground="letter"] :is(.column, .lp-paper)::before {
+.sheet[data-ground="letter"] .column::before {
   inset: calc(-1 * var(--lp-t, 2.1em)) calc(-1 * var(--lp-x, 2.4em)) calc(-1 * var(--lp-b, 2.6em));
   background: var(--lp-grain), var(--lp-face);
   background-size: 160px 160px, auto;

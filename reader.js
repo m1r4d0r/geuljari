@@ -80,6 +80,7 @@
    * 페이지마다 글 기둥의 폭·가로 자리를 정한다. 글이 짧을수록 좁고 한쪽으로 치우치며,
    * 길수록 넓고 가운데에 가깝다. 바로 앞 장과 같은 자리는 피하고, 양 끝까지는 가지 않는다(0.2~0.8).
    * 쪽 표시에 자리(왼쪽·가운데·오른쪽)가 있으면 그대로, 없고 강조 블록이 있는 쪽은 가운데.
+   * 짧은 글이 오른쪽에 놓이면 오른쪽 정렬이지만, 편지지 쪽은 종이 왼쪽부터 써 내려가도록 늘 왼쪽 정렬.
    */
   const PLACE_X = { left: 0.2, center: 0.5, right: 0.8 };
   function layoutFor(page, i, prev) {
@@ -92,7 +93,7 @@
     let k = (i * 3 + Math.round(n / 37)) % xs.length;
     if (prev && Math.abs(xs[k] - prev.x) < 0.2) k = (k + 1) % xs.length;
     const x = page.place ? PLACE_X[page.place] : marked ? 0.5 : xs[k];
-    const align = short && x > 0.7 ? 'right' : 'left';
+    const align = short && x > 0.7 && page.ground !== 'letter' ? 'right' : 'left';
     return { measure, x, align };
   }
 
@@ -586,8 +587,12 @@
     });
   }
 
+  /* 지금 장 표시, 눈금과 기다림 표시는 지금 장의 장면 먹색으로 */
+  const uiParts = [dotsBox.closest('.ui'), cue].filter(Boolean);
   function syncPager() {
     [...dotsBox.children].forEach((b, i) => b.setAttribute('aria-current', String(i === S.cur)));
+    const P = pages[S.cur];
+    if (P) uiParts.forEach((n) => { n.dataset.scene = P.scene; });
   }
 
   /* ---------- 다시 쓰기 ---------- */
@@ -646,6 +651,7 @@
   if (!pages.length) return;
   count = pages.filter((P) => !P.ending).length;
   drawDots();
+  syncPager();
   pages.forEach((P) => { if (S.on) G.hide(P.items); });
 
   const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();

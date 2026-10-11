@@ -113,7 +113,7 @@ try:
             # 오른쪽 칸: 분위기·테마 두 제목, 표 대신 조각, 요약 줄 없음, 주색 여섯과 고르기, 글꼴·시작, 쓰는 법 세 줄
             print(tag, '  rail', pg.evaluate("""() => ({
               heads: [...document.querySelectorAll('.rail h2')].map(h => h.textContent),
-              look: !!document.getElementById('mood-look') && (window.GeulLook ? !document.getElementById('mood-look').hidden : 'no look.js'),
+              look: !!document.getElementById('mood-look') && (window.GeulLook ? document.getElementById('mood-look').getClientRects().length > 0 : 'no look.js'),
               mix: !!document.getElementById('mix'), simsangLink: !!document.querySelector('.rail a[href="simsang.html"]'),
               pieces: document.querySelectorAll('#moods .piece').length,
               swatches: [...document.querySelectorAll('#themes .swatch')].map(b => b.title).join(','),

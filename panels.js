@@ -1,12 +1,12 @@
 /*
  * 글결 미리보기 하단바(쪽 다듬기)
  * 미리보기 아래 한 줄에 갈래 단추 하나와 그 갈래의 값 단추들을 둔다. 값 단추를 누르면 같은 폭의 판이 단추에 붙어 펼쳐지고
- * (PC는 위로, 폰은 오른쪽으로 한 줄), 한 번에 하나만 열린다. 지금 값이 단추에서 가장 가깝다.
+ * (PC는 위로, 1000px 이하는 바 위에 화면 폭으로), 한 번에 하나만 열린다. 판의 순서는 고정이고 지금 값은 앞쪽 바로 표시한다.
  * - 바탕: 지금 쪽의 장면(라이트·다크, 둘째 쪽부터는 그 쪽부터 반전)·바탕·전환(이 쪽으로 넘어올 때)·전환 속도(글 전체, 다음 넘김부터).
  * - 글: 나타나는 결·속도(쓰는 빠르기·쉼·마름이 함께, '다시 보기'를 눌러야 보임)·이 쪽의 글자 크기·정렬·이 쪽의 글 상자 폭(PC).
  *   크기·폭은 그 쪽 표시(크기110·폭30)로 들어가고 다시 쓰지 않고 바로 바뀐다. 글 자리는 글 상자를 끌어 옮기고, 글꼴은 편집 단계에서 고른다.
  * - 끝 장에 있으면 갈래가 끝 장(장면·바탕)과 카드(크기·폭·정렬·편집 제목으로)로 바뀐다.
- * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 강조(등장·머묾)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
+ * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 등장(자동과 등장 효과)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
  * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint).
  * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마. 전역 GeulPanels.
  */
@@ -41,16 +41,11 @@
 
     function caret() { const c = el('i', 'car'); c.setAttribute('aria-hidden', 'true'); return c; }
 
-    /* 지금 값이 단추에서 가장 가깝게: 지금 값이 든 무리를 먼저, 무리 안에서도 지금 값을 먼저 */
+    /* 판의 순서는 늘 같다(고른다고 바뀌지 않음). 첫 항목이 단추에서 가장 가깝고, 지금 값은 앞쪽 바로만 표시한다 */
     function ordered(spec) {
-      const isOn = (o) => (spec.multi ? false : o.v === spec.current);
       const names = [];
       spec.options.forEach((o) => { if (!names.includes(o.group || null)) names.push(o.group || null); });
-      const lists = names.map((g) => ({ g, items: spec.options.filter((o) => (o.group || null) === g) }));
-      lists.forEach((l) => { const i = l.items.findIndex(isOn); if (i > 0) l.items.unshift(...l.items.splice(i, 1)); });
-      const j = lists.findIndex((l) => l.items.some(isOn));
-      if (j > 0) lists.unshift(...lists.splice(j, 1));
-      return lists;
+      return names.map((g) => ({ g, items: spec.options.filter((o) => (o.group || null) === g) }));
     }
 
     function listDrop(spec, id) {
@@ -369,12 +364,12 @@
       const decorated = !!(h && (h.styles.length || h.color));
       const hex = h && h.color && h.color[0] === '#' ? h.color : null;
       return [{
-        key: 'em', title: '강조', label: em ? (h.fx ? '강조 ' + h.fx : '강조 자동') : '강조 없음', current: emNow, off,
-        options: [...(em && decorated ? [opt(null, '없음')] : []), opt('', '자동'), ...groups('등장', '등장'), ...groups('머묾', '머묾')],
+        key: 'em', title: '등장', label: em ? (h.fx ? '등장 ' + h.fx : '등장 자동') : '등장 없음', current: emNow, off,
+        options: [opt('', '자동'), ...groups('등장', null), ...(em && decorated ? [opt(null, '없음')] : [])],
         pick: (v) => ctx.ip({ act: 'em', v })
       }, {
         key: 'exit', title: '퇴장', label: exit ? '퇴장 ' + h.fx : '퇴장 없음', current: exit ? h.fx : null, off,
-        options: [...(exit && decorated ? [opt(null, '없음')] : []), ...groups('퇴장', null)],
+        options: [...groups('퇴장', null), ...(exit && decorated ? [opt(null, '없음')] : [])],
         pick: (v) => ctx.ip({ act: 'exit', v })
       }, {
         key: 'style', title: '꾸밈', off, multi: true,

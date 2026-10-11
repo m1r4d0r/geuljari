@@ -235,7 +235,7 @@
     const anim = G.FX[cfg.fx] ? cfg.fx : 'fade';
     let end = 0;
     chars.forEach((s, i) => {
-      const t = cfg.unit ? 0 : i * step;
+      const t = i * step;
       s.style.opacity = '0';
       setTimeout(() => { if (cur !== c) return; s.style.opacity = ''; G.FX[anim](s); }, t);
       end = Math.max(end, t + (E.SETTLE[anim] || 900));

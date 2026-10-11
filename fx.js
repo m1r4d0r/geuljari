@@ -76,12 +76,14 @@
       return animate(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 1000, easing: 'ease-out' });
     },
 
+    /* 떠오름: 흐림(filter) 없이 위치·투명도만 움직여 글자가 많아도 끊기지 않게. 거의 다 올라온 뒤 천천히 자리에 앉는다 */
     rise(el) {
       wet(el, 1000);
       return animate(el, [
-        { opacity: 0, transform: 'translateY(.5em)', filter: 'blur(4px)' },
-        { opacity: 1, transform: 'translateY(0)', filter: 'blur(0px)' }
-      ], { duration: 750, easing: 'cubic-bezier(.2, .65, .25, 1)' });
+        { opacity: 0, transform: 'translate3d(0, .42em, 0)' },
+        { opacity: .85, transform: 'translate3d(0, .06em, 0)', offset: .55 },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+      ], { duration: 1100, easing: 'cubic-bezier(.33, 0, .2, 1)' });
     },
 
     bleed(el) {

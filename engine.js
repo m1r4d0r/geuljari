@@ -44,7 +44,7 @@
    * exit가 있으면 퇴장 블록: 다 나타난 뒤 hold만큼 머물고 그 움직임으로 물러난다. 다음 글은 물러난 뒤에 온다.
    */
   const BLOCKS = {
-    '떠오름': { fx: 'rise', unit: true, before: 500, unitGap: 900, char: 0, group: 0, line: 900, after: 350 },
+    '떠오름': { fx: 'rise', unit: true, before: 500, unitGap: 900, char: 22, group: 40, line: 900, after: 350 },
     '번짐': { fx: 'bleed', before: 500, char: 85, group: 200, line: 500, after: 500 },
     '타자': { fx: 'type', before: 400, char: 'type', group: 160, line: 400, after: 700 },
     '초점': { fx: 'focus', before: 500, char: 0, group: 0, line: 0, after: 1900 },
@@ -60,9 +60,10 @@
     '가라앉음': { fx: 'fade', exit: 'sink', hold: 1500, before: 400, char: 70, group: 140, line: 300, after: 300 }
   };
   /* 블록 갈래(편집실이 효과 막대를 나눌 때 씀). 등장·머묾은 강조, 퇴장은 따로 고른다. docs/효과-규칙.md */
+  /* 편집실 '고른 곳'은 등장과 퇴장만 고르게 둔다. 머묾(떨림·조명)은 적힌 글은 그대로 읽지만 고르는 판에는 없다 */
   const BLOCK_GROUPS = {
-    '등장': ['떠오름', '번짐', '타자', '초점', '모여듦'],
-    '머묾': ['떨림', '흘러내림', '조명'],
+    '등장': ['떠오름', '번짐', '타자', '초점', '모여듦', '흘러내림'],
+    '머묾': ['떨림', '조명'],
     '퇴장': ['사라짐', '흩날림', '지워짐', '희미해짐', '걷힘', '가라앉음']
   };
   const BLOCK_DEFAULT = '떠오름';
@@ -110,7 +111,7 @@
   const SETTLE = { fade: 700, soft: 1000, rise: 2000, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 4000, fall: 1300 };
   /* 글자가 다 나타날 때까지 걸리는 시간(ms). 다음 글은 앞 글자가 다 나타난 뒤에 온다. 떨림은 나타난 뒤에도 흔들리므로 나타나는 데까지만 센다. */
   const ENTER = {
-    fade: 700, soft: 1000, rise: 750, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 1300,
+    fade: 700, soft: 1000, rise: 1100, bleed: 1600, type: 0, focus: 2400, gather: 1500, tremble: 700, fall: 1300,
     vanish: 1100, scatter: 1300, erase: 1500, dim: 1200, fold: 1100, sink: 1400
   };
   const AFTER_GAP = 120;
@@ -318,7 +319,8 @@
 
   function stepOf(cfg, key, k) {
     const v = cfg[key];
-    if (cfg.unit) return key === 'line' ? cfg.unitGap : 0;
+    /* 문장 단위 블록: 줄 사이는 단위 쉼, 단위 안 글자·어절 사이는 적어 둔 만큼만(떠오름은 잔물결처럼 조금씩) */
+    if (cfg.unit) return key === 'line' ? cfg.unitGap : (typeof v === 'number' ? v : 0);
     if (v === 'type') return 50 + ((k * 73) % 100);
     return v;
   }

@@ -1,0 +1,32 @@
+/* 발행은 종이 한 장의 양식으로, 단계 이동은 헤더에 두어요. */
+.publish { overflow: auto; padding: 48px var(--gut) 80px; }
+.publish-sheet { width: min(100%, 640px); margin: 0 auto; }
+.publish h1 { margin: 14px 0; font: 32px/1.4 var(--f-body); font-weight: 400; }
+.publish-intro { color: var(--lead); margin-bottom: 30px; }
+.publish fieldset, .load-dialog fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
+.pub-field { display: flex; flex-direction: column; gap: 10px; margin: 20px 0 8px; }
+.pub-field input:not([type=file]) { width: 100%; min-width: 0; border: 0; border-bottom: 1px solid var(--ink); background: var(--sheet); padding: 12px; border-radius: 0; }
+.pub-note { font-size: 12px; line-height: 1.8; color: var(--lead); margin: 8px 0 16px; }
+.pub-passwords { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.pub-check { display: flex; align-items: flex-start; gap: 9px; margin: 22px 0 10px; line-height: 1.8; }
+.pub-check input { flex: none; margin-top: 5px; accent-color: var(--ink); }
+.pub-actions { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 24px; }
+.pub-message { min-height: 22px; margin-top: 20px; overflow-wrap: anywhere; }
+.pub-result { border-top: 1px solid var(--ink); margin-top: 24px; padding-top: 24px; }
+.publication-strip { padding: 6px var(--gut); display: flex; gap: 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); font-size: 12px; }
+.publication-strip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.publication-strip .link { flex: none; height: 28px; }
+.load-dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--ink); padding: 28px; width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
+.load-dialog::backdrop { background: rgba(29,32,48,.45); }
+.pub-file { border: 1px dashed var(--line); padding: 16px; font-size: 12px; }
+.pub-file input { max-width: 100%; }
+body[data-step="publish"] .top-links { display: none; }
+@media(max-width: 760px) {
+  .top { flex-wrap: wrap; height: auto; min-height: 52px; row-gap: 0; padding-top: 6px; padding-bottom: 6px; }
+  body[data-step="write"] .top-links { flex-basis: 100%; justify-content: flex-end; }
+  .steps { margin-left: auto; }
+  .publish { padding-top: 28px; }
+  .publish h1 { font-size: 27px; }
+  .pub-passwords { grid-template-columns: 1fr; gap: 0; }
+  .load-dialog { padding: 20px; }
+}

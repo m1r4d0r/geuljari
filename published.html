@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글자리</title>
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<meta property="og:title" content="글자리">
+<meta property="og:description" content="글에게 맞는 자리, 글자리에서 읽어 보세요.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Noto+Serif+KR:wght@400&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="/backdrop.css">
+<link rel="stylesheet" href="/glyph.css">
+<link rel="stylesheet" href="/flip.css">
+<link rel="stylesheet" href="/reader.css">
+<link rel="stylesheet" href="/ending.css">
+<link rel="stylesheet" href="/marks.css">
+<link rel="stylesheet" href="/view.css">
+<script src="/engine.js" defer></script>
+<script src="/motion.js" defer></script>
+<script src="/fx.js" defer></script>
+<script src="/flip.js" defer></script>
+<script src="/backdrop.js" defer></script>
+<script src="/tune.js" defer></script>
+<script src="/sense.js" defer></script>
+<script src="/ending.js" defer></script>
+<link rel="stylesheet" href="/published.css">
+<script src="/publish-crypto.js" defer></script>
+<script src="/published.js" defer></script>
+</head>
+<body>
+<main class="stage" id="stage"></main>
+<section id="read-status" class="read-status" aria-live="polite"><h1>글을 펼치고 있어요.</h1><p id="read-message"></p><a href="/">글자리로</a></section>
+
+<footer class="ui ops">
+  <span class="dots" id="dots"></span>
+</footer>
+
+<div class="sr-only" id="glog-sr"></div>
+
+<!-- 발행 글은 서버에서 받은 암호문을 복호화한 뒤 읽어요. -->
+<script type="text/plain" id="glog-text"></script>
+</body>
+</html>

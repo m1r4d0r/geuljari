@@ -1,0 +1,15 @@
+{
+  "name": "geuljari",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/publish.test.mjs tests/blobs.test.mjs",
+    "test:publish-ui": "node tests/publish-browser.cjs"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.4"
+  }
+}

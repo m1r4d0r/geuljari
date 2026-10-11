@@ -5,7 +5,7 @@
    본문은 조판에서 고른 글꼴(--f-read), 조작은 노토 산스, 숫자·부호는 나눔고딕코딩. 모서리는 모두 각지다. */
 
 :root {
-  /* 기본 남보라에서 tune.js themeVars가 내는 값과 같다. 주색을 바꾸면 themeVars가 이 값들을 모두 다시 건다. 위험(삭제·알림 점)만 테마와 따로 벽돌 */
+  /* 기본 남보라에서 tune.js themeVars가 내는 값과 같다. 주색을 바꾸면 themeVars가 이 값들을 모두 다시 건다. 위험(삭제·알림 점)만 테마와 따로 테라코타 */
   --paper: #ECEDF0;
   --sheet: #F6F6F4;
   --ink: #2C2F6B;
@@ -21,7 +21,7 @@
   --f-body: 'Song Myung', 'Noto Serif KR', serif;
   --f-ui: 'Noto Sans KR', system-ui, sans-serif;
   --f-num: 'Nanum Gothic Coding', ui-monospace, monospace;
-  --danger: #744137;
+  --danger: #B84A26;
   --gut: 48px;
 }
 

@@ -54,8 +54,8 @@ const fs = require('node:fs/promises');
       await page.evaluate(()=>testFlip.finish(false));
       assert.equal(await page.locator('.flip-glass').count(),0);
       assert.equal(await page.locator('.sheet.is-current').count(),1);
-      await page.click('[data-turn=glass]');
-      await page.waitForSelector('.flip-glass',{state:'detached',timeout:7000});
+      await page.click('[data-turn=ink]');
+      await page.waitForSelector('.flip-texture',{state:'detached',timeout:7000});
       assert.equal(await page.locator('.flip-glass').count(),0);
       assert.equal(await page.locator('.sheet.is-current').count(),1);
       await page.emulateMedia({reducedMotion:'reduce'});
@@ -77,11 +77,11 @@ const fs = require('node:fs/promises');
         flip.begin(from,to,'glass',1);flip.render(.3);
         const out={top,scrolls:[...stage.querySelectorAll('.glass-copy .scroll')].map(n=>n.scrollTop),
           images:[...stage.querySelectorAll('.glass-copy img.ground')].map(n=>n.src.length),
-          turn:Geulgyeol.readMark('다크:오로라:유리').turn};
+          turn:Geulgyeol.readMark('다크:오로라:글리치').turn};
         flip.finish(true);
         return out;
       });
-      assert.equal(snapshot.turn,'glass');
+      assert.equal(snapshot.turn,'glitch');
       assert.ok(snapshot.top>0);
       assert.ok(snapshot.scrolls.every(n=>n===snapshot.top));
       assert.equal(snapshot.images.length,12);

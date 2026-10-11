@@ -576,6 +576,7 @@
     drop(e);
     e.built = true;
     e.engine = KINDS[e.kind].engine;
+    if (e.kind === 'wongoji' && e.sheet.querySelector('.ln')) { e.engine = 'css'; return; }
     if (e.engine === 'css') return;
     if (e.engine === 'dom') { buildAurora(e); return; }
     const canvas = document.createElement('canvas');

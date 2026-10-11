@@ -1,0 +1,40 @@
+/* 칸은 글 기둥에 붙어 함께 움직인다. 글자 효과가 움직여도 격자는 제자리에 남는다. */
+.sheet[data-ground="wongoji"] { --wg-rule:rgba(137,83,62,.32); }
+.sheet[data-ground="wongoji"][data-scene="night"] { --wg-rule:rgba(207,171,144,.32); }
+.sheet[data-ground="wongoji"] .column {
+  position:relative;
+  width:calc(var(--wg-cell,32px) * var(--wg-cols,12)) !important;
+  max-width:100%;
+  margin-inline:auto !important;
+  text-align:left !important;
+  letter-spacing:0;
+}
+.sheet[data-ground="wongoji"] .para + .para { margin-top:calc(var(--wg-cell) + var(--wg-gap)); }
+.sheet[data-ground="wongoji"] .ln {
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(var(--wg-cols,12),var(--wg-cell,32px));
+  grid-auto-rows:var(--wg-cell,32px);
+  row-gap:var(--wg-gap,7px);
+  padding:0;
+  white-space:normal;
+  background:
+    linear-gradient(to bottom,var(--wg-rule) 1px,transparent 1px) 0 0 / 100% calc(var(--wg-cell) + var(--wg-gap)),
+    linear-gradient(to bottom,transparent calc(var(--wg-cell) - 1px),var(--wg-rule) calc(var(--wg-cell) - 1px),var(--wg-rule) var(--wg-cell),var(--paper) var(--wg-cell)) 0 0 / 100% calc(var(--wg-cell) + var(--wg-gap)),
+    linear-gradient(to right,var(--wg-rule) 1px,transparent 1px) 0 0 / var(--wg-cell) 100%;
+}
+.sheet[data-ground="wongoji"] .ln::after {
+  content:"";position:absolute;top:0;bottom:0;right:0;width:1px;pointer-events:none;
+  background:linear-gradient(to bottom,var(--wg-rule) var(--wg-cell),transparent var(--wg-cell)) 0 0 / 1px calc(var(--wg-cell) + var(--wg-gap));
+}
+.sheet[data-ground="wongoji"] .ln + .ln { margin-top:var(--wg-gap); }
+.sheet[data-ground="wongoji"] .tk { display:contents;white-space:normal; }
+.sheet[data-ground="wongoji"] .ch,
+.sheet[data-ground="wongoji"] .sp,
+.sheet[data-ground="wongoji"] .wg-empty,
+.sheet[data-ground="wongoji"] .wg-indent {
+  display:block;min-width:0;width:var(--wg-cell) !important;height:var(--wg-cell);
+  line-height:var(--wg-cell);text-align:center;letter-spacing:0;white-space:pre;
+}
+.sheet[data-ground="wongoji"] .ch.folded { display:block;visibility:hidden; }
+.sheet[data-ground="wongoji"] .ch.folding { width:var(--wg-cell) !important; }

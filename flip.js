@@ -54,6 +54,9 @@
 
   /* 넘김마다의 시간(ms)과 run 곡선. 곡선은 처음 부를 때 만든다 */
   const TIMING = {
+    dive: { lead: 0, run: 1100, tail: 0, make: () => t => t },
+    ink: { lead: 0, run: 1350, tail: 0, make: () => t => t },
+    glitch: { lead: 0, run: 720, tail: 0, make: () => t => t },
     /* 쓸기: 바늘이 바닥에서 뜸을 들였다가 한가운데를 휙 긋고, 넘치지 않게 내려앉는다 */
     sweep: { lead: 170, run: 680, tail: 260, make: () => powInOut(0.46, 3.2, 2.8) },
     /* 회전: 무거운 판이 돌 듯 천천히 붙고 천천히 선다 */
@@ -184,6 +187,7 @@
     let pair = null;
     let g = null;
     let glass = null;
+    let texture = null;
 
     function measure() {
       const r = { width: stage.clientWidth, height: stage.clientHeight };
@@ -197,7 +201,7 @@
       clear();
       measure();
       const requestedMode = mode;
-      if (mode === 'glass' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) mode = 'drift';
+      if (['glass','dive','ink','glitch'].includes(mode) && window.matchMedia('(prefers-reduced-motion: reduce)').matches) mode = 'drift';
       pair = {
         from, to, mode, requestedMode, dir: dir < 0 ? -1 : 1, axis: axis === 'y' ? 'y' : 'x',
         fromText: contentSel ? from.querySelector(contentSel) : null,
@@ -211,6 +215,10 @@
       to.style.zIndex = coverFrom ? '1' : '2';
       ring.classList.toggle('is-low', mode === 'bloom');
       if (mode === 'glass') glass = glassLayer(stage, from, g.W, g.H);
+      if (['dive','ink','glitch'].includes(mode)) {
+        texture = global.GeulTransition?.create(stage,from,to,mode,g.W,g.H);
+        if (!texture) pair.mode = 'drift';
+      }
     }
 
     function wedge(p) {
@@ -237,7 +245,15 @@
       const mid = Math.sin(Math.PI * q);
       const { from, to, mode, dir } = pair;
 
-      if (mode === 'glass') {
+      if (texture) {
+        const active = q > 0 && q < 1;
+        texture.canvas.hidden = !active;
+        const ready = !active || texture.render(q);
+        from.style.visibility = q === 0 || !ready ? 'visible' : 'hidden';
+        to.style.visibility = q === 1 || !ready ? 'visible' : 'hidden';
+        to.style.opacity = ready ? '' : String(smooth(q));
+        lights.forEach(n => { n.style.opacity = '0'; });
+      } else if (mode === 'glass') {
         // 초반에는 온전한 장 위로 균열만 보이고, 안쪽 면부터 조금씩 떨어진다.
         const active = q > 0 && q < 1;
         from.style.visibility = q === 0 ? 'visible' : 'hidden';
@@ -412,6 +428,7 @@
     }
 
     function clear() {
+      if (texture) { texture.dispose(); texture = null; }
       if (glass) { glass.layer.remove(); glass = null; }
       if (pair) {
         [pair.from, pair.to].forEach((s) => {
@@ -439,6 +456,13 @@
     window.addEventListener('resize', () => {
       if (!pair) return;
       measure();
+      if (texture) {
+        texture.dispose();texture = null;
+        pair.from.style.visibility = pair.to.style.visibility = 'visible';
+        texture = global.GeulTransition?.create(stage,pair.from,pair.to,pair.mode,g.W,g.H);
+        if (!texture) pair.mode = 'drift';
+        render(pair.progress || 0,pair.light);
+      }
       if (glass) {
         glass.layer.remove();
         glass = glassLayer(stage, pair.from, g.W, g.H);

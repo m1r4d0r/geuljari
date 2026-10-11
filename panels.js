@@ -308,6 +308,10 @@
         }
       }
 
+      if ((k === 0 ? ctx.settings().ground : groundName(pg.ground)) === '원고지') {
+        b.append(el('p', 'pn-note', '원고지는 글자와 공백을 한 칸씩 놓아요. 글자 크기에 맞춰 칸이 바뀌고, 글 자리는 가운데로 맞춰요.'));
+        return;
+      }
       const own = S.pageMark(src, k, 'place') || '';
       const place = row('글 자리', segment([['', '저절로'], ['왼쪽', '왼쪽'], ['가운데', '가운데'], ['오른쪽', '오른쪽']], own, (v) => {
         ctx.set(S.setPageMark(ctx.get(), k, 'place', v || null));

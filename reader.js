@@ -145,6 +145,7 @@
       scroll.append(column);
       sheet.append(scroll);
       stage.append(sheet);
+      if (window.GeulManuscript) window.GeulManuscript.attach(sheet);
       B.mount(sheet, pg.ground);
 
       const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, turn: pg.turn, state: 'idle', tl: null, start: 0, fits: true, held: false };
@@ -186,6 +187,7 @@
 
   function measureFits() {
     pages.forEach((P) => {
+      if (window.GeulManuscript) window.GeulManuscript.layout(P.el);
       P.fits = P.scroll.scrollHeight <= P.scroll.clientHeight + 4;
       P.el.classList.toggle('fits', P.fits);
       P.el.classList.toggle('has-band', !P.fits);

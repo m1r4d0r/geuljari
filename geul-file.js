@@ -32,7 +32,9 @@
     ['주색', (d) => d.settings.theme, (d, v) => { d.settings.theme = v; }],
     ['끝 장 장면', (d) => d.ending.scene, (d, v) => { d.ending.scene = v; }],
     ['끝 장 바탕', (d) => d.ending.ground, (d, v) => { d.ending.ground = v; }],
-    ['카드 문구', (d) => (d.ending.text == null ? FOLLOW : d.ending.text), (d, v) => { d.ending.text = v === FOLLOW ? null : v; }],
+    // 카드 문구의 줄 나눔은 ' / '로 한 줄에 적어요.
+    ['카드 문구', (d) => (d.ending.text == null ? FOLLOW : d.ending.text.split('\n').join(' / ')), (d, v) => { d.ending.text = v === FOLLOW ? null : v.split(' / ').join('\n'); }],
+    ['카드 글꼴', (d) => d.ending.font || '본문 글꼴', (d, v) => { d.ending.font = v === '본문 글꼴' ? null : v; }],
     ['카드 글자 크기', (d) => d.ending.size, (d, v) => { d.ending.size = num(v); }],
     ['카드 문구 폭', (d) => d.ending.width, (d, v) => { d.ending.width = num(v); }],
     ['카드 가로 위치', (d) => d.ending.x, (d, v) => { d.ending.x = num(v); }],

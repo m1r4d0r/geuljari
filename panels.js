@@ -26,7 +26,7 @@
     return n;
   }
 
-  const CATS = { ground: '바탕', text: '글', end: '끝 장', card: '카드' };
+  const CATS = { ground: '바탕', text: '글' };
   const CARD_ALIGN = { left: '왼쪽', center: '가운데', right: '오른쪽' };
   const opt = (v, label, extra) => Object.assign({ v, label: label == null ? String(v) : label }, extra);
   const num = (v) => (Math.round(v * 100) / 100).toFixed(Math.round(v * 100) % 10 ? 2 : 1);
@@ -337,9 +337,16 @@
       }];
     }
 
+    /* 끝 장의 글: 카드 문구의 글꼴(여기서만 따로)·크기·폭·정렬 */
     function cardVals() {
       const en = ctx.ending();
+      const font = en.font && T.FONTS[en.font] ? en.font : null;
       const vals = [{
+        key: 'card-font', title: '카드 글꼴', label: font || '본문 글꼴', current: font,
+        font: font ? T.FONTS[font].css : null,
+        options: [opt(null, '본문 글꼴'), ...T.FONT_NAMES.map((v) => opt(v, v, { font: T.FONTS[v].css }))],
+        pick: (v) => ctx.setCard({ font: v })
+      }, {
         key: 'card-size', title: '글자 크기', label: '크기 ' + Math.round(en.size), range: {
           min: 28, max: 120, step: 1, value: en.size,
           shown: (v) => String(Math.round(v)), label: (v) => '크기 ' + Math.round(v), input: (v) => ctx.setCard({ size: v })
@@ -399,9 +406,10 @@
 
     function vals() {
       if (edit) return pickVals();
-      return ({ ground: groundVals, text: textVals, end: endVals, card: cardVals })[cat]();
+      if (ctx.atEnd()) return cat === 'text' ? cardVals() : endVals();
+      return cat === 'text' ? textVals() : groundVals();
     }
-    const cats = () => (ctx.atEnd() ? ['end', 'card'] : ['ground', 'text']);
+    const cats = () => ['ground', 'text'];
 
     const ui = bar(root, {
       head() {
@@ -411,10 +419,6 @@
           options: cats().map((v) => opt(v, CATS[v])),
           pick: (v) => { cat = v; }
         };
-      },
-      before() {
-        if (ctx.atEnd() && !['end', 'card'].includes(cat)) cat = 'end';
-        if (!ctx.atEnd() && ['end', 'card'].includes(cat)) cat = 'ground';
       },
       vals,
       name: () => (edit ? 'pick' : cat),
@@ -428,7 +432,7 @@
       hint(on) {
         if (edit) return;
         ui.shut();
-        cat = ctx.atEnd() ? (on === 'box' ? 'card' : 'end') : on === 'box' ? 'text' : 'ground';
+        cat = on === 'box' ? 'text' : 'ground';
         render();
       },
       editing(on) { edit = on ? { sel: null } : null; ui.shut(); render(); },

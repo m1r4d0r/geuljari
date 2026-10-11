@@ -30,6 +30,8 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(()=>JSON.parse(localStorage.getItem('geul.studio')||'{}').source?.length>0);
       assert.match(await pg.textContent('#count'),/^\d+쪽 · \d+자$/);
       await pg.evaluate(()=>document.activeElement.blur());
+      const [hc,cc]=[await pg.locator('.write-help').boundingBox(), await pg.locator('#count').boundingBox()];
+      assert.ok(cc.y>=hc.y+hc.height-1,'집계는 쓰는 법 아래');
       await pg.screenshot({path:`tests/out/editor-visible-${width}.png`});
       await pg.click('#load-open'); await pg.waitForSelector('#load-dialog[open]');
       assert.equal(await pg.isVisible('#load-file'),true); await pg.click('#load-close');
@@ -47,7 +49,7 @@ const fs = require('node:fs/promises');
       assert.ok(await pg.locator('#s-tune .tb-val[data-key=font]').count()===1);
       await frame.locator('.sheet.is-current .scroll').click({position:{x:4,y:4}});
       await pg.waitForFunction(()=>document.body.dataset.tuneCat==='ground');
-      await ctx.close(); console.log(`${width}×${height}: 머리 안내·집계, 쓰는 법 자리, 편집 하단바·쓰는 동안 거둠, 저장·불러오기 유지, 누른 곳의 갈래 통과`);
+      await ctx.close(); console.log(`${width}×${height}: 머리 안내, 쓰는 법과 그 아래 집계, 편집 하단바·쓰는 동안 거둠, 저장·불러오기 유지, 누른 곳의 갈래 통과`);
     }
     assert.deepEqual(errors,[]);
   } finally {await browser?.close(); await close();}

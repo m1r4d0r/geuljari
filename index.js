@@ -133,19 +133,14 @@
   $('title').value = st.title;
   $('title').addEventListener('input', (e) => { st.title = e.target.value; save(); handOff(); });
 
-  /* 헤더 집계: 쪽 수와 글자 수 */
+  /* 쓰는 법 아래 집계: 쪽 수와 글자 수 */
   function countLine() {
     document.querySelectorAll('.steps [data-go]').forEach((b) => {
       b.disabled = b.dataset.go !== 'write' && !st.source.trim();
     });
     if (!st.source.trim()) { $('count').textContent = ''; return; }
     const pgs = allPages();
-    const pages = document.createElement('span');
-    pages.textContent = `${pgs.length}쪽`;
-    const chars = document.createElement('span');
-    chars.className = 'count-chars';
-    chars.textContent = ` · ${pgs.reduce((n, p) => n + p.count, 0)}자`;
-    $('count').replaceChildren(pages, chars);
+    $('count').textContent = `${pgs.length}쪽 · ${pgs.reduce((n, p) => n + p.count, 0)}자`;
   }
 
   /* 분위기를 직접 고르기 전에는 글을 읽어 짐작한 분위기를 둔다 */

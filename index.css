@@ -178,7 +178,10 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .write-col > .ed { grid-column: 1; grid-row: 2; }
 /* 쓰는 법 세 가지: 편집창이 실제로 그리는 표시(겹줄·호박색 면·물결 밑줄)를 옆에 두고 하는 일과 되는 것을 적는다.
    넓은 화면은 본문 오른쪽에 세로로, 1000px 이하는 편집창 위에 가로 셋으로 */
-.write-help { grid-column: 2; grid-row: 2; align-self: start; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--ink); }
+.write-side { grid-column: 2; grid-row: 2; align-self: start; min-width: 0; }
+.write-help { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--ink); }
+/* 쓰는 법 아래: 쪽 수와 글자 수 */
+.write-count { margin-top: 12px; color: var(--lead); }
 .write-help li { display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; row-gap: 2px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .hm { grid-row: 1 / 3; align-self: center; display: block; color: var(--ink); }
 .hm-cut { width: 28px; height: 0; border-top: 3px double var(--ink); }
@@ -188,13 +191,12 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .write-help span { font-size: 12px; line-height: 1.5; color: var(--faint); }
 #s-write { position: relative; }
 
-/* 머리: 로고 오른쪽에 안내와 쪽·글자 수(편집 단계에서만) */
+/* 머리: 로고 오른쪽에 안내(편집 단계에서만) */
 .top-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .top-info .link { height: 36px; font-size: 12px; color: var(--ink); }
-.top-info .k { white-space: nowrap; line-height: 36px; }
 body:not([data-step="write"]) .top-info { display: none; }
 /* 폰 폭: 머리에는 쪽 수만 */
-@media (max-width: 420px) { .count-chars { display: none; } .top-info { gap: 10px; } .top .steps button { padding-inline: 5px; } .top { gap: 8px; } }
+@media (max-width: 420px) { .top .steps button { padding-inline: 5px; } .top { gap: 8px; } }
 
 /* 편집 하단바: 미리보기와 같은 한 줄(panels.js mountWrite). 넓은 화면은 본문 아래 제자리, 오른쪽에 발행 상태 */
 .write-bar .tb-side { margin-left: auto; min-width: 0; display: flex; align-items: center; gap: 16px; pointer-events: auto; }
@@ -208,7 +210,9 @@ body:not([data-step="write"]) .top-info { display: none; }
 @media (max-width: 1000px) {
   .write-col { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
   .write-col > .ed { grid-row: 3; }
-  .write-help { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 0; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+  .write-side { grid-column: 1; grid-row: 2; margin-bottom: 10px; }
+  .write-help { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 0; border-bottom: 1px solid var(--line); }
+  .write-count { margin-top: 4px; text-align: right; font-size: 10px; }
   .write-help li { grid-template-columns: 30px minmax(0, 1fr); padding: 6px 8px 8px 0; border-bottom: 0; }
   .write-help li + li { padding-left: 10px; border-left: 1px solid var(--line); }
   .hm-cut { width: 22px; }
@@ -223,7 +227,7 @@ body:not([data-step="write"]) .top-info { display: none; }
   .hm { grid-row: auto; margin-bottom: 4px; }
   .write-help b { font-size: 12px; white-space: normal; }
   .write-help span { font-size: 11px; }
-  body.typing .write-help { display: none; }
+  body.typing .write-side { display: none; }
 }
 .title { flex: none; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 10px 0 8px; margin-bottom: 10px; font-family: var(--f-read, var(--f-body)); font-size: 22px; }
 .title:focus { outline: none; border-bottom-color: var(--ink); }

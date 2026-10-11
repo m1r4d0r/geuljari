@@ -4,7 +4,7 @@
   const status = document.getElementById('read-status');
   try {
     const target = window.GeulCrypto.parseLink(location.href);
-    // 작성자 수정은 카드 아래 작은 줄(ending.js)과, 글을 열 수 없을 때의 안내에만 둬요.
+    // 작성자 수정은 카드 아래 단추 줄 오른쪽 끝(ending.js)과, 글을 열 수 없을 때의 안내에만 둬요.
     const editHref = '/#edit=' + target.id + '.' + target.key;
     const edit = document.getElementById('author-edit');
     edit.href = editHref;

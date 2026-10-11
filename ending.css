@@ -1,5 +1,5 @@
 /*
- * 끝 장 카드(.sheet.ending, ending.js). 바탕 캔버스 위 가운데에 링크 카드 그림, 그 아래 단추 둘. 카드 아래 날짜 안내는 두지 않아요.
+ * 끝 장 카드(.sheet.ending, ending.js). 바탕 캔버스 위 가운데에 링크 카드 그림, 그 아래 카드 폭의 단추 줄(다시 보기 · 새로 쓰기, 공개 뷰어는 오른쪽 끝에 작성자 수정). 카드 아래 날짜 안내는 두지 않아요.
  * 카드는 1200×630 비율로 화면에 맞춰 줄고, 각진 모서리에 1px 선과 옅은 그림자를 둔다.
  * 편집실 미리보기 안에서는 카드의 문구 자리에 고치는 칸(.end-edit)이 겹친다. 칸의 글자 크기는 카드 폭에 대한 비율(--ts)이라
  * 카드에 그려지는 문구와 같은 크기·같은 줄로 보이고, 카드에 드는 줄까지만 보인다(넘치면 칸 안에서 굴러감).
@@ -46,32 +46,44 @@
 .end-card.editing .end-full { opacity: 0; transition-duration: .12s; }
 
 .end-acts {
-  display: flex;
-  justify-content: center;
-  gap: 2.2rem;
-  margin: .35rem 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  margin: 18px 0 0;
 }
-.end-acts > * {
-  padding: .7rem .1rem;
-  font: inherit;
-  font-size: .95rem;
-  letter-spacing: .01em;
+/* 다시 보기는 면 단추, 새로 쓰기(편집실에서는 이대로 발행하기)는 먹 채움. 높이·글자는 둘이 같다 */
+.end-pair { grid-column: 2; display: flex; gap: 8px; }
+.end-pair > * {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  font: 13px/1 'Noto Sans KR', sans-serif;
+  white-space: nowrap;
   color: var(--ink);
-  background: none;
-  border: 0;
+  background: color-mix(in srgb, var(--ink) 5%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
   cursor: pointer;
   text-decoration: none;
+  transition: border-color .2s ease, background .2s ease;
 }
-.end-again { color: var(--ink-soft); transition: color .2s ease; }
-.end-again:hover { color: var(--ink); }
-/* 새로 만들기: 글을 본 사람을 편집실로 데려오는 단추라 더 진하고 밑줄을 긋는다 */
-.end-new {
-  font-weight: 500;
+.end-again:hover { border-color: var(--ink); }
+.end-new { font-weight: 500; color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.end-new:hover { background: color-mix(in srgb, var(--ink) 82%, var(--paper)); }
+.end-pair > *:focus-visible, .end-author:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+/* 공개 뷰어의 작성자 수정: 같은 줄 오른쪽 끝, 카드 모서리에 맞춘 작은 글자 단추 */
+.end-author {
+  grid-column: 3;
+  justify-self: end;
+  padding: 10px 0;
+  font-size: 12px;
+  color: var(--ink-soft);
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: .4em;
+  text-underline-offset: 4px;
 }
-.end-acts > *:focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
+.end-author:hover { color: var(--ink); }
 
 /* 제목 고치기(편집실 미리보기 안): 카드의 제목 자리에 겹친다(자리는 ending.js가 카드 좌표의 비율로 건다) */
 .end-edit {
@@ -116,16 +128,15 @@
 /* 편집실 미리보기의 끝 장: 카드 문구는 카드에서 바로 고치고, 크기·폭·정렬은 편집실 하단바에서 고른다. */
 .in-studio .sheet.ending .scroll { padding: 32px 20px calc(90px + var(--studio-bottom, 0px)); overflow-y: auto; touch-action: pan-y; }
 .in-studio .end { width: min(100%, 740px); }
-.end-acts { margin-top: 18px; align-items: center; flex-wrap: wrap; gap: 8px 28px; }
-.end-acts .end-new { cursor: pointer; }
-.in-studio .end-new { background: var(--ink); color: var(--paper); padding: 12px 20px; text-decoration: none; font-size: 13px; }
 .end-move { position: absolute; right: 0; top: -24px; min-height: 28px; padding: 4px 8px; font: 11px 'Noto Sans KR',sans-serif; background: var(--paper); color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); cursor: grab; touch-action: none; }
 .end-move:active { cursor: grabbing; }
 .in-studio .end-edit { outline: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); }
 .end-title { min-height: 1.3em; }
 @media(max-width: 540px) {
   .in-studio .sheet.ending .scroll { padding: 30px 16px 80px; }
-  .end-acts { justify-content: space-between; }
+  .end-acts { grid-template-columns: auto minmax(0, 1fr); }
+  .end-pair { grid-column: 1; }
+  .end-author { grid-column: 2; }
 }
 
 /* 위치 이동 중 가로·세로 가운데에 붙으면 그 가운데 선 */
@@ -138,8 +149,3 @@
 }
 .end-card.snap-x::before { left: 50%; top: 0; bottom: 0; width: 1px; }
 .end-card.snap-y::after { top: 50%; left: 0; right: 0; height: 1px; }
-
-/* 공개 뷰어의 작성자 수정: 단추 줄 아래 작은 글씨 */
-.end-author { margin: 6px 0 0; text-align: center; font-size: 11px; }
-.end-author a { color: var(--ink-soft); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .35em; }
-.end-author a:hover { color: var(--ink); }

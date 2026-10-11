@@ -65,7 +65,7 @@
       busy = on;
       $('publish-fields').disabled = on; $('load-fields').disabled = on;
       // 요청 중 다른 글로 바뀌는 일을 막아요.
-      for (const id of ['clear','load-open','file-save','publish-submit','publish-live']) $(id).disabled = on;
+      for (const id of ['clear','load-open','file-save','publish-submit','publish-live','publish-delete']) $(id).disabled = on;
       $('s-publish').setAttribute('aria-busy', String(on));
     }
     const say = msg => { $('publish-message').textContent = msg; };

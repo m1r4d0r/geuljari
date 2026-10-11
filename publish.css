@@ -24,7 +24,6 @@
 .pub-icon { flex: none; width: 44px; display: grid; place-items: center; padding: 0; border: 0; border-left: 1px solid var(--line); background: none; color: var(--ink); }
 .pub-icon:hover { background: var(--smudge); }
 .pub-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.2; }
-.pub-delete { margin-top: 14px; font-size: 12px; color: var(--lead); }
 
 /* 맨 아래 주의 글: 선으로 가르고 작게 */
 .pub-fine { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.8; color: var(--lead); }
@@ -32,7 +31,7 @@
 .pub-fine li, .pub-fine p { margin: 0; word-break: keep-all; }
 .pub-fine a { color: inherit; }
 
-/* 하단바: 왼쪽 공개 스위치, 오른쪽 하는 일. 마지막 단추(발행·저장)만 먹으로 채움 */
+/* 하단바: 왼쪽 공개 스위치와 글 삭제(벽돌로 채움), 오른쪽 하는 일과 먹으로 채운 발행·저장. 단추 높이는 모두 같다 */
 .publish-bar { flex: none; display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 var(--gut) calc(10px + env(safe-area-inset-bottom, 0px)); min-width: 0; position: relative; }
 .pub-switch { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px 0 10px; border: 1px solid var(--line); background: var(--sheet); color: var(--ink); font: 13px var(--f-ui); white-space: nowrap; }
 .pub-switch:hover:not(:disabled) { border-color: var(--ink); }
@@ -41,6 +40,8 @@
 .pub-switch[aria-checked="true"] i { background: var(--ink); }
 .pub-switch[aria-checked="true"] i::after { transform: translateX(12px); background: var(--sheet); }
 .pub-switch:disabled { opacity: .45; }
+.pub-del { min-width: 0; background: var(--danger); border-color: var(--danger); color: var(--sheet); font-weight: 500; }
+.pub-del:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 82%, var(--sheet)); border-color: color-mix(in srgb, var(--danger) 82%, var(--sheet)); }
 .pub-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pub-more { display: flex; gap: 8px; }
 .pub-go { background: var(--ink); border-color: var(--ink); color: var(--sheet); font-weight: 500; }
@@ -52,19 +53,27 @@
 .publication-strip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .publication-strip .link { flex: none; height: 28px; font-size: 12px; color: var(--ink); }
 .load-dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--ink); padding: 28px; width: min(520px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
-.load-dialog::backdrop { background: rgba(29,32,48,.45); }
+.load-dialog::backdrop { background: color-mix(in srgb, var(--dark) 45%, transparent); }
 .pub-file { border: 1px dashed var(--line); padding: 16px; font-size: 12px; }
 .pub-file input { max-width: 100%; }
 
 /* 1000px 이하: 스위치 · 발행(저장) · ⋯, 비밀번호 보내기·파일 백업은 ⋯ 안 */
 @media(max-width: 1000px) {
   .publish-bar { padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .pub-switch { height: 44px; }
   .publish-bar .tb-more { display: flex; margin-left: 0; order: 2; }
   .publish-bar .tb-more::before { display: none; }
-  .pub-more { display: none; position: absolute; right: 10px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 8; width: 168px; flex-direction: column; gap: 0; background: var(--sheet); border: 1px solid var(--ink); box-shadow: 0 -10px 26px rgba(29, 32, 48, .14); }
+  .pub-more { display: none; position: absolute; right: 10px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 8; width: 168px; flex-direction: column; gap: 0; background: var(--sheet); border: 1px solid var(--ink); box-shadow: 0 -10px 26px color-mix(in srgb, var(--dark) 14%, transparent); }
   .publish-bar.more-open .pub-more { display: flex; }
   .pub-more .tb-act { width: 100%; height: 44px; justify-content: flex-start; border: 0; border-top: 1px solid var(--paper); background: none; }
   .pub-more .tb-act:first-child { border-top: 0; }
+}
+/* 360px 이하: 한 줄에 넷이 들도록 스위치는 글자를 숨기고(읽는 이름은 남김) 단추 안쪽을 줄여요 */
+@media(max-width: 360px) {
+  .publish-bar { gap: 6px; }
+  .pub-switch { padding: 0 9px; }
+  .pub-switch-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .publish-bar .tb-act { padding: 0 10px; }
 }
 @media(max-width: 760px) {
   .publish-scroll { padding-top: 28px; }

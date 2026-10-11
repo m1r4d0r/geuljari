@@ -127,9 +127,9 @@ const fs = require('node:fs/promises');
         await reader.waitForSelector('#read-status[hidden]',{state:'attached'});
         assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.ending.text),'그리고 잉크 한 방울이\n두 번째 줄');
         assert.equal(await reader.evaluate(()=>GeulReaderOpts.source.ending.size),64);
-        // 작성자 수정은 떠 있지 않고 카드 아래 작은 줄에만 있어요.
+        // 작성자 수정은 떠 있지 않고 카드 아래 단추 줄 오른쪽 끝에만 있어요.
         assert.equal(await reader.locator('#author-edit').isVisible(),false);
-        await reader.click('#dots .dot.fin'); await reader.click('.ending.is-current .end-author a'); await reader.waitForSelector('#load-dialog[open]');
+        await reader.click('#dots .dot.fin'); await reader.click('.ending.is-current .end-author'); await reader.waitForSelector('#load-dialog[open]');
         assert.equal(await reader.inputValue('#load-url'),link);
         assert.equal(new URL(reader.url()).hash,'');
         await reader.fill('#load-password','wrong-password'); await reader.click('#load-form button[type=submit]');

@@ -82,6 +82,11 @@ const fileBtn = (pg, id) => pg.click(id);
     await pg.click('#publish-live'); await pg.waitForFunction(()=>document.querySelector('#publish-live').getAttribute('aria-checked')==='true'&&!document.querySelector('#publish-live').disabled);
     // 스위치로 다시 열면 남아 있던 본문으로 공유 이미지를 다시 만들어요.
     const reopened = await store.get(id); assert.ok(reopened.live); assert.equal((await fetch(imageURL(reopened))).status,200);
+    // 이미지 없이 놓인 발행 글은 편집실을 다시 열면 이미지를 채워요.
+    await store.change(id, r => ({ next:{ ...r, ogImage:undefined, ogHash:undefined, revision:r.revision + 1 }, value:null }));
+    await pg.reload(); await pg.waitForFunction(()=>document.querySelector('#toast').textContent.includes('미리보기 그림'));
+    const healed = await store.get(id); assert.match(healed.ogHash,/^[a-f0-9]{64}$/); assert.equal((await fetch(imageURL(healed))).status,200);
+    await pg.click('[data-go=publish]');
     await pg.fill('#publish-title','수정한 제목'); loseUpdate=true;
     await pg.click('#publish-submit');await pg.waitForFunction(()=>document.querySelector('#publish-message').textContent.includes('연결이 끊겼'));
     const savedRevision=(await store.get(id)).revision;

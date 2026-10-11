@@ -101,17 +101,27 @@
     }
     $('publish-form').onsubmit = e => { e.preventDefault(); publish(); };
     // 스위치: 발행 전에는 처음 상태를 고르고, 발행한 뒤에는 누르는 즉시 공개·중단만 바꿔요(본문은 그대로).
+    // 서버에 놓인 본문 그대로 공개 상태만 바꿔 다시 놓아요. 열 때는 그 본문으로 공유 이미지를 새로 그려요(편집 중인 글은 올리지 않아요).
+    async function putStored(fresh, open) {
+      const ogImage = open ? await window.GeulOG.render(await C.open(fresh, active.key)) : undefined;
+      const record = await api('/' + active.id, 'PUT', { id:active.id, title:fresh.title, cipher:fresh.cipher, iv:fresh.iv, live:open, ogImage, password:active.password, revision:fresh.revision });
+      active.record = slim(record); keep(); render();
+    }
+    // 발행 중인데 공유 이미지가 없는 글(이미지를 만들기 전에 놓인 글)은 이미지를 채워 넣어요.
+    async function heal(fresh) {
+      if (busy || !active || !fresh.live || fresh.ogHash) return;
+      lock(true);
+      try { await putStored(fresh, true); ctx.notice('링크 미리보기 그림을 새로 만들었어요.'); }
+      catch (err) { say(err.message); }
+      finally { lock(false); }
+    }
     $('publish-live').onclick = async () => {
       if (busy) return;
       live = !live;
       if (!active) { switchLabel(); return; }
       lock(true); switchLabel();
       try {
-        const fresh = await api('/' + active.id + '/unlock', 'POST', { password:active.password });
-        // 다시 열 때는 서버에 놓인 본문으로 공유 이미지를 새로 그려요(편집 중인 글은 올리지 않아요).
-        const ogImage = live ? await window.GeulOG.render(await C.open(fresh, active.key)) : undefined;
-        const record = await api('/' + active.id, 'PUT', { id:active.id, title:fresh.title, cipher:fresh.cipher, iv:fresh.iv, live, ogImage, password:active.password, revision:fresh.revision });
-        active.record = slim(record); keep(); render();
+        await putStored(await api('/' + active.id + '/unlock', 'POST', { password:active.password }), live);
         say(live ? '다시 읽을 수 있게 열었어요.' : '발행을 멈췄어요. 이미 읽거나 저장한 사본은 거둘 수 없어요.');
       } catch (err) { live = !live; switchLabel(); say(err.message); }
       finally { lock(false); }
@@ -163,7 +173,7 @@
         const record = await api('/' + target.id + '/unlock', 'POST', { password:p.password });
         await C.open(record, target.key);
         active = { ...target, password:p.password, record:slim(record) }; pending = null;
-        keep(); render(); return true;
+        keep(); render(); setTimeout(() => heal(record)); return true;
       } catch { return false; }
       finally { lock(false); }
     }
@@ -196,14 +206,14 @@
         const doc = await C.open(record, target.key);
         if (ctx.snapshot().source.trim() && !confirm('편집 중인 글을 불러온 글로 바꿀까요?')) { $('load-message').textContent = '불러오기를 취소했어요.'; return; }
         ctx.import(doc); active = { ...target, password, record:slim(record) }; pending = null;
-        keep(); render(); $('load-dialog').close();
+        keep(); render(); $('load-dialog').close(); setTimeout(() => heal(record));
       } catch (err) { $('load-message').textContent = err.message; }
       finally { lock(false); }
     };
     restore(); render();
     // 남겨 둔 발행 기록은 서버의 지금 상태로 맞춰요. 지워진 글이면 기록을 거둬요.
     if (active) api('/' + active.id + '/unlock', 'POST', { password:active.password })
-      .then(r => { if (active) { active.record = slim(r); keep(); render(); } })
+      .then(r => { if (active) { active.record = slim(r); keep(); render(); heal(r); } })
       .catch(err => { if (active && /찾을 수 없|맞지 않/.test(err.message)) reset(); });
     const current = () => active && { url:link(active), password:active.password, live:active.record.live, date:new Date(active.record.updatedAt).toLocaleDateString('sv-SE') };
     return { reset, current, resume() {

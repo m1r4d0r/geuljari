@@ -80,6 +80,15 @@
     return `rgba(${m ? m[1].split(',').slice(0, 3).join(',') : '0, 0, 0'}, ${a})`;
   }
 
+  /* 글꼴 목록 link가 다 붙을 때까지(없거나 이미 붙었으면 바로) */
+  function sheetLoaded(id) {
+    const link = document.getElementById(id);
+    if (!link) return Promise.resolve();
+    if (link.sheetReady) return link.sheetReady;
+    if (link.sheet) return Promise.resolve();
+    return new Promise((r) => { link.addEventListener('load', r, { once: true }); link.addEventListener('error', r, { once: true }); });
+  }
+
   /* 카드 글꼴: 고른 이름이 있으면 그 글꼴을 불러 쓰고, 없으면 본문 글꼴(--f-title) */
   function cardFont(name) {
     const T = window.GeulTune;
@@ -122,9 +131,8 @@
   function fontsFor(L, text, date) {
     const F = document.fonts;
     if (!F || !F.load) return { ready: Promise.resolve(true), late: null };
-    /* 카드 글꼴은 글꼴 목록(stylesheet)이 붙은 뒤에야 불러진다 */
-    const link = document.getElementById('geul-card-font');
-    const all = Promise.resolve(link && link.sheetReady).then(() => Promise.all([
+    /* 본문·카드 글꼴은 글꼴 목록(stylesheet)이 붙은 뒤에야 불러진다 */
+    const all = Promise.all(['geul-font', 'geul-card-font'].map(sheetLoaded)).then(() => Promise.all([
       F.load(`400 ${SIZES[0]}px ${L.title}`, text || '가'),
       F.load(`400 22px ${FAM.code}`, date)
     ])).then(() => true, () => true);
@@ -406,13 +414,26 @@
       e.preventDefault(); move.setPointerCapture(e.pointerId);
       drag = { x:e.clientX, y:e.clientY, cx:st.card.x, cy:st.card.y, scale:st.fig.getBoundingClientRect().width / W };
     });
+    /* 끄는 동안 가로·세로 가운데에 SNAP(카드 px) 안으로 들면 가운데에 붙고 가운데 선이 보인다 */
+    const SNAP = 16;
     move.addEventListener('pointermove', e => {
       if (!drag) return;
-      st.card.x = Math.max(0, Math.min(100, drag.cx + (e.clientX - drag.x) / drag.scale / Math.max(1, W - 120 - st.Z.w) * 100));
-      st.card.y = Math.max(0, Math.min(100, drag.cy + (e.clientY - drag.y) / drag.scale / 160 * 100));
+      const span = Math.max(1, W - 120 - st.Z.w);
+      let x = Math.max(0, Math.min(100, drag.cx + (e.clientX - drag.x) / drag.scale / span * 100));
+      let y = Math.max(0, Math.min(100, drag.cy + (e.clientY - drag.y) / drag.scale / 160 * 100));
+      const midY = window.GeulCardSettings.MID_Y;
+      const onX = Math.abs(x - 50) * span / 100 < SNAP, onY = Math.abs(y - midY) * 160 / 100 < SNAP;
+      if (onX) x = 50;
+      if (onY) y = midY;
+      st.fig.classList.toggle('snap-x', onX);
+      st.fig.classList.toggle('snap-y', onY);
+      st.card.x = x; st.card.y = y;
       changed(st);
     });
-    ['pointerup','pointercancel','lostpointercapture'].forEach(type => move.addEventListener(type, () => { drag = null; }));
+    ['pointerup','pointercancel','lostpointercapture'].forEach(type => move.addEventListener(type, () => {
+      drag = null;
+      st.fig.classList.remove('snap-x', 'snap-y');
+    }));
     move.addEventListener('keydown', e => {
       const delta = { ArrowLeft:['x',-2], ArrowRight:['x',2], ArrowUp:['y',-2], ArrowDown:['y',2] }[e.key];
       if (!delta) return; e.preventDefault(); e.stopPropagation();
@@ -499,6 +520,15 @@
       sizeField(cur);
     }, 150);
   });
+
+  /* 늦게 받은 글꼴이 있으면 카드를 다시 그린다(캔버스는 글꼴이 바뀌어도 저절로 다시 그려지지 않는다) */
+  if (document.fonts && document.fonts.addEventListener) {
+    document.fonts.addEventListener('loadingdone', () => {
+      if (!cur || !cur.sheet.isConnected) return;
+      cur.bareKey = '';
+      later();
+    });
+  }
 
   /* 병렬 미리보기의 다른 틀에서 바꾼 카드도 같은 값으로 그려요. */
   window.addEventListener('message', e => {

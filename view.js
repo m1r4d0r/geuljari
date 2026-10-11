@@ -177,7 +177,8 @@
     const d = down;
     down = null;
     if (!d || zoomed || now - movedAt < 400 || now - d.t > 450 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) return;
-    if (e.target.closest('button, a, input, textarea, .ip, .end-card, .end-acts, .ops')) return;
+    if (e.target.closest('.sheet.is-current .end-card') && !e.target.closest('.end-move')) { tell({ type: 'geulgyeol:tap', on: 'box' }); return; }
+    if (e.target.closest('button, a, input, textarea, .ip, .end-acts, .ops')) return;
     if (window.GeulInplace && window.GeulInplace.editing()) return;
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;

@@ -52,6 +52,15 @@ const fs = require('node:fs/promises');
       await frame.locator('.ending.is-current .end-full[src]').waitFor();
       await pg.waitForFunction(()=>document.body.dataset.tuneCat==='text'&&!!document.querySelector('#s-tune .tb-val[data-key=card-font]'));
       const title=frame.getByRole('textbox',{name:'카드 문구'});
+      // 끝 장에서도 카드 문구를 누르면 글 갈래
+      await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("바탕")');
+      await pg.waitForFunction(()=>document.body.dataset.tuneCat==='ground');
+      await title.click(); await pg.waitForFunction(()=>document.body.dataset.tuneCat==='text');
+      // 문구 칸은 처음에 카드 세로 가운데
+      const mid=await frame.locator('.end-card').evaluate(f=>{const c=f.getBoundingClientRect(),z=f.querySelector('.end-edit').getBoundingClientRect();return Math.abs((z.top+z.height/2)-(c.top+c.height/2))/c.height;});
+      assert.ok(mid<0.01,'세로 가운데 '+mid);
+      // 카드 글꼴 '본문 글꼴'은 편집에서 고른 본문 글꼴(여기선 함렛)
+      assert.match(await frame.locator('.ending.is-current').evaluate(n=>getComputedStyle(n).getPropertyValue('--f-title')),/Hahmlet/);
       assert.equal(await title.inputValue(),'밤에 쓰는 편지');
       await title.fill('그리고 잉크 한 방울이'); await title.press('Tab');
       await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("글")');
@@ -77,6 +86,14 @@ const fs = require('node:fs/promises');
         await pg.mouse.move(r.x+r.width/2,r.y+r.height/2); await pg.mouse.down();
         await pg.mouse.move(r.x+r.width/2+30,r.y+r.height/2-10,{steps:5}); await pg.mouse.up();
         await pg.waitForFunction(()=>JSON.parse(localStorage.getItem('geul.studio')).ending.x>50);
+        // 가운데 가까이 끌면 가로·세로 가운데에 붙어요.
+        const r2=await move.boundingBox();
+        await pg.mouse.move(r2.x+r2.width/2,r2.y+r2.height/2); await pg.mouse.down();
+        await pg.mouse.move(r2.x+r2.width/2-28,r2.y+r2.height/2+12,{steps:4});
+        assert.equal(await frame.locator('.end-card.snap-x.snap-y').count(),1);
+        await pg.mouse.up();
+        await pg.waitForFunction(()=>{const e=JSON.parse(localStorage.getItem('geul.studio')).ending;return e.x===50&&Math.abs(e.y-GeulCardSettings.MID_Y)<1e-9;});
+        assert.equal(await frame.locator('.end-card.snap-x').count(),0);
       }
       await pg.waitForTimeout(300);
       const before=await x0();

@@ -1,10 +1,11 @@
-/* 끝 장 카드와 문구·배치 도구. 카드 아래 날짜 안내는 두지 않아요. */
-.sheet.ending, ending.js). 바탕 캔버스 위 가운데에 링크 카드 그림, 그 아래 만든 날 한 줄과 글자 단추 둘.
-   카드는 1200×630 비율로 화면에 맞춰 줄고, 각진 모서리에 1px 선과 옅은 그림자를 둔다.
-   편집실 미리보기 안에서는 카드의 제목 자리에 고치는 칸(.end-edit)이 겹친다. 칸의 글자 크기는 카드 폭에 대한 비율(--ts)이라
-   카드에 그려지는 제목과 같은 크기·같은 줄로 보이고, 카드처럼 두 줄까지만 보인다(넘치면 칸 안에서 굴러감).
-   고치는 동안에는 제목 없는 카드(.end-bare) 위에 칸의 글자가 보이고, 제목이 비었으면 그때만 자리 글이 보인다.
-   편집실 안의 '새로 만들기'는 주소가 없어 모양만 보인다. */
+/*
+ * 끝 장 카드(.sheet.ending, ending.js). 바탕 캔버스 위 가운데에 링크 카드 그림, 그 아래 단추 둘. 카드 아래 날짜 안내는 두지 않아요.
+ * 카드는 1200×630 비율로 화면에 맞춰 줄고, 각진 모서리에 1px 선과 옅은 그림자를 둔다.
+ * 편집실 미리보기 안에서는 카드의 문구 자리에 고치는 칸(.end-edit)이 겹친다. 칸의 글자 크기는 카드 폭에 대한 비율(--ts)이라
+ * 카드에 그려지는 문구와 같은 크기·같은 줄로 보이고, 카드에 드는 줄까지만 보인다(넘치면 칸 안에서 굴러감).
+ * 고치는 동안에는 문구 없는 카드(.end-bare) 위에 칸의 글자가 보이고, 문구가 비었으면 그때만 자리 글이 보인다.
+ * 카드 문구의 기본 글꼴은 본문 글꼴(--f-read)이다.
+ */
 
 .sheet.ending {
   --f-title: var(--f-read, 'Song Myung', 'Noto Serif KR', serif);
@@ -126,3 +127,14 @@
   .in-studio .sheet.ending .scroll { padding: 30px 16px 80px; }
   .end-acts { justify-content: space-between; }
 }
+
+/* 위치 이동 중 가로·세로 가운데에 붙으면 그 가운데 선 */
+.end-card.snap-x::before, .end-card.snap-y::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.end-card.snap-x::before { left: 50%; top: 0; bottom: 0; width: 1px; }
+.end-card.snap-y::after { top: 50%; left: 0; right: 0; height: 1px; }

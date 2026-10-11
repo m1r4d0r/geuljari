@@ -13,7 +13,7 @@
   --f-body: 'Hahmlet', 'Noto Serif KR', 'Noto Serif CJK KR', 'AppleMyungjo', 'Nanum Myeongjo', 'Batang', serif;
   --fs-body: clamp(1.02rem, .96rem + .3vw, 1.16rem);
   --gutter: max(1.25rem, 7vw);
-  --para-gap: .9em;
+  --para-gap: 1.4em;
   color-scheme: dark;
 }
 

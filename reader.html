@@ -6,34 +6,25 @@
 <title>글자리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@200..700&family=Nanum+Gothic+Coding&family=Noto+Sans+KR:wght@400;500&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="backdrop.css">
 <link rel="stylesheet" href="glyph.css">
 <link rel="stylesheet" href="flip.css">
 <link rel="stylesheet" href="reader.css">
+<link rel="stylesheet" href="ending.css">
 <script src="engine.js" defer></script>
 <script src="motion.js" defer></script>
 <script src="fx.js" defer></script>
 <script src="flip.js" defer></script>
 <script src="backdrop.js" defer></script>
+<script src="ending.js" defer></script>
 <script src="reader.js" defer></script>
 </head>
 <body>
-<main class="stage" id="stage" aria-hidden="true"></main>
-
-<nav class="ui view" aria-label="보기">
-  <button class="tbtn" type="button" id="motion">움직임 끄기</button>
-  <button class="tbtn" type="button" id="again">이 쪽 다시</button>
-  <button class="tbtn" type="button" id="replay">처음부터</button>
-  <a class="tbtn" id="to-mask" href="mask.html">가림판</a>
-</nav>
+<main class="stage" id="stage"></main>
 
 <footer class="ui ops">
   <span class="dots" id="dots"></span>
-  <p class="hint" id="hint">옆으로 끌거나 휠·방향키로 넘겨요. 길게 누르면 그 줄에 머물러요</p>
-  <span class="turn">
-    <button class="tbtn" type="button" id="prev">이전</button>
-    <button class="tbtn" type="button" id="next">다음</button>
-  </span>
 </footer>
 
 <div class="sr-only" id="glog-sr"></div>
@@ -41,9 +32,10 @@
 <!--
   글 본문은 아래 script 안에 그대로 붙여 넣는다.
   빈 줄 하나는 문단 나눔, 빈 줄 둘은 페이지 나눔이다. 페이지마다 화면 한 장이 되고 폭과 자리가 조금씩 달라진다.
-  [[밤]]이나 [[낮]]만 적은 줄을 넣으면 거기서 새 페이지가 시작되고, 장면이 바뀔 때 화면이 바닥 가운데를 축으로 쓸려 넘어간다.
-  바탕을 고르려면 [[밤:오로라]]처럼 이름을 붙인다. 낮은 창빛(기본)·원고지·잎그늘·새벽, 밤은 영사광(기본)·오로라·물빛·타자.
-  {{효과:…}}로 감싼 부분에 그 효과가 붙는다(이름 없이 {{…}}면 떠오름). 가림판에서 드래그한 뒤 효과 메뉴에서 고르면 감싸 준다.
+  [[다크]]나 [[라이트]]만 적은 줄을 넣으면 거기서 새 페이지가 시작되고, 장면이 바뀔 때 화면이 바닥 가운데를 축으로 쓸려 넘어간다.
+  바탕을 고르려면 [[다크:오로라]]처럼 이름을 붙인다. 라이트는 창빛(기본)·원고지·잎그늘·새벽·편지지·오로라, 다크는 영사광(기본)·빛커튼·물빛·타자·편지지·오로라.
+  넘김과 글 자리도 이어 적는다: [[다크:영사광:조리개]], [[가운데]]. 넘김·자리는 그 쪽에만 걸린다.
+  {{…}}로 감싼 부분은 강조다. 이름이 없으면 떠오름·번짐·초점·떠오름·모여듦을 차례로 쓰고, {{효과:…}}로 고를 수 있다.
   쓸 수 있는 효과: 떠오름, 번짐, 타자, 초점, 모여듦, 떨림, 흘러내림, 조명 / 퇴장: 사라짐, 흩날림, 지워짐, 희미해짐, 걷힘, 가라앉음
   꾸밈은 +로 이어 적는다: {{굵게:…}}, {{떨림+밑줄:…}}, {{강조+빨강:…}}(굵게·기울임·밑줄·취소선, 빨강·주황·초록·파랑·보라·회색)
   줄 앞 공백은 들여쓰기, 어절 사이 두 칸 이상 띄어쓰기는 쉼으로 읽힌다(화면에는 한 칸으로 보임).

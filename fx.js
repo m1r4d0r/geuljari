@@ -3,6 +3,7 @@
  * - 글자는 처음에 .pending(보이지 않음)으로 두고, 시간표의 시각이 되면 .pending을 떼면서 효과를 건다.
  *   시각은 자바스크립트가 직접 재기 때문에, 효과가 실행되지 않는 환경이어도 글자는 제 시각에 하나씩 나타난다.
  * - 효과는 Web Animations(element.animate)로 실행하고, 색 변수는 키프레임에 넣지 않는다.
+ *   글자색을 키프레임에 담는 번짐은 recolor()가 지금 색으로 다시 끼운다(편집실에서 주색을 바꿀 때).
  *   젖은 잉크 색은 .wet → .drying 클래스로 바꿔 CSS 전환으로 말린다.
  * - 초점 띠: 화면 가운데 줄만 또렷하게. 손끝: 다 쓴 어절에 손대면 다시 젖음.
  * - 퇴장 효과(vanish·scatter·erase·dim·fold·sink)는 끝 모습 클래스(EXIT_END)를 붙여 두고 그 위에서 물러나는 움직임만 건다.
@@ -44,6 +45,24 @@
     }, (hold || 1400) / pace);
   }
 
+  /* 번짐: 글자색을 키프레임에 담아 그림자로 번지다가 또렷해진다 */
+  const bleedFrames = (c) => [
+    { opacity: 0, color: 'transparent', textShadow: `0 0 .6em ${c}` },
+    { opacity: 1, color: 'transparent', textShadow: `0 0 .28em ${c}`, offset: 0.4 },
+    { opacity: 1, color: c, textShadow: `0 0 0 ${c}` }
+  ];
+  const bleeding = new Set();
+
+  /* 글자색(주색)이 바뀌면 번지는 중인 글자의 키프레임을 새 색으로 바꿔 끼운다(움직임의 시각은 그대로) */
+  function recolor() {
+    bleeding.forEach((a) => {
+      const el = a.effect && a.effect.target;
+      if (!el) return;
+      a.effect.setKeyframes([]);
+      a.effect.setKeyframes(bleedFrames(getComputedStyle(el).color));
+    });
+  }
+
   /* 글자 하나(또는 줄 하나)에 거는 효과. 돌려주는 값은 Animation(없으면 null). */
   const FX = {
     none() { return null; },
@@ -66,12 +85,13 @@
     },
 
     bleed(el) {
-      const c = getComputedStyle(el).color;
-      return animate(el, [
-        { opacity: 0, color: 'transparent', textShadow: `0 0 .6em ${c}` },
-        { opacity: 1, color: 'transparent', textShadow: `0 0 .28em ${c}`, offset: 0.4 },
-        { opacity: 1, color: c, textShadow: `0 0 0 ${c}` }
-      ], { duration: 1600, easing: 'ease-out' });
+      const a = animate(el, bleedFrames(getComputedStyle(el).color), { duration: 1600, easing: 'ease-out' });
+      if (a) {
+        bleeding.add(a);
+        const done = () => bleeding.delete(a);
+        a.finished.then(done, done);
+      }
+      return a;
     },
 
     focus(el) {
@@ -408,5 +428,5 @@
     root.addEventListener('pointerdown', wetToken);
   }
 
-  global.GeulFx = { FX, EXIT_END, animate, wet, timeline, show, hide, buildParagraph, deferExits, decorate, focusBand, touchable, rnd, setPace };
+  global.GeulFx = { FX, EXIT_END, animate, wet, timeline, show, hide, buildParagraph, deferExits, decorate, focusBand, touchable, rnd, setPace, recolor };
 })(typeof window !== 'undefined' ? window : globalThis);

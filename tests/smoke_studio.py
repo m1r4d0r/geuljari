@@ -1,19 +1,21 @@
 """글결 편집실 스모크.
 저장소 루트를 정적 서버로 띄우고 PC·폰 크기에서
-글(처음 안내 다섯 장 넘기기, 예시 글, 쪽 면·구분선, 줄 사이 띠로 쪽 나누기, 반전 켜고 넘김 고르고 끄기, 잇기, 치고 나서 반전해도 글자가 그대로인지,
-끌어 고르면 강조, 분위기, 주색)
-→ 미리보기(두 장 번갈아 쓰는 틀, 오른쪽 책갈피, 글씨는 다시 쓰지 않고 바로, 움직임은 다시 보기로, 배경의 바탕·넘김만 보기,
-글 상자를 눌러 그 자리에서 고치고 굵게·색·효과, 글 상자 끌어 붙이기, 확대, PC·폰·병렬, 숨기기, 쓰는 중 넘기기 막기)
+글(처음 안내 다섯 장 넘기기, 예시 글, 오른쪽 칸(분위기 제목·살펴보기, 테마의 주색·글꼴·시작, 쓰는 법 세 줄), 페이지 어디서 휠을 굴려도 본문이 굴러가는지,
+쪽 면·구분선, 줄 사이 띠로 쪽 나누기, 반전 켜고 넘김 고르고 끄기, 잇기, 치고 나서 반전해도 글자가 그대로인지,
+끌어 고르면 강조, 분위기, 주색, 미리보기로 넘기는 글·제목·만든 날·마지막 화면)
+→ 미리보기(두 장 번갈아 쓰는 틀, 오른쪽 책갈피, 분위기 판의 주색은 다시 쓰지 않고 바로, 글씨는 다시 쓰지 않고 바로, 움직임은 다시 보기로,
+배경의 바탕·넘김만 보기, 마지막 화면의 배경, 마지막 화면에서 고친 제목 받기,
+글 상자를 눌러 그 자리에서 고치고 굵게·색·효과, 글 상자 끌어 붙이기, 확대, PC·폰·병렬, 숨기기, 쓰는 중 첫 넘김은 다 쓰기)
 → 글로 돌아가기 → 심상 살펴보기 페이지를 차례로 밟는다.
-쓰임: python3 tests/smoke_studio.py [찍은 그림을 둘 폴더]   (Playwright Chromium 필요)
+쓰임: python3 tests/smoke_studio.py [찍은 그림을 둘 폴더]   (Playwright Chromium 필요, 포트는 환경 변수 PORT로 바꿀 수 있음)
 """
-import sys, subprocess, time, pathlib, glob
+import sys, os, json, subprocess, time, pathlib, glob
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'tests' / 'out'
 OUT.mkdir(parents=True, exist_ok=True)
-PORT = 8795
+PORT = int(os.environ.get('PORT', 8795))
 ARGS = ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist']
 
 srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '--bind', '127.0.0.1'], cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -25,6 +27,7 @@ marks = "() => document.getElementById('src').value.split('\\n').filter(l => l.s
 plain = "() => Geulgyeol.stripMarks(document.getElementById('src').value).replace(/\\s+/g, '')"
 pages = "() => document.querySelectorAll('#write-ed .cp-shade').length"
 active_src = "() => document.querySelector('#screen-main .frame.on').src"
+handed = "() => JSON.parse(localStorage.getItem('geulgyeol.preview') || '{}')"
 
 
 def launch(p):
@@ -107,6 +110,48 @@ try:
                   '| guessed moods', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"))
             pg.screenshot(path=str(OUT / f'st-{tag}-1write.png'))
 
+            # 오른쪽 칸: 분위기·테마 두 제목, 표 대신 조각, 요약 줄 없음, 주색 여섯과 고르기, 글꼴·시작, 쓰는 법 세 줄
+            print(tag, '  rail', pg.evaluate("""() => ({
+              heads: [...document.querySelectorAll('.rail h2')].map(h => h.textContent),
+              look: !!document.getElementById('mood-look') && (window.GeulLook ? document.getElementById('mood-look').getClientRects().length > 0 : 'no look.js'),
+              mix: !!document.getElementById('mix'), simsangLink: !!document.querySelector('.rail a[href="simsang.html"]'),
+              pieces: document.querySelectorAll('#moods .piece').length,
+              swatches: [...document.querySelectorAll('#themes .swatch')].map(b => b.title).join(','),
+              fonts: document.querySelectorAll('#fonts .piece').length, scenes: [...document.querySelectorAll('#start-scene .piece')].map(b => b.textContent).join('/'),
+              help: [...document.querySelectorAll('.rail-help p')].map(p => p.textContent) })"""))
+            print(tag, '  help visible', pg.is_visible('.rail-help'), '| h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"))
+            if tag == 'desk':
+                pg.locator('.rail').screenshot(path=str(OUT / f'st-{tag}-1rail.png'))
+                # 페이지 어디서 휠을 굴려도 본문이 굴러간다(오른쪽 칸, 위 막대, 아래 막대), Ctrl+휠은 그대로
+                pg.evaluate("() => { const t = document.getElementById('src'); t.scrollTop = 0; }"); pg.wait_for_timeout(100)
+                seen = []
+                for sel in ['.rail-help', '.top .steps', '.bar .k', '.title']:
+                    r = pg.evaluate(f"() => {{ const r = document.querySelector('{sel}').getBoundingClientRect(); return [r.left + 4, r.top + r.height / 2]; }}")
+                    pg.mouse.move(r[0], r[1]); pg.mouse.wheel(0, 240); pg.wait_for_timeout(600)
+                    seen.append(round(pg.evaluate("() => document.getElementById('src').scrollTop")))
+                mirror_follows = pg.evaluate("() => Math.abs(document.getElementById('write-mirror').scrollTop - document.getElementById('src').scrollTop) < 2")
+                pg.mouse.move(1000, 300); pg.mouse.wheel(0, -2000); pg.wait_for_timeout(700)
+                print(tag, '  wheel anywhere', seen, '| mirror follows', mirror_follows, '| back up', pg.evaluate("() => document.getElementById('src').scrollTop"))
+                pg.keyboard.down('Control'); pg.mouse.wheel(0, 200); pg.keyboard.up('Control'); pg.wait_for_timeout(300)
+                print(tag, '  ctrl+wheel leaves text', pg.evaluate("() => document.getElementById('src').scrollTop") == 0)
+                # 살펴보기 덮개(look.js가 있을 때): 열리고, 열린 동안 휠은 본문을 굴리지 않는다
+                if pg.evaluate("() => !!window.GeulLook"):
+                    pg.click('#mood-look'); pg.wait_for_timeout(500)
+                    opened = pg.evaluate("() => [...document.querySelectorAll('[role=dialog][aria-modal=true]')].some(d => d.id !== 'guide' && !d.hidden && d.getClientRects().length)")
+                    pg.mouse.move(640, 400); pg.mouse.wheel(0, 300); pg.wait_for_timeout(400)
+                    print(tag, '  look opens', opened, '| wheel stays', pg.evaluate("() => document.getElementById('src').scrollTop") == 0)
+                    pg.screenshot(path=str(OUT / f'st-{tag}-1look.png'))
+                    pg.evaluate("() => window.GeulLook.close()"); pg.wait_for_timeout(300)
+            # 테마: 글꼴과 시작 장면
+            pg.locator('#fonts .piece', has_text='고운바탕').click(); pg.wait_for_timeout(200)
+            print(tag, '  font', pg.evaluate("() => [document.querySelector('#fonts [aria-pressed=true]').textContent, getComputedStyle(document.documentElement).getPropertyValue('--f-read').split(',')[0]]"))
+            pg.locator('#start-scene .piece', has_text='다크').click(); pg.wait_for_timeout(300)
+            print(tag, '  start dark', pg.evaluate("() => JSON.parse(localStorage.getItem('geul.studio') || '{}').settings"), '| first page night', pg.evaluate("() => document.querySelector('#write-ed .cp-shade').classList.contains('night')"))
+            pg.wait_for_timeout(300)
+            print(tag, '  saved', pg.evaluate("() => { const s = JSON.parse(localStorage.getItem('geul.studio')).settings; return s.scene + ' ' + s.ground + ' ' + s.font; }"))
+            pg.locator('#start-scene .piece', has_text='라이트').click(); pg.wait_for_timeout(200)
+            pg.locator('#fonts .piece', has_text='송명').click(); pg.wait_for_timeout(200)
+
             # 줄 사이: 올리면 띠, 누르면 쪽 나누기
             x, y = seam_point(pg, '편지를 쓰는'); pg.wait_for_timeout(250)
             pg.mouse.move(x, y); pg.wait_for_timeout(150)
@@ -134,9 +179,12 @@ try:
             pg.locator('#write-ed .cp-pop button', has_text='강조').first.click(); pg.wait_for_timeout(250)
             print(tag, '  emphasized', '{{보고 싶다고 쓰는 것은 너무}}' in pg.evaluate(src))
             pg.locator('#moods button', has_text='고요한').click(); pg.wait_for_timeout(200)
-            pg.click('#themes .swatch[title="쪽"]'); pg.wait_for_timeout(200)
+            pg.click('#themes .swatch[title="자두"]'); pg.wait_for_timeout(200)
             print(tag, '  mood', pg.evaluate("() => [...document.querySelectorAll('#moods [aria-pressed=true]')].map(b => b.textContent)"), '| theme ink', pg.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--ink')"))
             pg.screenshot(path=str(OUT / f'st-{tag}-3marked.png'))
+            pg.fill('#title', '편지'); pg.wait_for_timeout(100)
+            h = pg.evaluate(handed)
+            print(tag, '  handed off', sorted(h.keys()), '| title', h.get('title'), '| made', h.get('made'), '| ending', h.get('ending'))
 
             # 미리보기
             pg.click('#go-tune'); pg.wait_for_timeout(2600)
@@ -145,6 +193,15 @@ try:
                   '| tabs right' if tag == 'desk' else '', pg.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().right)") if tag == 'desk' else '')
             print(tag, '  theme in preview', pv(pg).evaluate("() => getComputedStyle(document.querySelector('.sheet.is-current')).getPropertyValue('--ink').trim()"))
             pg.screenshot(path=str(OUT / f'st-{tag}-4preview.png'))
+
+            # 분위기 판: 조각과 주색. 주색은 다시 쓰지 않고 바로
+            tab(pg, tag, 'mood')
+            before = pg.evaluate(active_src)
+            print(tag, 'mood panel', pg.evaluate("() => ({ pieces: document.querySelectorAll('#panel-mood .piece').length, swatches: document.querySelectorAll('#panel-mood .swatch').length, mix: !!document.querySelector('#panel-mood .mix') })"))
+            pg.click('#panel-mood .swatch[title="솔"]'); pg.wait_for_timeout(400)
+            print(tag, '  theme live', pg.evaluate(active_src) == before, '| ink', pv(pg).evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--theme-ink').trim()"))
+            pg.screenshot(path=str(OUT / f'st-{tag}-4mood.png'))
+            pg.click('#panel-mood .panel-x'); pg.wait_for_timeout(200)
 
             # 글씨: 다시 쓰지 않고 바로
             tab(pg, tag, 'type')
@@ -175,7 +232,30 @@ try:
             pg.locator('#panel-ground .seg button', has_text='섬광').click(); pg.wait_for_timeout(2400)
             print(tag, '  turn only', pg.evaluate(marks), '| landed', pv(pg).evaluate(written))
             pg.screenshot(path=str(OUT / f'st-{tag}-6ground.png'))
+
+            # 마지막 화면: 편집실이 마지막 화면에 있다고 알면 배경 판이 그 화면의 장면·바탕을 고른다
+            n = pg.evaluate("() => Geulgyeol.pages(Geulgyeol.parse(document.getElementById('src').value)).length")
+            pv(pg).evaluate(f"() => window.postMessage({{ type: 'geulgyeol:goto', page: {n} }}, location.origin)"); pg.wait_for_timeout(1500)
+            viewer_end = pv(pg).evaluate("() => !!document.querySelector('.sheet.ending.is-current')")
+
+            def at_end():
+                """마지막 화면이 없는 읽기 틀이면 마지막 화면에 있다는 알림을 대신 보낸다"""
+                if not viewer_end:
+                    pv(pg).evaluate(f"() => window.parent.postMessage({{ type: 'geulgyeol:page', page: {n}, pages: {n}, ending: true }}, location.origin)"); pg.wait_for_timeout(300)
+            at_end()
+            print(tag, 'ending', 'viewer has ending sheet' if viewer_end else 'simulated page message', '|', pg.text_content('#panel-ground .panel-sub'), pg.evaluate("() => [...document.querySelectorAll('#panel-ground .pn-name')].map(x => x.textContent)"))
+            pg.locator('#panel-ground .seg button', has_text='다크').click(); pg.wait_for_timeout(1600)
+            reloaded = 'ending' in pg.evaluate(active_src)
+            at_end()
+            pg.locator('#panel-ground .seg button', has_text='빛커튼').click(); pg.wait_for_timeout(1600)
+            at_end()
+            print(tag, '  ending ground', pg.evaluate(handed).get('ending'), '| reloaded at ending', reloaded, 'ending' in pg.evaluate(active_src), '| sub', pg.text_content('#panel-ground .panel-sub'), '| marks', pg.evaluate(marks))
+            pg.screenshot(path=str(OUT / f'st-{tag}-6ending.png'))
+            # 마지막 화면에서 고친 제목을 받는다
+            pv(pg).evaluate("() => window.parent.postMessage({ type: 'geulgyeol:title', title: '보내지 못한 편지' }, location.origin)"); pg.wait_for_timeout(300)
+            print(tag, '  title from ending', pg.evaluate("() => document.getElementById('title').value"), '|', pg.evaluate(handed).get('title'))
             pg.click('#panel-ground .panel-x'); pg.wait_for_timeout(300)
+            pv(pg).evaluate("() => window.postMessage({ type: 'geulgyeol:goto', page: 2 }, location.origin)"); pg.wait_for_timeout(1300)
 
             # 글 상자를 눌러 그 자리에서 고치기
             fr = pv(pg)
@@ -234,15 +314,16 @@ try:
                 tabs_open(pg, tag)
                 pg.click('#device [data-device="mobile"]'); pg.wait_for_timeout(300)
 
-            # 숨기기·꺼내기, 쓰는 중 넘기기 막기
+            # 숨기기·꺼내기, 쓰는 중 첫 넘김은 다 쓰기
             tabs_open(pg, tag)
             pg.click('#hide-all'); pg.wait_for_timeout(200)
             print(tag, 'hide all', pg.evaluate("() => [document.getElementById('tabs').hidden, document.getElementById('peek').hidden]"))
             pg.click('#peek'); pg.wait_for_timeout(200)
             fr = pv(pg)
-            fr.evaluate("() => document.getElementById('again').click()"); pg.wait_for_timeout(500)
-            fr.evaluate("() => document.getElementById('next').click()"); pg.wait_for_timeout(300)
-            print(tag, 'skip guard', fr.evaluate(written), fr.evaluate("() => document.querySelector('.cue.busy').classList.contains('is-on')"))
+            fr.evaluate("() => window.postMessage({ type: 'geulgyeol:again' }, location.origin)"); pg.wait_for_timeout(500)
+            before = fr.evaluate(written)
+            fr.evaluate("() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))"); pg.wait_for_timeout(300)
+            print(tag, 'skip guard: first press finishes', before, '->', fr.evaluate(written))
             print(tag, 'h-scroll', pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"))
 
             tabs_open(pg, tag)

@@ -1,7 +1,7 @@
 /* 글결 편집실
-   색은 먹지(복사지 바탕에 남보라 한 색), 표시는 색 대신 모양(물결 밑줄·번진 면·빈 네모·겹줄).
-   두 단계가 한 페이지 안에서 하나씩 보인다: 글(입력창 위에 쪽 짜임·반전·강조, 옆에 분위기) → 미리보기.
-   미리보기에서는 읽기 틀이 화면을 채우고, 설정은 왼쪽 가장자리 책갈피로 하나씩 여는 판으로 한다.
+   색은 먹지(복사지 바탕에 주색 한 색, 기본 남보라), 표시는 색 대신 모양(물결 밑줄·번진 면·빈 네모·겹줄).
+   두 단계가 한 페이지 안에서 하나씩 보인다: 글(입력창 위에 쪽 짜임·반전·강조, 옆에 분위기·테마·쓰는 법) → 미리보기.
+   미리보기에서는 읽기 틀이 화면을 채우고, 설정은 오른쪽 가장자리 책갈피로 하나씩 여는 판으로 한다.
    본문은 조판에서 고른 글꼴(--f-read), 조작은 노토 산스, 숫자·부호는 나눔고딕코딩. 모서리는 모두 각지다. */
 
 :root {
@@ -43,10 +43,9 @@ a { color: inherit; }
 .btn { height: 44px; padding: 0 20px; background: transparent; border: 1px solid var(--ink); white-space: nowrap; }
 .btn.fill { padding: 0 28px; background: var(--ink); color: var(--sheet); letter-spacing: .08em; font-size: 14px; }
 .btn:not(:disabled):hover { background: var(--smudge); }
-.btn.fill:not(:disabled):hover { background: #3A3E86; }
+.btn.fill:not(:disabled):hover { background: var(--lead); }
 .link { height: 40px; padding: 0; background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; white-space: nowrap; }
 .link:hover { color: var(--lead); }
-.link.small { height: auto; font-size: 12px; color: var(--lead); align-self: flex-start; }
 
 .seg { flex: none; display: inline-grid; grid-auto-flow: column; grid-auto-columns: max-content; border: 1px solid var(--ink); width: fit-content; }
 .seg.wide { display: grid; width: 100%; grid-auto-columns: minmax(0, 1fr); }
@@ -65,15 +64,32 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: 
 input[type=range]::-moz-range-thumb { width: 11px; height: 11px; background: var(--ink); border: 0; border-radius: 0; }
 .tsel { height: 28px; max-width: 100%; padding: 0 6px; border: 1px solid var(--line); background: transparent; font-size: 12px; border-radius: 0; color: var(--ink); }
 
-/* 심상: 반대말 한 쌍이 한 줄. 줄마다 하나만 고르고, 고른 것을 다시 누르면 빠진다 */
-.moods { display: grid; grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--line); }
-.moods .ax { display: flex; align-items: center; font-size: 11px; color: var(--lead); border-bottom: 1px solid var(--line); }
-.moods button { height: 38px; padding: 0; border: 0; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); background: transparent; font-family: var(--f-body); font-size: 15px; }
-.moods button:nth-child(3n) { border-right: 1px solid var(--line); }
-.moods button:hover { background: var(--smudge); }
-.moods button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
-.mix { min-height: 20px; display: flex; flex-wrap: wrap; gap: 2px 12px; font: 11px/1.6 var(--f-num); color: var(--lead); }
-.mix b { font-weight: 700; color: var(--ink); }
+/* 조각 고르기(panels.js pieces·moodGrid): 떨어진 조각마다 면과 1px 선, 고른 조각은 먹으로 채운다. 분위기·글꼴·시작 장면이 같이 쓴다 */
+.pieces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.pieces.fonts { display: flex; flex-wrap: wrap; }
+.pieces.fonts .piece { flex: 1 1 auto; padding: 0 12px; }
+.piece { min-width: 0; height: 36px; padding: 0 6px; background: var(--sheet); border: 1px solid var(--line); color: var(--ink); font-family: var(--f-body); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: border-color .15s ease, background-color .15s ease, color .15s ease; }
+.piece:hover { border-color: var(--ink); }
+.piece[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
+.pieces.scenes .piece { font: 13px var(--f-ui); letter-spacing: .04em; }
+.pieces.scenes .piece[data-v="다크"][aria-pressed="true"] { background: var(--dark); border-color: var(--dark); color: var(--dark-ink); }
+
+/* 심상: 축마다 이름 하나와 반대말 조각 둘. 축 안에서 하나만 고르고, 고른 것을 다시 누르면 빠진다 */
+.moods { display: flex; flex-direction: column; gap: 6px; }
+.mood-ax { display: grid; grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: center; }
+.set-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 6px; align-items: center; }
+.ax, .set-name { font-size: 11px; color: var(--lead); white-space: nowrap; }
+.r-font { align-items: start; }
+.r-font .set-name { line-height: 36px; }
+
+/* 주색: 이름 있는 색 네모와 마지막 칸의 색 고르기. 고른 네모는 제 색 테두리를 한 겹 두른다 */
+.themes { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 4px 2px; }
+.swatch { position: relative; flex: none; width: 24px; height: 24px; padding: 0; border: 0; background: var(--sw); }
+.swatch[aria-pressed="true"], .swatch.picker.on { outline: 1px solid var(--sw); outline-offset: 2px; }
+.swatch.picker { display: inline-block; background: conic-gradient(from 45deg, #B03A2E, #C06A1C, #3F7A4A, #2F5DA8, #6A4BA0, #B03A2E); cursor: pointer; }
+.swatch.picker.on { background: var(--sw); }
+.swatch.picker.on::after { content: ""; position: absolute; right: 0; bottom: 0; width: 9px; height: 9px; background: conic-gradient(from 45deg, #B03A2E, #C06A1C, #3F7A4A, #2F5DA8, #6A4BA0, #B03A2E); box-shadow: -1px -1px 0 var(--paper); pointer-events: none; }
+.swatch.picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 
 /* ---------- 위 ---------- */
 
@@ -89,14 +105,6 @@ input[type=range]::-moz-range-thumb { width: 11px; height: 11px; background: var
 .top-links { margin-left: auto; display: flex; gap: 18px; }
 .top-links { align-items: center; }
 .top-links .link { height: 36px; font-size: 12px; color: var(--lead); }
-.rail-row { display: flex; align-items: center; gap: 12px; }
-.rail-name { font-size: 11px; color: var(--lead); }
-.themes { display: flex; gap: 6px; }
-.swatch { width: 18px; height: 18px; padding: 0; border: 1px solid var(--paper); background: var(--sw); box-shadow: 0 0 0 1px transparent; }
-.swatch.picker { position: relative; display: inline-block; background: conic-gradient(from 45deg, #B03A2E, #C06A1C, #3F7A4A, #2F5DA8, #6A4BA0, #B03A2E); cursor: pointer; }
-.swatch.picker[aria-pressed="true"] { background: var(--sw); }
-.swatch.picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
-.swatch[aria-pressed="true"] { box-shadow: 0 0 0 1px var(--sw); border-color: var(--paper); outline: 1px solid var(--sw); outline-offset: 2px; }
 
 /* 처음 안내: 편집창을 흐리게 가리고, 다섯 장을 한 장씩. 왼쪽 무대에서 그 기능이 움직이고 오른쪽에 한 줄 설명 */
 .guide { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(236, 237, 240, .5); }
@@ -122,13 +130,12 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .g-paper { padding: 16px 18px; background: var(--sheet); font-size: 19px; line-height: 1.75; }
 .g-pn { position: absolute; left: 8px; top: 12px; width: 18px; height: 18px; display: grid; place-items: center; border: 1px solid var(--ink); font: 700 10px/1 var(--f-num); font-style: normal; }
 
-/* 1. 분위기: 따뜻한이 눌리고 글자가 떠오른다 */
-.g-moods { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--line); font-size: 14px; }
-.g-moods .ax { display: flex; align-items: center; font: 10px var(--f-ui); color: var(--lead); border-bottom: 1px solid var(--line); }
-.g-chip { height: 34px; display: grid; place-items: center; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.g-chip:nth-child(3n) { border-right: 1px solid var(--line); }
+/* 1. 분위기: 따뜻한 조각이 눌리고 글자가 떠오른다(글 화면 오른쪽 칸의 조각과 같은 모양) */
+.g-moods { display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr); gap: 5px; align-items: center; font-size: 14px; }
+.g-moods .ax { font: 10px var(--f-ui); color: var(--lead); }
+.g-chip { height: 32px; display: grid; place-items: center; background: var(--sheet); border: 1px solid var(--line); }
 .g-on { animation: g-chip 4.8s ease infinite; }
-@keyframes g-chip { 0%, 8% { background: transparent; color: var(--ink); } 14%, 88% { background: var(--ink); color: var(--sheet); } 96%, 100% { background: transparent; color: var(--ink); } }
+@keyframes g-chip { 0%, 8% { background: var(--sheet); border-color: var(--line); color: var(--ink); } 14%, 88% { background: var(--ink); border-color: var(--ink); color: var(--sheet); } 96%, 100% { background: var(--sheet); border-color: var(--line); color: var(--ink); } }
 .g-rise { display: inline-block; opacity: 0; animation: g-rise 4.8s cubic-bezier(.2, .65, .25, 1) var(--d) infinite; }
 @keyframes g-rise { 0% { opacity: 0; transform: translateY(.5em); filter: blur(3px); } 14%, 82% { opacity: 1; transform: none; filter: blur(0); } 92%, 100% { opacity: 0; } }
 
@@ -196,7 +203,14 @@ body[data-step="tune"] .top { display: none; }
 .title { flex: none; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 10px 0 8px; margin-bottom: 10px; font-family: var(--f-read, var(--f-body)); font-size: 22px; }
 .title:focus { outline: none; border-bottom-color: var(--ink); }
 ::placeholder { color: var(--faint); opacity: 1; }
-.rail { flex: none; width: 280px; display: flex; flex-direction: column; gap: 12px; padding: 22px 0 20px; }
+/* 오른쪽 칸: 분위기와 테마는 같은 높이의 제목 아래 조각들, 그 아래에 쓰는 법 세 줄. 넘치면 칸만 굴러가고 쓰는 법은 칸 아래에 붙어 늘 보인다 */
+.rail { flex: none; width: 284px; min-height: 0; display: flex; flex-direction: column; gap: 30px; padding: 18px 4px 0; overflow-y: auto; scrollbar-width: thin; }
+.rail-sec { display: flex; flex-direction: column; gap: 6px; }
+.rail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 9px; margin-bottom: 6px; border-bottom: 1px solid var(--ink); }
+.rail-head h2 { font-family: var(--f-body); font-weight: 400; font-size: 19px; letter-spacing: .02em; line-height: 1.3; }
+.rail-head .link { height: auto; font-size: 12px; color: var(--lead); }
+.rail-head .link:hover { color: var(--ink); }
+.rail-help { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 3px; padding: 12px 0 24px; border-top: 1px solid var(--line); background: var(--paper); font: 12px/1.6 var(--f-ui); color: var(--faint); word-break: keep-all; }
 
 /* 편집창: 투명한 입력창 뒤에 같은 글을 같은 글꼴·폭으로 그려 표시만 보이게 한다(editor.js). 두 층은 글자 자리가 같아야 한다 */
 .ed { position: relative; flex: 1 1 auto; min-height: 240px; overflow: hidden; background: var(--sheet); border-bottom: 1px solid var(--ink); }
@@ -248,7 +262,7 @@ body[data-step="tune"] .top { display: none; }
 .cp-pop { position: absolute; z-index: 6; display: flex; background: var(--ink); }
 .cp-pop button { height: 34px; padding: 0 14px; background: none; border: 0; border-left: 1px solid rgba(246, 246, 244, .3); color: var(--sheet); font-size: 13px; }
 .cp-pop button:first-child { border-left: 0; }
-.cp-pop button:hover { background: #3A3E86; }
+.cp-pop button:hover { background: var(--lead); }
 
 /* ---------- 미리보기 ---------- */
 
@@ -283,7 +297,7 @@ body[data-step="tune"] .top { display: none; }
 .panel-head { flex: none; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-bottom: 1px solid var(--line); }
 .panel-head b { font-weight: 500; font-size: 14px; }
 .panel-sub { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.panel-x { height: 30px; font-size: 12px; color: var(--lead); }
+.panel-x, .panel-look { height: 30px; font-size: 12px; color: var(--lead); }
 .panel-note { flex: none; padding: 8px 14px 0; font-size: 12px; color: var(--lead); }
 .panel-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: thin; }
 .pn-row { display: flex; flex-direction: column; gap: 6px; }
@@ -326,10 +340,31 @@ body[data-step="tune"] .top { display: none; }
   .write-body { flex-direction: column; gap: 0; padding: 0; }
   .write-col { flex: 1 1 auto; min-height: 0; padding: 0 12px; }
   .title { font-size: 19px; padding-top: 4px; margin-bottom: 6px; }
-  .rail { order: -1; width: auto; padding: 6px 12px 10px; gap: 6px; }
-  .rail h2, .rail .link { display: none; }
-  .rail .mix { display: none; }
-  .moods button { height: 32px; font-size: 14px; }
+  /* 폰: 오른쪽 칸이 편집창 위로. 칸 제목은 얇은 한 줄(분위기 오른쪽에 살펴보기), 축 이름 없이 세 축을 한 줄에, 주색과 시작 장면을 한 줄에, 글꼴을 한 줄에 */
+  .rail { order: -1; width: auto; padding: 6px 12px 10px; gap: 8px; overflow: visible; }
+  .rail-head { grid-column: 1 / -1; align-items: center; padding-bottom: 3px; margin-bottom: 2px; }
+  .rail-head h2 { font-size: 14px; }
+  .rail-head .link { height: 24px; }
+  .rail .moods { flex-direction: row; gap: 10px; }
+  .rail .mood-ax { flex: 1 1 0; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .rail .mood-ax .ax { display: none; }
+  .rail .piece { height: 32px; font-size: 14px; padding: 0 2px; }
+  .rail .pieces { gap: 4px; }
+  .rail .pieces.fonts { flex-wrap: nowrap; }
+  .rail .pieces.fonts .piece { padding: 0 4px; font-size: 13px; }
+  .rail-sec { display: grid; grid-template-columns: minmax(0, 1fr) 116px; gap: 6px 10px; }
+  .rail-sec:first-child { display: block; }
+  .rail .set-row { grid-template-columns: 30px minmax(0, 1fr); gap: 4px; }
+  .rail .r-font .set-name { line-height: 32px; }
+  .rail .r-font { grid-column: 1 / -1; grid-row: 3; }
+  .rail .r-scene { grid-template-columns: minmax(0, 1fr); }
+  .rail .r-scene .set-name { display: none; }
+  /* 주색 일곱 칸은 한 줄에: 자리가 모자라면 칸이 조금씩 줄어든다 */
+  .rail .themes { flex-wrap: nowrap; gap: 6px; padding: 3px 0 3px 2px; }
+  .rail .swatch { flex: 0 1 22px; width: auto; height: auto; aspect-ratio: 1; }
+  .rail-help { position: static; display: block; padding: 6px 0 0; background: none; font-size: 11px; line-height: 1.6; }
+  .rail-help p { display: inline; }
+  .rail-help p + p::before { content: " "; }
   .ed-mirror, .ed-input { font-size: 17px; padding: 18px 14px 20vh 40px; }
   .cp-pn { left: 6px; width: 22px; height: 22px; font-size: 11px; }
   .cp-div { left: 40px; right: 10px; gap: 8px; }

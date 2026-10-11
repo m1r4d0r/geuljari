@@ -1,20 +1,32 @@
 /*
  * 글결 바탕
- * 이미지 없이 코드로 그리는 장면 바탕. 장(.sheet)마다 캔버스를 하나 깔고, 지금 보이는 장만 그린다.
- * 낮
+ * 이미지 없이 코드로 그리는 장면 바탕. 장(.sheet)마다 바탕 층을 하나 깔고, 지금 보이는 장만 움직인다.
+ * 그리는 방식은 셋이다.
+ *   gl·2d: 캔버스 한 장(WebGL1 셰이더, 원고지만 Canvas2D)을 프레임마다 다시 그린다.
+ *   dom: 흐린 빛 덩이 몇 개를 CSS 애니메이션으로 밀고 간다. 색은 여기서 정해 변수로 얹고, 모양은 backdrop.css.
+ *   css: 층을 만들지 않는다. 장의 data-ground를 보고 CSS(backdrop.css, reader.css 끝의 편지지 부분)가 그린다.
+ * 라이트
  *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀐다.
  *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 빛이 아주 천천히 비스듬히 지나간다.
  *   - leaf(잎그늘): 나뭇잎 사이로 드는 볕. 바람에 잎이 흔들리듯 볕 조각이 느리게 일렁인다.
  *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛과 그 위를 천천히 흐르는 엷은 안개 결.
- * 밤
+ * 다크
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
- *   - aurora(오로라): 아랫단이 밝고 위로 갈수록 바래는 빛의 커튼. 결이 세로로 잘게 일렁인다.
+ *   - drape(빛커튼): 아랫단이 밝고 위로 갈수록 바래는 빛의 커튼. 결이 세로로 잘게 일렁인다.
  *   - caustic(물빛): 물에 비친 빛이 천장에 어른거리듯, 위쪽에 흐린 빛 그물이 아주 느리게 일렁인다.
  *   - typing(타자): 어두운 방의 화면. 흐린 글자 덩이가 한 줄씩 타자되고, 줄이 차면 위로 밀려 올라가며 바랜다. 커서는 쉴 때만 깜빡인다.
- * 포인터(마우스·손가락)를 움직이면 바탕이 그쪽으로 아주 조금, 느리게 따라온다.
- * 캔버스는 곁에 둘 장(keep)에만 만들고 나머지는 거둬서, 페이지가 많아도 WebGL 문맥이 몇 개만 산다.
+ * 라이트·다크 둘 다
+ *   - letter(편지지, css): 책상 면 위에 글 상자만 한 편지지 한 장. 글줄 아래로 옅은 줄이 그어져 있고 움직이지 않는다.
+ *   - aurora(오로라, dom): 주색 빛 덩이 둘과 주색에서 색상을 비튼 덩이 하나가 서로 다른 주기(51·64·43초)로 천천히 밀려다닌다.
+ *     위에 고운 낟알과 비껴 든 유리 빛을 얹는다. 라이트에서는 옅게, 다크에서는 빛나게.
+ * 포인터(마우스·손가락)를 움직이면 바탕이 그쪽으로 아주 조금, 느리게 따라온다(편지지는 그대로).
+ * 바탕 층은 곁에 둘 장(keep)에만 만들고 나머지는 거둬서, 페이지가 많아도 WebGL 문맥이 몇 개만 산다.
+ *   곁에 둔 장의 오로라는 멈춰 있고 지금 그리는 장만 흐른다.
  * setSpeed로 흐르는 빠르기를 바꿀 수 있다(머무르기 때 느려짐).
- * 움직임 줄이기 설정이면 한 번만 그리고 멈춘다. WebGL을 못 쓰면 바탕 없이 종이색만 남는다.
+ * 움직임 줄이기 설정이면 한 번만 그리고 멈춘다(오로라는 처음 자세로 선다). WebGL을 못 쓰면 바탕 없이 종이색만 남는다.
+ * still(kind, w, h, scene, opts)은 바탕 하나를 w×h 캔버스에 멈춘 한 장면으로 그려 돌려준다(끝 장의 카드 그림).
+ *   종이색까지 칠한 완성된 그림이고, 색은 지금 문서의 장면 색과 주색 변수를 산 바탕과 같은 길로 읽는다.
+ *   opts.clear([위, 아래], 캔버스 좌표)를 주면 편지지는 그 띠에 줄을 긋지 않는다(카드의 제목 자리).
  */
 (function (global) {
   'use strict';
@@ -29,19 +41,25 @@
   let speedTarget = 1;
   let px = 0;
   let py = 0;
-  const follow = M ? M.spring2({ stiffness: 12, damping: 8, onUpdate: (x, y) => { px = x; py = y; } }) : null;
+  const follow = M ? M.spring2({ stiffness: 12, damping: 8, onUpdate: (x, y) => { px = x; py = y; nudge(); } }) : null;
 
   /* 종류별 그리는 방식과 해상도(화면 1px당 캔버스 화소) */
   const KINDS = {
-    wongoji: { engine: '2d', scale: () => Math.min(2, window.devicePixelRatio || 1) },
     window: { engine: 'gl', scale: () => 0.5 },
+    wongoji: { engine: '2d', scale: () => Math.min(2, window.devicePixelRatio || 1) },
     leaf: { engine: 'gl', scale: () => 0.5 },
     dawn: { engine: 'gl', scale: () => 0.4 },
-    aurora: { engine: 'gl', scale: () => 0.5 },
+    letter: { engine: 'css' },
+    aurora: { engine: 'dom' },
     projector: { engine: 'gl', scale: () => 0.6 },
+    drape: { engine: 'gl', scale: () => 0.5 },
     caustic: { engine: 'gl', scale: () => 0.8 },
     typing: { engine: 'gl', scale: () => 0.6 }
   };
+  /* 다크 장면에만 있는 바탕(still에서 장면을 적지 않았을 때 씀) */
+  const NIGHT_ONLY = ['projector', 'drape', 'caustic', 'typing'];
+  /* 장면 색 변수가 없는 문서에서 쓸 색 */
+  const FALLBACK = { day: { paper: '#ECEDF0', ink: '#2C2F6B' }, night: { paper: '#0E1317', ink: '#DCE1DA' } };
 
   /* ---------- 셰이더 ---------- */
 
@@ -124,7 +142,7 @@
         gl_FragColor = over(vec4(warm * a, a), vec4(uInk * bands, bands));
       }
     `,
-    aurora: `
+    drape: `
       void main() {
         float asp = uRes.x / uRes.y;
         float y = 1.0 - vUv.y;
@@ -288,24 +306,164 @@
     return e.programs[e.kind];
   }
 
+  /* 화면 전체를 덮는 사각형 하나를 올려 둔 WebGL 문맥 */
+  function glContext(canvas, keep) {
+    const gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false, preserveDrawingBuffer: !!keep });
+    if (!gl) return null;
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    return gl;
+  }
+
+  function loseGl(gl) {
+    const lose = gl && gl.getExtension('WEBGL_lose_context');
+    if (lose) lose.loseContext();
+  }
+
   /* ---------- 색 ---------- */
 
-  function rgb(str) {
+  /* '#RGB'·'#RRGGBB'·'rgb(…)' → [0~1, 0~1, 0~1]. 읽을 수 없으면 null */
+  function parse(str) {
     const c = (str || '').trim();
     if (c[0] === '#') {
       const h = c.length === 4 ? c.slice(1).split('').map((x) => x + x).join('') : c.slice(1, 7);
       const n = parseInt(h, 16);
+      if (Number.isNaN(n)) return null;
       return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
     }
     const m = c.match(/rgba?\(([^)]+)\)/);
-    if (m) return m[1].split(',').slice(0, 3).map((s) => parseFloat(s) / 255);
-    return [0.1, 0.1, 0.1];
+    if (m) return m[1].split(/[\s,/]+/).filter(Boolean).slice(0, 3).map((s) => parseFloat(s) / 255);
+    return null;
+  }
+  const rgb = (str) => parse(str) || [0.1, 0.1, 0.1];
+  const css = (c, a) => `rgba(${c.map((v) => Math.round(v * 255)).join(',')},${a == null ? 1 : a})`;
+  const mixC = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+  function toHsl([r, g, b]) {
+    const mx = Math.max(r, g, b);
+    const mn = Math.min(r, g, b);
+    const l = (mx + mn) / 2;
+    const d = mx - mn;
+    if (!d) return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1));
+    let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60;
+    return [(h + 360) % 360, s, l];
+  }
+
+  function fromHsl(h, s, l) {
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+    return [f(0), f(8), f(4)];
   }
 
   function readColors(e) {
     const cs = getComputedStyle(e.sheet);
     e.ink = rgb(cs.getPropertyValue('--ink'));
     e.paper = rgb(cs.getPropertyValue('--paper'));
+  }
+
+  /*
+   * 장이 없을 때 장면 색 읽기: data-scene을 단 빈 요소를 잠깐 붙여 읽기 틀의 장면 변수를 그대로 받는다.
+   * 장면 변수가 없는 문서(편집실 등)에서는 주색 변수(--theme-*, --night-*)를, 그것도 없으면 FALLBACK을 쓴다.
+   */
+  function sceneColors(scene) {
+    const night = scene === 'night';
+    const probe = document.createElement('i');
+    probe.dataset.scene = night ? 'night' : 'day';
+    probe.hidden = true;
+    (document.body || document.documentElement).append(probe);
+    const cs = getComputedStyle(probe);
+    const get = (n) => cs.getPropertyValue(n).trim();
+    const own = parse(get('--paper'));
+    const paper = own || parse(night ? get('--theme-night-paper') || get('--night-paper') : '') || parse(FALLBACK[probe.dataset.scene].paper);
+    const ink = (own && parse(get('--ink'))) || parse(night ? get('--theme-night-ink') || get('--night-ink') : get('--theme-ink') || get('--ink')) || parse(FALLBACK[probe.dataset.scene].ink);
+    probe.remove();
+    return { paper, ink };
+  }
+
+  /* 주색: 편집실이 고른 --theme-ink, 없으면 라이트 장면의 먹 */
+  function themeInk() {
+    return parse(getComputedStyle(document.documentElement).getPropertyValue('--theme-ink')) || sceneColors('day').ink;
+  }
+
+  /* ---------- 오로라 ---------- */
+
+  /*
+   * 빛 덩이 셋의 색(0~1 rgb)과 세기. 1·3은 주색의 색상, 2는 주색에서 색상을 비튼 장식색.
+   * 무채색에 가까운 주색도 빛으로 보이게 채도에 바닥을 둔다. 라이트는 옅게, 다크는 밝고 세게.
+   */
+  function auroraTones(theme, night) {
+    const [h, s0] = toHsl(theme);
+    const s = Math.min(0.8, Math.max(night ? 0.5 : 0.34, s0 * 1.3));
+    const deco = (h + 322) % 360;
+    if (night) {
+      return [
+        { c: fromHsl(h, s, 0.62), a: 0.62 },
+        { c: fromHsl(deco, s, 0.62), a: 0.5 },
+        { c: fromHsl(h, s * 0.85, 0.72), a: 0.34 }
+      ];
+    }
+    return [
+      { c: fromHsl(h, s, 0.48), a: 0.36 },
+      { c: fromHsl(deco, s, 0.6), a: 0.34 },
+      { c: fromHsl(h, s * 0.85, 0.58), a: 0.22 }
+    ];
+  }
+
+  /* 빛 덩이 자리(장 크기에 대한 비율, backdrop.css의 .au-1~3과 같음). still에서 씀 */
+  const BLOBS = [
+    { x: -0.3, y: -0.45, w: 1.1, h: 0.8 },
+    { x: 0.38, y: -0.1, w: 1.0, h: 0.95 },
+    { x: -0.1, y: 0.7, w: 0.9, h: 0.9 }
+  ];
+
+  function buildAurora(e) {
+    const layer = document.createElement('div');
+    layer.className = 'ground ground-aurora';
+    layer.setAttribute('aria-hidden', 'true');
+    const field = document.createElement('i');
+    field.className = 'au-field';
+    [1, 2, 3].forEach((k) => {
+      const b = document.createElement('i');
+      b.className = 'au au-' + k;
+      field.append(b);
+    });
+    const grain = document.createElement('i');
+    grain.className = 'au-grain';
+    const glass = document.createElement('i');
+    glass.className = 'au-glass';
+    layer.append(field, grain, glass);
+    /* 자세는 문서 시계에 맞춰 정한다. 장마다 다르고, 거뒀다 다시 만들어도 처음 자세로 돌아가지 않는다 */
+    const t = (performance.now() + entries.indexOf(e) * 17000) / 1000;
+    layer.style.setProperty('--au-t', (-t).toFixed(2) + 's');
+    e.sheet.prepend(layer);
+    e.node = layer;
+    e.field = field;
+    paintAurora(e);
+    rate(e);
+  }
+
+  function paintAurora(e) {
+    if (!e.node) return;
+    const night = e.sheet.dataset.scene === 'night';
+    auroraTones(themeInk(), night).forEach((t, i) => e.node.style.setProperty('--au-' + (i + 1), css(t.c, t.a)));
+  }
+
+  function rate(e) {
+    if (!e.node || !e.node.getAnimations) return;
+    e.node.getAnimations({ subtree: true }).forEach((a) => a.updatePlaybackRate(speedTarget));
+  }
+
+  /* 포인터를 따라 빛 덩이 판을 조금 옮긴다 */
+  function nudge() {
+    entries.forEach((e) => {
+      if (e.field && e.active) e.field.style.transform = `translate3d(${(px * 1.2).toFixed(3)}%, ${(py * 0.9).toFixed(3)}%, 0)`;
+    });
   }
 
   /* ---------- 원고지 ---------- */
@@ -377,12 +535,12 @@
     e.off = { off, pad };
   }
 
-  function drawWongoji(e, t) {
+  function drawWongoji(e, t, ptr) {
     const { ctx, w, h } = e;
     if (!e.off) buildWongoji(e);
     const { off, pad } = e.off;
     ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(off, -pad + px * pad * 0.4, -pad + py * pad * 0.4);
+    ctx.drawImage(off, -pad + ptr[0] * pad * 0.4, -pad + ptr[1] * pad * 0.4);
     const s = ((t * 0.000012) % 1.6) - 0.3;
     const g = ctx.createLinearGradient(w * (s - 0.35), 0, w * (s + 0.35), h);
     g.addColorStop(0, 'rgba(255,250,238,0)');
@@ -398,59 +556,47 @@
     ctx.fillRect(0, 0, w, h);
   }
 
-  /* ---------- 캔버스 ---------- */
+  /* ---------- 바탕 층 ---------- */
 
-  function dropCanvas(e) {
-    if (!e.canvas) return;
-    if (e.gl) {
-      const lose = e.gl.getExtension('WEBGL_lose_context');
-      if (lose) lose.loseContext();
-    }
-    e.canvas.remove();
-    e.canvas = null;
+  function drop(e) {
+    e.built = false;
+    if (!e.node) return;
+    if (e.gl) loseGl(e.gl);
+    e.node.remove();
+    e.node = null;
+    e.field = null;
     e.gl = null;
     e.ctx = null;
     e.programs = {};
     e.off = null;
   }
 
-  function makeCanvas(e) {
-    dropCanvas(e);
+  function build(e) {
+    drop(e);
+    e.built = true;
+    e.engine = KINDS[e.kind].engine;
+    if (e.engine === 'css') return;
+    if (e.engine === 'dom') { buildAurora(e); return; }
     const canvas = document.createElement('canvas');
     canvas.className = 'ground';
     canvas.setAttribute('aria-hidden', 'true');
     e.sheet.prepend(canvas);
-    e.canvas = canvas;
-    e.ctx = null;
-    e.gl = null;
-    e.programs = {};
-    e.off = null;
-    e.engine = KINDS[e.kind].engine;
-    if (e.engine === 'gl') {
-      const gl = canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false });
-      if (gl) {
-        const buf = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-        e.gl = gl;
-      }
-    } else {
-      e.ctx = canvas.getContext('2d');
-    }
+    e.node = canvas;
+    if (e.engine === 'gl') e.gl = glContext(canvas, false);
+    else e.ctx = canvas.getContext('2d');
     size(e);
   }
 
   function size(e) {
-    if (!e.canvas) return;
+    if (!e.node) return;
+    if (e.engine === 'dom') { paintAurora(e); return; }
     const r = e.sheet.getBoundingClientRect();
     e.scale = KINDS[e.kind].scale();
     const w = Math.max(1, Math.round(r.width * e.scale));
     const h = Math.max(1, Math.round(r.height * e.scale));
-    if (e.canvas.width !== w || e.canvas.height !== h) {
-      e.canvas.width = w;
-      e.canvas.height = h;
+    if (e.node.width !== w || e.node.height !== h) {
+      e.node.width = w;
+      e.node.height = h;
       e.off = null;
     }
     e.w = w;
@@ -458,7 +604,7 @@
     readColors(e);
   }
 
-  function drawGl(e, t) {
+  function drawGl(e, t, ptr) {
     const gl = e.gl;
     if (!gl) return;
     const P = program(e);
@@ -469,7 +615,7 @@
     gl.useProgram(P.pr);
     gl.uniform2f(P.u.uRes, e.w, e.h);
     gl.uniform1f(P.u.uTime, t / 1000);
-    gl.uniform2f(P.u.uPtr, px, py);
+    gl.uniform2f(P.u.uPtr, ptr[0], ptr[1]);
     gl.uniform3fv(P.u.uInk, e.ink);
     gl.uniform3fv(P.u.uPaper, e.paper);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -486,10 +632,10 @@
     const t = clock;
     let any = false;
     entries.forEach((e) => {
-      if (!e.active || !e.canvas) return;
+      if (!e.active || !e.node || e.engine === 'dom') return;
       any = true;
-      if (e.engine === 'gl') drawGl(e, t);
-      else drawWongoji(e, t);
+      if (e.engine === 'gl') drawGl(e, t, [px, py]);
+      else drawWongoji(e, t, [px, py]);
     });
     if (any && !reduce.matches) raf = requestAnimationFrame(frame);
   }
@@ -500,49 +646,234 @@
 
   function find(sheet) { return entries.find((e) => e.sheet === sheet); }
 
-  /* 장을 등록한다. 캔버스는 setActive의 keep에 들 때 만든다 */
+  /* 장을 등록하고 data-ground에 바탕 종류를 적는다. 층은 setActive의 keep에 들 때 만든다 */
   function mount(sheet, kind) {
-    const e = { sheet, kind: KINDS[kind] ? kind : 'window', active: false, programs: {}, canvas: null };
+    const e = { sheet, kind: KINDS[kind] ? kind : 'window', active: false, built: false, programs: {}, node: null };
+    sheet.dataset.ground = e.kind;
     entries.push(e);
     return e;
   }
 
-  /* 장의 바탕 종류를 바꾼다. 그리는 방식(gl·2d)이 같으면 캔버스를 그대로 쓴다 */
+  /* 장의 바탕 종류를 바꾼다. 둘 다 셰이더면 캔버스를 그대로 쓰고, 아니면 층을 새로 만든다 */
   function setKind(sheet, kind) {
     const e = find(sheet);
     if (!e || !KINDS[kind] || e.kind === kind) return;
-    const sameEngine = KINDS[kind].engine === e.engine;
+    const sameGl = KINDS[kind].engine === 'gl' && e.engine === 'gl' && e.node;
     e.kind = kind;
-    if (!e.canvas) return;
-    if (sameEngine && e.engine === 'gl') size(e);
-    else makeCanvas(e);
+    sheet.dataset.ground = kind;
+    if (!e.built) return;
+    if (sameGl) size(e);
+    else build(e);
+    setLive(e);
     kick();
   }
 
-  /* sheets: 지금 그릴 장들. keep: 캔버스를 남겨 둘 장들(생략하면 sheets와 같음). 둘 다에 없는 장의 캔버스는 거둔다 */
+  /* 오로라는 지금 그리는 장만 흐르게 한다 */
+  function setLive(e) {
+    if (e.engine === 'dom' && e.node) e.node.classList.toggle('is-live', e.active);
+  }
+
+  /* sheets: 지금 그릴 장들. keep: 층을 남겨 둘 장들(생략하면 sheets와 같음). 둘 다에 없는 장의 층은 거둔다 */
   function setActive(sheets, keep) {
     const hold = keep || sheets;
     let changed = false;
     entries.forEach((e) => {
       const on = sheets.includes(e.sheet);
       const held = on || hold.includes(e.sheet);
-      if (held && !e.canvas) { makeCanvas(e); changed = true; }
-      if (!held && e.canvas) dropCanvas(e);
+      if (held && !e.built) { build(e); changed = true; }
+      if (!held && e.built) drop(e);
       if (on && !e.active) { size(e); changed = true; }
       if (on !== e.active) changed = true;
       e.active = on;
+      setLive(e);
     });
     if (changed) kick();
   }
 
-  function setSpeed(k) { speedTarget = k; kick(); }
+  function setSpeed(k) {
+    speedTarget = k;
+    entries.forEach(rate);
+    kick();
+  }
 
   function pointer(nx, ny) {
     if (follow) follow.to(nx, ny);
     if (reduce.matches) kick();
   }
 
-  window.addEventListener('resize', () => { entries.forEach(size); kick(); });
+  function refresh() {
+    entries.forEach(size);
+    kick();
+  }
 
-  global.GeulBackdrop = { KINDS, mount, setKind, setActive, setSpeed, pointer, refresh() { entries.forEach(size); kick(); } };
+  window.addEventListener('resize', refresh);
+
+  /* ---------- 멈춘 한 장면(still) ---------- */
+
+  const STILL_T = 24000;
+
+  function stillGl(kind, out, colors) {
+    const tmp = document.createElement('canvas');
+    tmp.width = out.width;
+    tmp.height = out.height;
+    const gl = glContext(tmp, true);
+    if (!gl) return;
+    const e = { kind, gl, w: tmp.width, h: tmp.height, programs: {}, ink: colors.ink, paper: colors.paper };
+    drawGl(e, STILL_T, [0, 0]);
+    if (e.programs[kind]) out.getContext('2d').drawImage(tmp, 0, 0);
+    loseGl(gl);
+  }
+
+  function stillWongoji(out, colors) {
+    const tmp = document.createElement('canvas');
+    tmp.width = out.width;
+    tmp.height = out.height;
+    const e = { ctx: tmp.getContext('2d'), w: tmp.width, h: tmp.height, scale: 1, ink: colors.ink };
+    drawWongoji(e, STILL_T, [0, 0]);
+    out.getContext('2d').drawImage(tmp, 0, 0);
+  }
+
+  /* 고운 낟알 한 장(회색 잡음 타일). 오로라에는 overlay로, 편지지에는 곱하기·스크린으로 얹는다 */
+  function grainTile(seed) {
+    const n = 128;
+    const tile = document.createElement('canvas');
+    tile.width = tile.height = n;
+    const c = tile.getContext('2d');
+    const img = c.createImageData(n, n);
+    const r = rand(seed);
+    for (let i = 0; i < n * n; i++) {
+      const v = Math.round(128 + (r() + r() - 1) * 64);
+      img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+      img.data[i * 4 + 3] = 255;
+    }
+    c.putImageData(img, 0, 0);
+    return tile;
+  }
+
+  function stillAurora(out, colors, night) {
+    const c = out.getContext('2d');
+    const { width: w, height: h } = out;
+    /* 빛 덩이: 흐르는 길의 3할쯤 와 있는 자세(backdrop.css의 keyframes와 같은 길) */
+    const moves = [[0.18, 0.07, 1.04], [-0.16, 0.13, 1.04], [0.24, -0.17, 1.09]];
+    auroraTones(themeInk(), night).forEach((t, i) => {
+      const b = BLOBS[i];
+      const [mx, my, sc] = moves[i];
+      const bw = b.w * w;
+      const bh = b.h * h;
+      const cx = b.x * w + bw / 2 + mx * bw;
+      const cy = b.y * h + bh / 2 + my * bh;
+      c.save();
+      c.globalCompositeOperation = night ? 'screen' : 'source-over';
+      c.translate(cx, cy);
+      c.scale((bw / 2) * sc, (bh / 2) * sc);
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+      [[0, 1], [0.22, 0.78], [0.46, 0.46], [0.7, 0.18], [1, 0]].forEach(([at, k]) => g.addColorStop(at, css(t.c, t.a * k)));
+      c.fillStyle = g;
+      c.fillRect(-1, -1, 2, 2);
+      c.restore();
+    });
+    c.save();
+    c.globalCompositeOperation = 'overlay';
+    c.globalAlpha = night ? 0.3 : 0.22;
+    c.fillStyle = c.createPattern(grainTile(4127), 'repeat');
+    c.fillRect(0, 0, w, h);
+    c.restore();
+    const L = Math.hypot(w, h);
+    const gl = c.createLinearGradient(w / 2 - Math.cos(0.49) * L / 2, h / 2 - Math.sin(0.49) * L / 2, w / 2 + Math.cos(0.49) * L / 2, h / 2 + Math.sin(0.49) * L / 2);
+    const hi = night ? 0.07 : 0.22;
+    [[0, hi], [0.34, hi * 0.18], [0.52, 0], [0.78, hi * 0.45], [1, 0]].forEach(([at, a]) => gl.addColorStop(at, `rgba(255,255,255,${a})`));
+    c.fillStyle = gl;
+    c.fillRect(0, 0, w, h);
+    vignette(c, w, h, night ? 0.3 : 0.1);
+  }
+
+  function vignette(c, w, h, a) {
+    const v = c.createRadialGradient(w / 2, h * 0.46, Math.min(w, h) * 0.45, w / 2, h * 0.46, Math.hypot(w, h) * 0.62);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, `rgba(0,0,0,${a})`);
+    c.fillStyle = v;
+    c.fillRect(0, 0, w, h);
+  }
+
+  /* 편지지: 책상 면 가운데에 줄 그은 종이 한 장(backdrop.css의 편지지와 같은 섞음). clear 띠([위, 아래])에는 줄을 긋지 않는다 */
+  function stillLetter(out, colors, night, clear) {
+    const c = out.getContext('2d');
+    const { width: w, height: h } = out;
+    const { paper, ink } = colors;
+    const desk = night ? mixC(paper, [0, 0, 0], 0.22) : mixC(paper, ink, 0.09);
+    const sheet = night ? mixC(paper, ink, 0.1) : mixC(paper, [1, 1, 1], 0.62);
+    c.fillStyle = css(desk);
+    c.fillRect(0, 0, w, h);
+    vignette(c, w, h, night ? 0.28 : 0.06);
+    const ph = Math.round(h * 0.84);
+    const pw = Math.round(Math.min(w * 0.86, Math.max(ph * 0.78, w * 0.62)));
+    const x = Math.round((w - pw) / 2);
+    const y = Math.round((h - ph) / 2);
+    const u = Math.min(w, h) / 630;
+    c.save();
+    c.shadowColor = night ? 'rgba(0,0,0,0.55)' : css(ink, 0.2);
+    c.shadowBlur = 44 * u;
+    c.shadowOffsetY = 18 * u;
+    c.fillStyle = css(sheet);
+    c.fillRect(x, y, pw, ph);
+    c.restore();
+    c.save();
+    c.shadowColor = night ? 'rgba(0,0,0,0.4)' : css(ink, 0.12);
+    c.shadowBlur = 3 * u;
+    c.shadowOffsetY = 1 * u;
+    c.fillStyle = css(sheet);
+    c.fillRect(x, y, pw, ph);
+    c.restore();
+    c.save();
+    c.beginPath();
+    c.rect(x, y, pw, ph);
+    c.clip();
+    c.globalCompositeOperation = night ? 'screen' : 'multiply';
+    c.globalAlpha = night ? 0.05 : 0.06;
+    c.fillStyle = c.createPattern(grainTile(2027), 'repeat');
+    c.fillRect(x, y, pw, ph);
+    c.restore();
+    const gap = Math.max(14, Math.round(ph / 14));
+    const mx = Math.round(pw * 0.07);
+    c.fillStyle = night ? css(ink, 0.12) : css(ink, 0.14);
+    for (let ry = y + gap * 1.6; ry < y + ph - gap * 0.9; ry += gap) {
+      const ly = Math.round(ry);
+      if (clear && ly >= clear[0] && ly <= clear[1]) continue;
+      c.fillRect(x + mx, ly, pw - mx * 2, Math.max(1, Math.round(u)));
+    }
+    c.fillStyle = night ? css(ink, 0.1) : css(ink, 0.12);
+    c.fillRect(x, y, pw, Math.max(1, Math.round(u)));
+  }
+
+  /*
+   * 바탕 kind를 w×h 캔버스에 멈춘 한 장면으로 그린다. scene은 'day'|'night'(없으면 바탕으로 짐작). opts.clear는 편지지의 줄 없는 띠.
+   * 종이색을 먼저 칠하고 그 위에 바탕을 얹은 완성된 그림을 돌려준다. 셰이더 바탕은 잠깐 쓴 WebGL 문맥을 바로 놓는다.
+   * WebGL을 못 쓰면 산 바탕처럼 종이색만 남은 그림, 모르는 바탕이거나 캔버스를 못 만들면 null.
+   */
+  function still(kind, w, h, scene, opts) {
+    try {
+      if (!KINDS[kind]) return null;
+      const W = Math.max(1, Math.round(w || 0));
+      const H = Math.max(1, Math.round(h || 0));
+      const night = scene ? scene === 'night' : NIGHT_ONLY.includes(kind);
+      const colors = sceneColors(night ? 'night' : 'day');
+      const out = document.createElement('canvas');
+      out.width = W;
+      out.height = H;
+      const c = out.getContext('2d');
+      if (!c) return null;
+      c.fillStyle = css(colors.paper);
+      c.fillRect(0, 0, W, H);
+      const engine = KINDS[kind].engine;
+      if (engine === 'gl') stillGl(kind, out, colors);
+      else if (engine === '2d') stillWongoji(out, colors);
+      else if (kind === 'aurora') stillAurora(out, colors, night);
+      else if (kind === 'letter') stillLetter(out, colors, night, opts && Array.isArray(opts.clear) ? opts.clear : null);
+      return out;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  global.GeulBackdrop = { KINDS, mount, setKind, setActive, setSpeed, pointer, refresh, still };
 })(typeof window !== 'undefined' ? window : globalThis);

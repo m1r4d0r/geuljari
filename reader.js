@@ -2,19 +2,21 @@
  * 글결 읽기 틀
  * 글을 페이지(빈 줄 둘로 나뉜 덩어리)마다 화면 한 장으로 세우고, 진행값 pos 하나로 장 사이를 오간다.
  *   pos = 2.4 → 3번째 장에서 4번째 장으로 40% 넘어간 상태
- * pos는 끌기·휠이 직접 밀고, 손을 떼면 스프링이 가까운 장으로 마저 데려간다. 단추·키는 정해진 곡선으로 휙 넘긴다.
- * 두 장의 장면(낮·밤)이 다르면 바닥 가운데를 축으로 쓸어 넘기고(같이 넘김: 글도 장과 함께 쓸림), 같으면 스며들듯 겹쳐 넘긴다.
- * 장에 도착하면 그 장의 글을 엔진 시간표대로 써 내려간다. 쓰는 중에 넘기려 하면 먼저 그 장을 다 쓴다.
+ * 마지막 쪽 뒤에는 끝 장(.sheet.ending, ending.js)이 하나 더 있다. 쓸 글이 없어서 도착하면 바로 다 쓴 장으로 친다.
+ * pos는 끌기가 직접 밀고, 손을 떼면 스프링이 가까운 장으로 마저 데려간다. 키·휠·눈금은 정해진 시간과 곡선으로 휙 넘긴다.
+ *   그 시간과 곡선은 넘김마다 GeulFlip.timing이 정한다(바닥 빛이 먼저 드는 lead, 움직이는 run, 빛이 빠지는 tail).
+ * 두 장의 장면(라이트·다크)이 다르면 반전 넘김으로, 같으면 스며들듯 겹쳐 넘긴다.
+ *   쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(기본 쓸기).
+ * 장에 도착하면 그 장의 글을 엔진 시간표대로 써 내려간다. 쓰는 중에 넘기려 하면 처음 한 번은 그 장을 다 쓰고, 그다음에 넘긴다.
+ * 화면에는 아래 가운데의 쪽 눈금 말고 글자를 띄우지 않는다. 지금 장의 눈금은 써 나간 만큼 차고, 끝 장은 네모 하나로 따로 보인다.
  * 글이 화면보다 긴 장은 안에서 위아래로 스크롤되고, 그때만 화면 가운데 줄이 또렷한 초점 띠가 켜진다.
- * 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 거기서 기다린다. 읽는 사람이 내리면 이어 쓴다.
+ * 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 거기서 기다리며, 눈금 위에 짧은 선이 흘러내린다. 읽는 사람이 내리면 이어 쓴다.
  * 휠은 조금 굴리면 넘김이 걸리고, 걸린 뒤로는 손을 멈출 때까지 더 굴러도 한 장만 휙 넘긴다.
- * 쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(기본 쓸기), 같으면 스밈.
- * 미리 보기로 열렸을 때 sessionStorage의 geulgyeol.start({page, needle, next})가 있으면 그 장의 그 글귀 조금 앞부터 쓴다.
- *   next가 있으면 그 장을 다 쓴 뒤 다음 장으로 저절로 넘겨 넘김을 보여 준다.
- * 쓰는 중에 넘기려 하면 처음 한 번은 '아직 쓰는 중'이라고 알리기만 하고, 곧이어 한 번 더 하면 그 장을 다 쓴다.
- *   아래 눈금의 지금 장은 써 나간 만큼 찬다. '이 쪽 다시'(#again)는 지금 장만 처음부터 다시 쓴다.
- * 편집실 안(iframe)에 있으면 장에 멈출 때마다 몇째 장인지 알리고(geulgyeol:page),
- *   편집실이 부르면 그 장으로 가거나(geulgyeol:goto) 지금 장을 다시 쓴다(geulgyeol:again).
+ * 움직임은 기기의 '동작 줄이기' 설정을 따른다. 켜져 있으면 글을 처음부터 다 보여 주고 넘김도 바로 바꾼다.
+ * 미리 보기로 열렸을 때 시작 자리({page, needle, next, done, ending})가 있으면 그 장의 그 글귀 조금 앞부터 쓴다.
+ *   next가 있으면 그 장을 다 쓴 뒤 다음 장으로 저절로 넘겨 넘김을 보여 준다. ending이면 끝 장에 바로 놓는다.
+ * 편집실 안(iframe)에 있으면 장에 멈출 때마다 몇째 장인지 알리고(geulgyeol:page, 끝 장이면 ending: true),
+ *   편집실이 부르면 그 장으로 가거나(geulgyeol:goto, 쪽 수와 같은 번호는 끝 장) 지금 장을 다시 쓰거나(geulgyeol:again) 다 쓴다(geulgyeol:finish).
  * 길게 누르면 그 줄에 머물러 나머지가 가라앉고 바탕도 느려진다. 다 쓴 어절에 손을 대면 잠깐 다시 젖는다.
  */
 (function () {
@@ -26,15 +28,9 @@
   const B = window.GeulBackdrop;
   if (!E || !G || !M || !F || !B) return;
 
-  const root = document.documentElement;
   const stage = document.getElementById('stage');
   const srBox = document.getElementById('glog-sr');
   const dotsBox = document.getElementById('dots');
-  const hint = document.getElementById('hint');
-  const prevBtn = document.getElementById('prev');
-  const nextBtn = document.getElementById('next');
-  const motionBtn = document.getElementById('motion');
-  const replayBtn = document.getElementById('replay');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -44,32 +40,38 @@
   const WHEEL_KICK = 40;      // 휠을 이만큼(px) 굴리면 넘김이 걸린다
   const WHEEL_REST = 260;     // 휠이 이만큼 멈추면 다음 넘김을 받는다
   const HOLD_LINE = 0.86;     // 쓰는 자리가 화면 높이의 이 비율 아래로 내려가면 기다린다
-  const SKIP_WINDOW = 1800;   // 쓰는 중에 넘기려 한 뒤 이 안에 한 번 더 하면 다 쓴다
   const AUTO_NEXT = 700;      // 다 쓰고 저절로 넘길 때 기다림
   const NEXT_ONLY = 420;      // 넘김만 볼 때 앞 쪽을 보여 주는 시간
   const LAND_WAIT = 320;      // 장에 도착한 뒤 쓰기 시작까지
   const HOLD_MS = 480;        // 이만큼 누르고 있으면 머무르기
+  const FREE = 'a, button, input, textarea, select'; // 누르면 넘김·머무르기 대신 제 일을 하는 것
 
   const store = {
     get(area, k) { try { return window[area].getItem(k); } catch (e) { return null; } },
-    set(area, k, v) { try { window[area].setItem(k, v); } catch (e) { /* 저장할 수 없는 환경에서는 넘어간다 */ } },
     del(area, k) { try { window[area].removeItem(k); } catch (e) { /* 저장할 수 없는 환경에서는 넘어간다 */ } }
   };
 
-  /* 본문은 #glog-text에서 읽는다. 가림판에서 미리 보기로 넘어왔으면 그 글을 대신 쓴다. */
+  /*
+   * 본문은 #glog-text에서 읽는다. 편집실·가림판에서 미리 보기로 넘어왔으면 그 글을 대신 쓰고,
+   * 제목(title)·처음 만든 날(made, YYYY-MM-DD)·끝 장 바탕(ending {scene, ground})도 함께 읽는다. 글만 있는 옛 자료도 읽힌다.
+   */
   function readSource() {
     const holder = document.getElementById('glog-text');
-    let text = holder ? holder.textContent : '';
+    const src = { text: holder ? holder.textContent : '', title: '', made: '', ending: null };
     const asked = location.hash === '#preview' || store.get('sessionStorage', 'geulgyeol.go') === '1';
     store.del('sessionStorage', 'geulgyeol.go');
-    if (asked) {
-      const raw = store.get('sessionStorage', 'geulgyeol.preview') || store.get('localStorage', 'geulgyeol.preview');
-      try {
-        const d = raw ? JSON.parse(raw) : null;
-        if (d && typeof d.text === 'string' && d.text.trim()) text = d.text;
-      } catch (e) { /* 읽을 수 없는 미리 보기 자료는 무시한다 */ }
-    }
-    return text;
+    if (!asked) return src;
+    const raw = store.get('sessionStorage', 'geulgyeol.preview') || store.get('localStorage', 'geulgyeol.preview');
+    try {
+      const d = raw ? JSON.parse(raw) : null;
+      if (d && typeof d.text === 'string' && d.text.trim()) {
+        src.text = d.text;
+        if (typeof d.title === 'string') src.title = d.title;
+        if (typeof d.made === 'string') src.made = d.made;
+        if (d.ending && typeof d.ending === 'object') src.ending = d.ending;
+      }
+    } catch (e) { /* 읽을 수 없는 미리 보기 자료는 무시한다 */ }
+    return src;
   }
 
   /* ---------- 페이지 자리 ---------- */
@@ -78,6 +80,7 @@
    * 페이지마다 글 기둥의 폭·가로 자리를 정한다. 글이 짧을수록 좁고 한쪽으로 치우치며,
    * 길수록 넓고 가운데에 가깝다. 바로 앞 장과 같은 자리는 피하고, 양 끝까지는 가지 않는다(0.2~0.8).
    * 쪽 표시에 자리(왼쪽·가운데·오른쪽)가 있으면 그대로, 없고 강조 블록이 있는 쪽은 가운데.
+   * 짧은 글이 오른쪽에 놓이면 오른쪽 정렬이지만, 편지지 쪽은 종이 왼쪽부터 써 내려가도록 늘 왼쪽 정렬.
    */
   const PLACE_X = { left: 0.2, center: 0.5, right: 0.8 };
   function layoutFor(page, i, prev) {
@@ -90,23 +93,25 @@
     let k = (i * 3 + Math.round(n / 37)) % xs.length;
     if (prev && Math.abs(xs[k] - prev.x) < 0.2) k = (k + 1) % xs.length;
     const x = page.place ? PLACE_X[page.place] : marked ? 0.5 : xs[k];
-    const align = short && x > 0.7 ? 'right' : 'left';
+    const align = short && x > 0.7 && page.ground !== 'letter' ? 'right' : 'left';
     return { measure, x, align };
   }
 
   /* ---------- 장 만들기 ---------- */
 
-  function buildPages(text) {
-    const data = E.pages(E.parse(text));
-    stage.textContent = '';
+  function buildPages(src) {
+    const data = E.pages(E.parse(src.text));
+    /* 무대에는 장만 지운다. 넘김 빛(flip.js가 붙인 바늘·고리 등)은 남겨 둔다 */
+    stage.querySelectorAll('.sheet').forEach((s) => s.remove());
     srBox.textContent = '';
     let prevLayout = null;
-    return data.map((pg, i) => {
+    const list = data.map((pg, i) => {
       const sheet = document.createElement('section');
       sheet.className = 'sheet';
       sheet.dataset.scene = pg.scene;
       sheet.dataset.ground = pg.ground;
       sheet.dataset.i = String(i);
+      sheet.setAttribute('aria-hidden', 'true');
       const scroll = document.createElement('div');
       scroll.className = 'scroll';
       const column = document.createElement('div');
@@ -146,13 +151,28 @@
       scroll.addEventListener('scroll', () => { if (P === pages[S.cur]) band(); }, { passive: true });
       return P;
     });
+    const end = list.length ? buildEnding(src, list.length) : null;
+    if (end) list.push(end);
+    return list;
+  }
+
+  /* 끝 장: ending.js가 그린다. 쓸 글이 없어 늘 다 쓴 장이다 */
+  function buildEnding(src, n) {
+    if (!window.GeulEnding) return null;
+    const end = window.GeulEnding.build({ text: src.text, title: src.title, made: src.made, ending: src.ending, onReplay: replay });
+    if (!end) return null;
+    end.sheet.dataset.i = String(n);
+    stage.append(end.sheet);
+    B.mount(end.sheet, end.ground);
+    return { el: end.sheet, scroll: end.scroll, column: null, items: [], lines: [], scene: end.scene, turn: null, state: 'done', tl: null, start: 0, fits: true, held: false, ending: true };
   }
 
   /* ---------- 상태 ---------- */
 
   const flip = F.create(stage, { content: '.scroll' });
-  const S = { cur: 0, pos: 0, on: true, firstShown: false, turned: false };
+  const S = { cur: 0, pos: 0, on: !reduce.matches, firstShown: false };
   let pages = [];
+  let count = 0;   // 글이 있는 장 수(끝 장 번호와 같다)
   let tw = null;
 
   const spring = M.spring({
@@ -197,10 +217,9 @@
     return E.TIME.firstDelay;
   }
 
-  /* 아래로 내려 이어 읽으라는 표시 */
+  /* 아래로 내려 이어 읽으라는 표시: 눈금 위에서 짧은 선이 흘러내린다 */
   const cue = document.createElement('div');
   cue.className = 'ui cue';
-  cue.textContent = '내려서 이어 읽어요';
   cue.setAttribute('aria-hidden', 'true');
   document.body.append(cue);
 
@@ -216,41 +235,25 @@
     };
   }
 
-  /* 쓰는 중에 넘기려 할 때의 알림 */
-  const busy = document.createElement('div');
-  busy.className = 'ui cue busy';
-  busy.textContent = '아직 쓰고 있어요. 한 번 더 넘기면 다 보여 줘요.';
-  busy.setAttribute('aria-live', 'polite');
-  document.body.append(busy);
-  let busyTimer = 0;
-
-  /* 쓰는 중이면 처음 한 번은 알리기만 하고 true(넘기지 않음), 곧이어 한 번 더면 다 쓰고 true. 쓰는 중이 아니면 false */
-  function holdSkip(P) {
+  /* 쓰는 중이면 그 장을 다 쓰고 true(이번에는 넘기지 않음). 쓰는 중이 아니면 false */
+  function finishFirst(P) {
     if (!writing(P)) return false;
-    const now = performance.now();
-    if (P.skipAt && now - P.skipAt < SKIP_WINDOW) {
-      P.skipAt = 0;
-      busy.classList.remove('is-on');
-      finish(P);
-      return true;
-    }
-    P.skipAt = now;
-    busy.classList.add('is-on');
-    clearTimeout(busyTimer);
-    busyTimer = setTimeout(() => busy.classList.remove('is-on'), SKIP_WINDOW);
+    finish(P);
+    P.held = false;
+    cue.classList.remove('is-on');
+    progress(P, 1);
     return true;
   }
 
   /* 아래 눈금: 지금 장은 써 나간 만큼 찬다 */
   function progress(P, n) {
-    const k = pages.indexOf(P);
-    const dot = dotsBox.children[k];
+    const dot = dotsBox.children[pages.indexOf(P)];
     if (dot) dot.style.setProperty('--p', String(n));
   }
 
   function play(P, wait, from) {
     if (P.state !== 'idle') return;
-    if (!S.on) { finish(P); return; }
+    if (P.ending || !S.on) { finish(P); return; }
     P.state = 'waiting';
     const total = P.items.filter((it) => !it.keep).length || 1;
     let shown = 0;
@@ -266,7 +269,6 @@
           P.state = 'done';
           P.held = false;
           cue.classList.remove('is-on');
-          busy.classList.remove('is-on');
           progress(P, 1);
           if (P.after) { const f = P.after; P.after = null; setTimeout(f, AUTO_NEXT); }
         }
@@ -297,7 +299,7 @@
     S.pos = clamp(p, 0, N - 1);
     const i = Math.min(N - 1, Math.floor(S.pos + 1e-6));
     const f = S.pos - i;
-    const resting = (f < 0.0005 || f > 0.9995 || i >= N - 1) && !light;
+    const resting = i >= N - 1 || ((f < 0.0005 || f > 0.9995) && !light);
     if (resting || N < 2) {
       const k = Math.round(S.pos);
       if (flip.active) flip.finish(true);
@@ -330,8 +332,7 @@
       if (j !== S.cur) P.el.classList.remove('lingering');
     });
     cue.classList.toggle('is-on', !!pages[S.cur].held);
-    const P = pages[S.cur];
-    play(P, firstWait(), from);
+    play(pages[S.cur], firstWait(), from);
     tellPage();
     band();
     syncPager();
@@ -349,53 +350,62 @@
     if (tw) { tw.cancel(); tw = null; }
   }
 
-  function noteTurn() {
-    if (S.turned) return;
-    S.turned = true;
-    if (hint) hint.classList.add('is-gone');
+  /* 넘김의 시간과 곡선. flip.js가 정한 값을 쓰고, 없으면 반전은 빛 170 · 휙 640 · 빛 빠짐 260, 스밈은 760 */
+  function timingOf(mode) {
+    const t = typeof F.timing === 'function' ? F.timing(mode) : null;
+    if (t && t.run > 0) return { lead: t.lead || 0, run: t.run, tail: t.tail || 0, ease: t.ease || M.ease.inOut };
+    return mode === 'drift'
+      ? { lead: 0, run: 760, tail: 0, ease: M.ease.inOut }
+      : { lead: 170, run: 640, tail: 260, ease: M.ease.swing };
   }
 
-  /* 단추·키: 장면이 바뀌는 넘김이면 바닥선에 불이 먼저 들어온 뒤 휙, 아니면 스며들 듯 넘긴다 */
+  /*
+   * 키·눈금으로 한 장 넘기기: 바닥 빛이 있는 넘김은 빛이 먼저 들어온 뒤(lead) 휙 넘어가고(run) 빛이 빠진다(tail).
+   * 빛을 켜 두는 동안에도 넘기는 두 장 사이에 머물도록, 앞으로 갈 때는 도착 바로 앞(to - 1e-4)에서, 되돌아갈 때는 출발 바로 앞에서 그린다.
+   */
   function goTo(target, axis) {
     const N = pages.length;
     const to = clamp(target, 0, N - 1);
     if (to === S.cur && Math.abs(S.pos - to) < 0.001) return;
     stopAll();
-    noteTurn();
     S.axis = axis || 'x';
     if (Math.abs(to - S.cur) > 1) { jump(to); return; }
-    if (!S.on || reduce.matches) { spring.set(to); land(to); return; }
+    if (!S.on) { spring.set(to); land(to); return; }
     const from = S.pos;
-    const lo = Math.min(from, to);
-    const sweep = modeOf(pages[Math.floor(lo)], pages[Math.min(N - 1, Math.floor(lo) + 1)]) !== 'drift';
-    if (!sweep) {
-      tw = M.tween(from, to, 760, M.ease.inOut, (x) => render(x), () => { tw = null; spring.set(to); land(to); });
-      return;
-    }
-    tw = M.tween(0, 1, 170, M.ease.out, (l) => render(from, l), () => {
-      tw = M.tween(from, to, 640, M.ease.swing, (x) => render(x, 1), () => {
-        tw = M.tween(1, 0, 260, M.ease.out, (l) => render(to, l), () => {
-          tw = null;
-          spring.set(to);
-          land(to);
-        });
-      });
-    });
+    const lo = Math.floor(Math.min(from, to));
+    const t = timingOf(modeOf(pages[lo], pages[Math.min(N - 1, lo + 1)]));
+    const lit = t.lead > 0 || t.tail > 0 ? 1 : undefined;
+    const fwd = to > from;
+    const a = fwd ? from : Math.max(to, from - 1e-4);
+    const b = fwd ? Math.max(from, to - 1e-4) : to;
+    const arrive = () => { tw = null; spring.set(to); land(to); };
+    const fade = () => {
+      if (!t.tail) { arrive(); return; }
+      tw = M.tween(1, 0, t.tail, M.ease.out, (l) => render(b, l), arrive);
+    };
+    const run = () => { tw = M.tween(a, b, t.run, t.ease, (x) => render(x, lit), fade); };
+    if (t.lead) tw = M.tween(0, 1, t.lead, M.ease.out, (l) => render(a, l), run);
+    else run();
+  }
+
+  /* 무대를 잠깐 어둡게 했다가 그사이에 then을 하고 다시 밝힌다 */
+  function dimSwap(then) {
+    const a = stage.animate && S.on ? stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' }) : null;
+    setTimeout(() => {
+      then();
+      if (!a) return;
+      a.cancel();
+      stage.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
+    }, a ? 220 : 0);
   }
 
   /* 두 장 이상 건너뛸 때는 무대를 잠깐 어둡게 했다가 바로 옮긴다 */
   function jump(to) {
-    const a = stage.animate ? stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' }) : null;
-    setTimeout(() => {
-      spring.set(to);
-      land(to);
-      if (a) a.cancel();
-      if (stage.animate) stage.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' });
-    }, a ? 220 : 0);
+    dimSwap(() => { spring.set(to); land(to); });
   }
 
   function next() {
-    if (holdSkip(pages[S.cur])) return;
+    if (finishFirst(pages[S.cur])) return;
     goTo(S.cur + 1);
   }
 
@@ -431,7 +441,7 @@
   }
 
   stage.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || (e.target.closest && e.target.closest(FREE))) return;
     stopAll();
     drag = {
       id: e.pointerId, x: e.clientX, y: e.clientY, from: S.pos, axis: null, moved: false,
@@ -482,7 +492,6 @@
     stage.classList.remove('is-dragging');
     if (d.held) { linger(false); return; }
     if (!d.moved) return;
-    noteTurn();
     const now = performance.now();
     const old = d.samples.find(([t]) => now - t < 100) || d.samples[0];
     const v = (S.pos - old[1]) / (Math.max(16, now - old[0]) / 1000);
@@ -491,7 +500,7 @@
     if (v > 1.1) target = Math.min(base + 1, pages.length - 1);
     else if (v < -1.1) target = Math.max(base - 1, 0);
     else target = Math.round(S.pos);
-    if (!S.on || reduce.matches) { spring.set(target); land(target); return; }
+    if (!S.on) { spring.set(target); land(target); return; }
     spring.set(S.pos, v);
     spring.to(target, v);
   }
@@ -503,7 +512,7 @@
 
   /*
    * 휠: 장 안에 내릴 글이 남았으면 그대로 스크롤한다. 끝에 닿은 뒤 WHEEL_KICK만큼 더 굴리면 넘김이 걸려
-   * 단추로 넘길 때처럼 끝까지 휙 넘어간다. 걸린 뒤 WHEEL_REST 동안 휠이 멈추지 않으면 그 몸짓은 다 한 번으로 친다.
+   * 키로 넘길 때처럼 끝까지 휙 넘어간다. 걸린 뒤 WHEEL_REST 동안 휠이 멈추지 않으면 그 몸짓은 다 한 번으로 친다.
    */
   let wheel = null;
   stage.addEventListener('wheel', (e) => {
@@ -523,7 +532,7 @@
     clearTimeout(wheel.timer);
     wheel.timer = setTimeout(() => { wheel = null; }, WHEEL_REST);
     if (wheel.locked || !d) return;
-    if (d > 0 && holdSkip(P)) { wheel.locked = true; return; }
+    if (d > 0 && finishFirst(P)) { wheel.locked = true; return; }
     if (wheel.acc && Math.sign(wheel.acc) !== Math.sign(d)) wheel.acc = 0;
     wheel.acc += d;
     if (Math.abs(wheel.acc) < WHEEL_KICK) return;
@@ -538,7 +547,7 @@
     const sc = pages[S.cur].scroll;
     const room = dir > 0 ? sc.scrollHeight - sc.clientHeight - sc.scrollTop : sc.scrollTop;
     if (room <= 2) return false;
-    sc.scrollBy({ top: dir * sc.clientHeight * 0.75, behavior: reduce.matches ? 'auto' : 'smooth' });
+    sc.scrollBy({ top: dir * sc.clientHeight * 0.75, behavior: S.on ? 'smooth' : 'auto' });
     return true;
   }
 
@@ -546,10 +555,11 @@
     if (e.target.closest && e.target.closest('input, textarea, select')) return;
     if ((e.key === ' ' || e.key === 'Enter') && e.target.closest && e.target.closest('button, a')) return;
     const P = pages[S.cur];
+    if (!P) return;
     if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
       e.preventDefault();
       if (writing(P) && P.held && scrollPage(1)) return;
-      if (holdSkip(P)) return;
+      if (finishFirst(P)) return;
       if (!scrollPage(1)) next();
     } else if (['ArrowRight', 'Enter'].includes(e.key)) {
       e.preventDefault();
@@ -563,71 +573,60 @@
     }
   });
 
-  /* ---------- 아래 막대 ---------- */
+  /* ---------- 아래 눈금 ---------- */
 
   function drawDots() {
     dotsBox.textContent = '';
     pages.forEach((P, i) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'dot';
-      b.setAttribute('aria-label', `${i + 1}쪽`);
+      b.className = P.ending ? 'dot end' : 'dot';
+      b.setAttribute('aria-label', P.ending ? '끝' : `${i + 1}쪽`);
       b.addEventListener('click', () => goTo(i));
       dotsBox.append(b);
     });
   }
 
+  /* 지금 장 표시, 눈금과 기다림 표시는 지금 장의 장면 먹색으로 */
+  const uiParts = [dotsBox.closest('.ui'), cue].filter(Boolean);
   function syncPager() {
     [...dotsBox.children].forEach((b, i) => b.setAttribute('aria-current', String(i === S.cur)));
-    prevBtn.disabled = S.cur === 0;
-    nextBtn.disabled = S.cur === pages.length - 1 && !writing(pages[S.cur]);
+    const P = pages[S.cur];
+    if (P) uiParts.forEach((n) => { n.dataset.scene = P.scene; });
   }
 
-  /* ---------- 움직임 · 처음부터 ---------- */
+  /* ---------- 다시 쓰기 ---------- */
 
-  function setMotion(on, persist) {
-    S.on = on;
-    motionBtn.textContent = on ? '움직임 끄기' : '움직임 켜기';
-    root.classList.toggle('no-motion', !on);
-    if (persist) store.set('localStorage', 'geulgyeol.motion', on ? 'on' : 'off');
-    if (!on) pages.forEach(finish);
-    band();
-  }
-
+  /* 처음부터: 모든 장을 되돌리고 첫 장부터 다시 쓴다(끝 장의 '다시 보기') */
   function replay() {
     stopAll();
-    pages.forEach(reset);
-    S.firstShown = false;
-    spring.set(0);
-    land(0);
+    dimSwap(() => {
+      pages.forEach(reset);
+      S.firstShown = false;
+      spring.set(0);
+      land(0);
+    });
   }
 
-  prevBtn.addEventListener('click', prev);
-  nextBtn.addEventListener('click', next);
-  motionBtn.addEventListener('click', () => {
-    if (S.on) setMotion(false, true);
-    else { setMotion(true, true); replay(); }
-  });
-  replayBtn.addEventListener('click', () => {
-    if (!S.on) setMotion(true, true);
-    replay();
-  });
-
-  /* 이 쪽 다시: 지금 장만 처음부터 다시 쓴다 */
+  /* 이 쪽 다시: 지금 장만 처음부터 다시 쓴다(편집실의 geulgyeol:again) */
   function again() {
-    if (!S.on) setMotion(true, true);
     const P = pages[S.cur];
     reset(P);
     play(P, LAND_WAIT);
   }
-  const againBtn = document.getElementById('again');
-  if (againBtn) againBtn.addEventListener('click', again);
+
+  /* 기기의 '동작 줄이기'를 바꾸면 바로 따른다 */
+  reduce.addEventListener('change', () => {
+    S.on = !reduce.matches;
+    if (!S.on) pages.forEach(finish);
+    band();
+  });
 
   /* ---------- 편집실과 주고받기 ---------- */
 
   const embedded = window.parent !== window;
   function tellPage() {
-    if (embedded) window.parent.postMessage({ type: 'geulgyeol:page', page: S.cur, pages: pages.length }, location.origin);
+    if (embedded) window.parent.postMessage({ type: 'geulgyeol:page', page: S.cur, pages: count, ending: !!pages[S.cur].ending }, location.origin);
   }
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || !pages.length) return;
@@ -650,10 +649,9 @@
 
   pages = buildPages(readSource());
   if (!pages.length) return;
+  count = pages.filter((P) => !P.ending).length;
   drawDots();
-  const saved = store.get('localStorage', 'geulgyeol.motion');
-  S.on = saved ? saved === 'on' : !reduce.matches;
-  motionBtn.textContent = S.on ? '움직임 끄기' : '움직임 켜기';
+  syncPager();
   pages.forEach((P) => { if (S.on) G.hide(P.items); });
 
   const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
@@ -671,7 +669,8 @@
   function start() {
     measureFits();
     const at = readStart();
-    const k = at ? clamp(Number(at.page) || 0, 0, pages.length - 1) : 0;
+    const last = pages.length - 1;
+    const k = !at ? 0 : at.ending ? last : clamp(Number(at.page) || 0, 0, last);
     let from = 0;
     if (at && at.needle) {
       const it = findNeedle(pages[k], at.needle);
@@ -685,14 +684,15 @@
     }
     if (k || from) S.firstShown = true;
     const done = !!(at && at.done);
-    if (at && at.next && k < pages.length - 1 && !done) pages[k].after = () => goTo(k + 1);
+    if (at && at.next && k < last && !done) pages[k].after = () => goTo(k + 1);
     spring.set(k);
     render(k);
     land(k, from);
     /* done: 그 쪽을 다 쓴 모습으로 바로 놓는다(설정을 바꿨을 때). next와 함께면 곧바로 다음 쪽으로 넘겨 넘김만 보인다 */
     if (done) {
       finish(pages[k]);
-      if (at.next && k < pages.length - 1) setTimeout(() => goTo(k + 1), NEXT_ONLY);
+      progress(pages[k], 1);
+      if (at.next && k < last) setTimeout(() => goTo(k + 1), NEXT_ONLY);
     }
   }
 })();

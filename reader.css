@@ -1,11 +1,11 @@
 /* 글결 읽기 틀
-   페이지마다 화면 한 장(.sheet). 장은 무대(.stage)에 겹쳐 있고 지금 장만 보인다.
+   페이지마다 화면 한 장(.sheet). 장은 무대(.stage)에 겹쳐 있고 지금 장만 보인다. 마지막 쪽 뒤의 끝 장(.sheet.ending)은 ending.css.
    장 안에는 바탕 캔버스(.ground) 위에 글 층(.scroll)이 있다. 글이 화면보다 길면 글 층 안에서 위아래로 스크롤한다.
    글 기둥(.column)의 폭(--measure)과 가로 자리(--x: 0 왼쪽 · 0.5 가운데 · 1 오른쪽)는 페이지마다 reader.js가 정한다.
    세로로는 화면 안에 들면 가운데, 넘치면 위에서부터 스크롤한다.
-   조작(페이지 눈금·이전·다음)은 아래 막대, 보기(움직임·다시·가림판)는 위 오른쪽.
-   단추 글자는 차이 혼합(difference)으로 칠해 낮이든 밤이든 바탕의 반대 색으로 보인다.
-   장면 색은 장마다 붙어서 보는 사람의 밝기 설정과 상관없이 글이 정한 낮·밤을 따른다. */
+   화면 위의 조작은 아래 가운데의 쪽 눈금 하나뿐이고 글자는 띄우지 않는다.
+   눈금과 기다림 표시는 지금 장의 장면 먹색(--ink)으로 칠한다(reader.js가 장에 멈출 때 그 장면을 data-scene으로 단다).
+   장면 색은 장마다 붙어서 보는 사람의 밝기 설정과 상관없이 글이 정한 라이트·다크를 따른다. */
 
 :root {
   --backstage: #050607;
@@ -149,49 +149,52 @@ body {
 .ui {
   position: fixed;
   z-index: 10;
-  color: #fff;
-  mix-blend-mode: difference;
-  font-size: .86rem;
-  letter-spacing: .03em;
+  color: var(--ink, #fff);
+  transition: color .5s ease;
 }
-.view {
-  top: calc(env(safe-area-inset-top, 0px) + .9rem);
-  right: 1.25rem;
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  opacity: .7;
-  transition: opacity .3s ease;
-}
-.view:hover, .view:focus-within { opacity: 1; }
+/* 아래 가운데 쪽 눈금. 막대 자체는 손짓을 막지 않고 눈금만 누른다 */
 .ops {
   left: 0;
   right: 0;
   bottom: 0;
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  justify-content: center;
   padding: .8rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + .9rem);
+  pointer-events: none;
 }
-.ops .hint { margin: 0; opacity: .55; min-width: 0; transition: opacity .8s ease; }
-.ops .hint.is-gone { opacity: 0; }
 
-/* 쓰는 자리가 화면 아래에 닿아 기다릴 때 */
+/* 쓰는 자리가 화면 아래에 닿아 기다릴 때: 눈금 위에서 짧은 선이 아래로 흘러내린다 */
 .cue {
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 3.6rem);
-  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 3.3rem);
+  width: 1px;
+  height: 1.5rem;
+  margin-left: -.5px;
+  background: linear-gradient(currentColor, currentColor) top / 100% 0 no-repeat;
   opacity: 0;
   pointer-events: none;
   transition: opacity .6s ease;
-  white-space: nowrap;
 }
-.cue.is-on { opacity: .6; }
-.cue.busy { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.4rem); }
-.cue.busy.is-on { opacity: .85; }
-.ops .turn { margin-left: auto; display: flex; gap: 1.1rem; }
+.cue.is-on { opacity: .75; animation: cue-drip 1.9s cubic-bezier(.6, 0, .3, 1) infinite; }
+@keyframes cue-drip {
+  0% { background-position: top; background-size: 100% 0; }
+  50% { background-position: top; background-size: 100% 100%; }
+  50.01% { background-position: bottom; background-size: 100% 100%; }
+  100% { background-position: bottom; background-size: 100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cue.is-on { animation: none; background-size: 100% 100%; opacity: .5; }
+}
 
-.dots { display: flex; gap: .3rem; }
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: .3rem;
+  max-width: 100%;
+  pointer-events: auto;
+}
 .dot {
   width: 1.2rem;
   height: 1.6rem;
@@ -209,25 +212,56 @@ body {
     linear-gradient(currentColor, currentColor) left center / calc(var(--p, 1) * 100%) 2px no-repeat,
     linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
 }
-
-.tbtn {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  padding: .3rem 0;
-  cursor: pointer;
-  white-space: nowrap;
-  text-decoration: none;
-  opacity: .8;
+/* 끝 장: 선 대신 작은 빈 네모. 지금이면 채운다 */
+.dot.end,
+.dot.end[aria-current="true"] { position: relative; width: 1rem; margin-left: .35rem; background: none; }
+.dot.end::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border: 1px solid currentColor;
 }
-.tbtn:hover { opacity: 1; }
-.tbtn:disabled { opacity: .25; cursor: default; }
-.tbtn:focus-visible, .dot:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+.dot.end[aria-current="true"]::before { background: currentColor; }
+.dot:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
 
 @media (max-width: 599px) {
-  .ops .hint { display: none; }
   .dots { gap: .15rem; }
   .dot { width: .9rem; }
+}
+
+/* ---------- 편지지 쪽 ---------- */
+/* 바탕이 편지지인 쪽(.sheet[data-ground="letter"]). 종이와 줄의 모양은 backdrop.css, 여기는 읽기 틀에 맞춘 자리.
+   종이 여백은 옆 여백(--gutter) 안에 들게 줄이고, 좁은 화면에서는 글 기둥을 양옆으로 펴서 종이가 화면 폭을 거의 채운다.
+   줄이 글줄 아래에 계속 맞도록 문단 사이는 한 줄, 흘러내림 아래 여백은 줄 높이의 배수로 올린다. */
+.sheet[data-ground="letter"] {
+  --lp-lh: 1.95em;
+  --lp-r: 1.72em;
+}
+.sheet[data-ground="letter"] .column {
+  position: relative;
+  --lp-x: min(2.4em, calc(var(--gutter) - .75rem));
+  --lp-t: 2.1em;
+  --lp-b: 2.6em;
+}
+.sheet[data-ground="letter"] .para + .para { margin-top: var(--lp-lh); }
+@supports (padding-bottom: round(up, 1px, 2px)) {
+  .sheet[data-ground="letter"] .ln { padding-bottom: round(up, calc(var(--drip, 0) * .36em), var(--lp-lh)); }
+}
+/* 그 자리에서 고치는 동안(글 기둥이 숨음)에도 종이와 줄은 남긴다 */
+.sheet[data-ground="letter"] .column.ip-hidden::before,
+.sheet[data-ground="letter"] .column.ip-hidden::after { visibility: visible; }
+.sheet[data-ground="letter"] .scroll { overflow-x: hidden; }
+
+@media (max-width: 599px) {
+  .sheet[data-ground="letter"] .scroll { padding-inline: 2.1rem; }
+  .sheet[data-ground="letter"] .column {
+    margin-inline: 0;
+    --lp-x: 1.35rem;
+    --lp-t: 1.7em;
+    --lp-b: 2.3em;
+  }
 }

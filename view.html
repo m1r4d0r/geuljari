@@ -7,9 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Noto+Serif+KR:wght@400&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="backdrop.css">
 <link rel="stylesheet" href="glyph.css">
 <link rel="stylesheet" href="flip.css">
 <link rel="stylesheet" href="reader.css">
+<link rel="stylesheet" href="ending.css">
 <link rel="stylesheet" href="marks.css">
 <link rel="stylesheet" href="view.css">
 <script src="engine.js" defer></script>
@@ -23,24 +25,14 @@
 <script src="editor.js" defer></script>
 <script src="view.js" defer></script>
 <script src="inplace.js" defer></script>
+<script src="ending.js" defer></script>
 <script src="reader.js" defer></script>
 </head>
 <body>
-<main class="stage" id="stage" aria-hidden="true"></main>
-
-<nav class="ui view" aria-label="보기">
-  <button class="tbtn" type="button" id="motion">움직임 끄기</button>
-  <button class="tbtn" type="button" id="again">이 쪽 다시</button>
-  <button class="tbtn" type="button" id="replay">처음부터</button>
-</nav>
+<main class="stage" id="stage"></main>
 
 <footer class="ui ops">
   <span class="dots" id="dots"></span>
-  <p class="hint" id="hint">옆으로 끌거나 휠·방향키로 넘겨요.</p>
-  <span class="turn">
-    <button class="tbtn" type="button" id="prev">이전</button>
-    <button class="tbtn" type="button" id="next">다음</button>
-  </span>
 </footer>
 
 <div class="sr-only" id="glog-sr"></div>

@@ -24,8 +24,8 @@
     '차가운': { turn: '셔터', dry: '빨리', note: '빨리 마르고, 짧게 끊어 넘겨요' },
     '젖은': { flow: '번짐', note: '글자가 번지며 나타나요' },
     '마른': { flow: '이어 쓰기', note: '번짐 없이 또박또박 나타나요' },
-    '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 쉼은 길게' },
-    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 쉼은 짧게' }
+    '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 오래 쉬어요' },
+    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 짧게 쉬어요' }
   };
 
   /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로 */
@@ -35,7 +35,7 @@
   const REST_NAMES = ['짧게', '보통', '길게', '아주 길게'];
   const DRY = { '빨리': 0.9, '보통': 1.8, '느리게': 3.2 };
   const DRY_NAMES = Object.keys(DRY);
-  const GROUNDS = { '라이트': ['창빛', '원고지', '잎그늘', '새벽'], '다크': ['영사광', '오로라', '물빛', '타자'] };
+  const GROUNDS = { '라이트': ['창빛', '원고지', '잎그늘', '새벽', '편지지', '오로라'], '다크': ['영사광', '빛커튼', '물빛', '타자', '편지지', '오로라'] };
   const OLD_SCENE = { '낮': '라이트', '밤': '다크' };
   /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀌는 쪽에는 스밈을 빼고 고른다. */
   const TURNS = (global.Geulgyeol && global.Geulgyeol.TURNS) || { '쓸기': 'sweep' };
@@ -53,10 +53,13 @@
   const ALIGNS = { '저절로': null, '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right', '양쪽': 'justify' };
   const ALIGN_NAMES = Object.keys(ALIGNS);
   /*
-   * 주색: 이름 있는 다섯 가지 또는 직접 고른 색(#rrggbb). 편집실의 먹과 라이트 장면 글자색이 되고,
+   * 주색: 이름 있는 여섯 가지 또는 직접 고른 색(#rrggbb). 편집실의 먹과 라이트 장면 글자색이 되고,
    * 나머지 색(흐린 글씨·선·고름 면)은 종이색과 섞어 만든다. 다크 장면의 바탕·글자·젖은 먹에도 주색을 조금 섞어 결을 맞춘다.
+   * 이름 있는 색은 빛깔이나 밝기가 서로 멀고(어느 둘도 CIELAB ΔE 28 안으로 붙지 않음), 모두 종이(#ECEDF0) 위 글자 대비 7:1을 넘는 차분한 색이다.
    */
-  const THEMES = { '남보라': '#2C2F6B', '먹': '#24221F', '쪽': '#1E4A66', '솔': '#2E5640', '벽돌': '#7E3328' };
+  const THEMES = { '남보라': '#2C2F6B', '먹': '#24221F', '솔': '#2C5536', '황토': '#5F4D13', '벽돌': '#744137', '자두': '#531C3C' };
+  /* 목록에서 빠진 이름은 그 색 그대로 직접 고른 색이 된다 */
+  const RETIRED_THEMES = { '쪽': '#1E4A66' };
   const HEX_RE = /^#[0-9a-fA-F]{6}$/;
   const THEME_NAMES = Object.keys(THEMES);
   const PAPER = '#ECEDF0';
@@ -89,6 +92,7 @@
     o.size = clamp(Number(o.size) || 1, 0.8, 1.5);
     o.measure = Number(o.measure) >= 14 ? clamp(Math.round(Number(o.measure)), 14, 44) : 0;
     if (!(o.align in ALIGNS)) o.align = '저절로';
+    if (RETIRED_THEMES[o.theme]) o.theme = RETIRED_THEMES[o.theme];
     if (!(o.theme in THEMES) && !HEX_RE.test(String(o.theme))) o.theme = '남보라';
     return o;
   }

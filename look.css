@@ -1,0 +1,126 @@
+/* 글결 분위기 살펴보기(look.js)
+   편집실 위에 뜨는 판. 뒤를 흐리게 가리고, 왼쪽 무대에 한 축의 두 낱말을 나란히 움직이는 장면으로, 오른쪽에 축 이름·설명·넘기기.
+   색은 편집실 토큰(--paper·--sheet·--ink·--lead·--line·--faint·--pick·--smudge·--dark·--dark-ink)을 그대로 쓰고, 모서리는 각지다.
+   폰 폭에서는 아래에서 올라오는 판: 무대가 위, 설명과 단추가 엄지 닿는 아래. */
+
+.lk {
+  position: fixed; inset: 0; z-index: 70;
+  display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--paper) 55%, transparent);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  font: 13px/1.5 var(--f-ui); color: var(--ink);
+  word-break: keep-all;
+}
+.lk[hidden] { display: none; }
+.lk *, .lk *::before, .lk *::after { box-sizing: border-box; }
+.lk button { font: inherit; color: inherit; cursor: pointer; border-radius: 0; }
+.lk h2, .lk p { margin: 0; }
+.lk :focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+
+.lk-sheet {
+  width: min(1000px, 100%); min-height: 420px; max-height: calc(100dvh - 32px); overflow-y: auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+  background: var(--sheet); border-top: 3px double var(--ink); box-shadow: 0 24px 60px rgba(0, 0, 0, .16);
+  animation: lk-in .45s cubic-bezier(.2, .7, .2, 1) both;
+}
+@keyframes lk-in { from { opacity: 0; transform: translateY(12px); } }
+
+/* 무대: 두 낱말이 한 줄에 나란히. 카드(움직이는 장면) → 시간 막대 → 낱말·조판값·풀이 */
+.lk-stage { display: flex; flex-direction: column; justify-content: center; padding: 30px 28px 26px; background: var(--paper); }
+.lk-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; animation: lk-in .45s cubic-bezier(.2, .7, .2, 1) both; }
+.lk-opt { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.lk-opt.can { cursor: pointer; }
+
+.lk-card { position: relative; height: 176px; overflow: hidden; background: var(--sheet); font-family: var(--f-read, var(--f-body)); font-size: 21px; line-height: 1.85; color: var(--ink); }
+.lk-opt.can:hover .lk-card { box-shadow: 0 0 0 1px var(--line); }
+.lk-face { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 28px; white-space: nowrap; }
+.lk-face.night { background: var(--dark); color: var(--dark-ink); visibility: hidden; transform-origin: 50% 50%; }
+.lk-ch { display: inline-block; white-space: pre; }
+.lk-caret { position: absolute; width: 1px; background: currentColor; animation: lk-blink 1s steps(1) infinite; }
+.lk-caret[hidden] { display: none; }
+@keyframes lk-blink { 50% { opacity: 0; } }
+/* 넘김의 빛: 조리개 가장자리 고리, 셔터 살 끝 빛줄(flip.css와 같은 빛을 작게) */
+.lk-ring { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 248, 232, .9), 0 0 12px 2px rgba(255, 236, 200, .45); opacity: 0; pointer-events: none; }
+.lk-glint { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+
+/* 시간 막대: 지나간 자리는 먹, 글자가 나온 때는 눈금, 나타나는 동안은 옅은 면, 쉼은 호박색, 마름은 젖은 먹에서 먹으로, 넘김은 다크 면.
+   다 쓴 시간(숨)은 끝 눈금 위에 오른쪽을 맞춰 적는다 */
+.lk-track { position: relative; height: 26px; }
+.lk-track::before { content: ""; position: absolute; left: 0; right: 0; top: 17px; border-top: 1px solid var(--line); }
+.lk-past { position: absolute; left: 0; top: 17px; width: 0; border-top: 1px solid var(--ink); }
+.lk-tick { position: absolute; top: 13px; width: 1px; height: 9px; background: var(--line); }
+.lk-tick.on { background: var(--ink); }
+.lk-seg { position: absolute; top: 14px; height: 7px; }
+.lk-seg.show { background: var(--pick); }
+.lk-seg.rest { background: rgba(148, 107, 15, .3); }
+.lk-seg.turn { background: var(--dark); }
+.lk-now { position: absolute; top: 9px; bottom: 0; width: 1px; margin-left: -.5px; background: var(--ink); }
+.lk-sum { position: absolute; top: -2px; transform: translateX(-100%); padding-right: 2px; font: 10px/12px var(--f-num); color: var(--lead); white-space: nowrap; }
+
+.lk-cap { display: flex; flex-direction: column; gap: 5px; }
+.lk-head { display: flex; align-items: center; gap: 10px; }
+.lk-word { height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--line); font: 400 19px/1 var(--f-body); }
+.lk-opt.on .lk-word { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
+.lk-pick { margin-left: auto; height: 30px; padding: 0 12px; background: transparent; border: 1px solid var(--ink); font-size: 12px; white-space: nowrap; }
+.lk-pick:hover { background: var(--smudge); }
+.lk-pick[aria-pressed="true"] { border-color: transparent; color: var(--lead); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.lk-val { margin-top: 3px; font: 11px/1.6 var(--f-num); letter-spacing: .02em; color: var(--lead); }
+.lk-note { font-size: 13px; line-height: 1.7; color: var(--lead); }
+
+/* 설명 */
+.lk-text { min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 34px 32px 26px; }
+.lk-top { display: flex; align-items: center; justify-content: space-between; }
+.lk-count { font: 700 12px var(--f-num); letter-spacing: .06em; }
+.lk-link { height: 32px; padding: 0; background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; font-size: 12px; color: var(--lead); white-space: nowrap; }
+.lk-link:hover { color: var(--ink); }
+.lk-text h2 { margin-top: 6px; font: 400 30px/1.35 var(--f-body); }
+.lk-body { font-size: 14px; line-height: 1.8; color: var(--lead); }
+.lk-tip { font-size: 12px; line-height: 1.7; color: var(--faint); }
+/* 넘기기: 축 이름 줄(어느 장으로든 바로) 아래에 이전·다음 */
+.lk-nav { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px 10px; }
+.lk-dots { flex: 1 0 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid var(--ink); }
+.lk-dots button { height: 30px; padding: 0 6px; border: 0; background: transparent; font-size: 12px; white-space: nowrap; }
+.lk-dots button + button { border-left: 1px solid var(--ink); }
+.lk-dots button:hover { background: var(--smudge); }
+.lk-dots button[aria-current] { background: var(--ink); color: var(--sheet); }
+.lk-btn { height: 44px; padding: 0 16px; background: transparent; border: 1px solid var(--ink); white-space: nowrap; }
+.lk-btn:hover { background: var(--smudge); }
+.lk-btn.fill { padding: 0 22px; background: var(--ink); color: var(--sheet); letter-spacing: .08em; font-size: 14px; }
+.lk-btn.fill:hover { background: color-mix(in srgb, var(--ink) 86%, #fff); }
+
+/* 좁은 PC 폭: 설명 칸을 줄이고 카드 글자를 낮춘다 */
+@media (max-width: 1000px) {
+  .lk-sheet { grid-template-columns: minmax(0, 1fr) 260px; }
+  .lk-stage { padding: 26px 20px 22px; }
+  .lk-pair { gap: 16px; }
+  .lk-card { font-size: 17px; }
+  .lk-face { padding: 0 18px; }
+  .lk-text { padding: 30px 24px 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-sheet, .lk-pair, .lk-caret { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .lk { place-items: end stretch; padding: 0; }
+  .lk-sheet { width: 100%; min-height: 0; max-height: 100dvh; grid-template-columns: minmax(0, 1fr); padding-bottom: env(safe-area-inset-bottom, 0px); animation-name: lk-up; }
+  @keyframes lk-up { from { opacity: 0; transform: translateY(40px); } }
+  .lk-stage { padding: 16px 14px 14px; }
+  .lk-pair { gap: 10px; }
+  .lk-opt { gap: 8px; }
+  .lk-card { height: 120px; font-size: 15px; }
+  .lk-face { padding: 0 14px; }
+  .lk-head { gap: 6px; }
+  .lk-word { height: 30px; padding: 0 8px; font-size: 16px; }
+  .lk-pick { height: 30px; padding: 0 8px; font-size: 11px; }
+  .lk-val { font-size: 10px; }
+  .lk-note { min-height: 3.2em; font-size: 12px; line-height: 1.6; }
+  .lk-text { padding: 16px 18px 14px; gap: 8px; }
+  .lk-text h2 { margin-top: 0; font-size: 24px; }
+  .lk-body { min-height: 3.4em; font-size: 13px; line-height: 1.7; }
+  .lk-tip { display: none; }
+  .lk-nav { flex-wrap: nowrap; gap: 8px; }
+  .lk-dots { flex: 1 1 auto; }
+  .lk-btn { height: 46px; }
+}

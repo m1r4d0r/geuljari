@@ -44,6 +44,7 @@
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:style') return;
     look(T.normalize(e.data.settings));
+    if (window.GeulFx) window.GeulFx.recolor();
     window.dispatchEvent(new Event('resize'));
   });
   window.GeulReaderOpts = { turn: T.TURNS[s.turn] };
@@ -98,7 +99,7 @@
   const pts = () => [...touches.values()].slice(0, 2);
 
   document.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button, a, input')) return;
+    if (e.target.closest('button, a, input, .end-title')) return;
     if (e.pointerType === 'touch') touches.set(e.pointerId, [e.clientX, e.clientY]);
     if (touches.size === 2) {
       move = null;

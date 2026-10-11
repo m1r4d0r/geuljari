@@ -415,7 +415,7 @@
     ];
   }
 
-  /* 빛 덩이 자리(장 크기에 대한 비율, backdrop.css의 .au-1~3과 같음). still에서 씀 */
+  /* 빛 덩이 자리(정사각형 빛 판에 대한 비율, backdrop.css의 .au-1~3과 같음). still에서 씀 */
   const BLOBS = [
     { x: -0.3, y: -0.45, w: 1.1, h: 0.8 },
     { x: 0.38, y: -0.1, w: 1.0, h: 0.95 },
@@ -450,6 +450,7 @@
 
   function paintAurora(e) {
     if (!e.node) return;
+    e.node.style.setProperty('--au-size', Math.max(e.sheet.clientWidth, e.sheet.clientHeight) * 1.06 + 'px');
     const night = e.sheet.dataset.scene === 'night';
     auroraTones(themeInk(), night).forEach((t, i) => e.node.style.setProperty('--au-' + (i + 1), css(t.c, t.a)));
   }
@@ -575,6 +576,7 @@
     drop(e);
     e.built = true;
     e.engine = KINDS[e.kind].engine;
+    if (e.kind === 'wongoji' && e.sheet.querySelector('.ln')) { e.engine = 'css'; return; }
     if (e.engine === 'css') return;
     if (e.engine === 'dom') { buildAurora(e); return; }
     const canvas = document.createElement('canvas');
@@ -758,10 +760,11 @@
     auroraTones(themeInk(), night).forEach((t, i) => {
       const b = BLOBS[i];
       const [mx, my, sc] = moves[i];
-      const bw = b.w * w;
-      const bh = b.h * h;
-      const cx = b.x * w + bw / 2 + mx * bw;
-      const cy = b.y * h + bh / 2 + my * bh;
+      const side = Math.max(w, h) * 1.06;
+      const bw = b.w * side;
+      const bh = b.h * side;
+      const cx = (w - side) / 2 + b.x * side + bw / 2 + mx * bw;
+      const cy = (h - side) / 2 + b.y * side + bh / 2 + my * bh;
       c.save();
       c.globalCompositeOperation = night ? 'screen' : 'source-over';
       c.translate(cx, cy);
@@ -875,5 +878,17 @@
     }
   }
 
-  global.GeulBackdrop = { KINDS, mount, setKind, setActive, setSpeed, pointer, refresh, still };
+  /* 넘김 파편이 같은 순간의 바탕을 공유한다. WebGL은 읽기 직전에 다시 그려 버퍼를 확보한다. */
+  function snapshot(sheet) {
+    const e = entries.find((item) => item.sheet === sheet);
+    if (!e || !e.node || !['gl', '2d'].includes(e.engine)) return null;
+    if (e.engine === 'gl') drawGl(e, clock, [px, py]);
+    const out = document.createElement('canvas');
+    out.width = e.node.width;
+    out.height = e.node.height;
+    out.getContext('2d').drawImage(e.node, 0, 0);
+    return out;
+  }
+
+  global.GeulBackdrop = { snapshot, KINDS, mount, setKind, setActive, setSpeed, pointer, refresh, still };
 })(typeof window !== 'undefined' ? window : globalThis);

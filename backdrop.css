@@ -71,8 +71,13 @@
   pointer-events: none;
 }
 .ground-aurora i { position: absolute; display: block; }
-/* 빛 덩이 판: 포인터를 따라 조금 옮겨도 가장자리가 드러나지 않게 장보다 조금 크다 */
-.au-field { inset: -3%; }
+/* 긴 변 기준 정사각형을 가운데 둔다. 화면·미리보기 배율은 덩이의 종횡비를 바꾸지 않는다. */
+.au-field {
+  left: 50%; top: 50%;
+  width: var(--au-size, 106vmax); height: var(--au-size, 106vmax);
+  margin-left: calc(var(--au-size, 106vmax) * -.5);
+  margin-top: calc(var(--au-size, 106vmax) * -.5);
+}
 [data-scene="night"] .au-field { mix-blend-mode: screen; }
 
 /* 덩이는 흐림 필터 대신 가장자리로 갈수록 천천히 사라지는 둥근 그라디언트(상자 안에서 다 사라짐) */

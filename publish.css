@@ -31,7 +31,7 @@
 .pub-fine li, .pub-fine p { margin: 0; word-break: keep-all; }
 .pub-fine a { color: inherit; }
 
-/* 하단바: 왼쪽 공개 스위치와 글 삭제(장미로 채움), 오른쪽 하는 일과 먹으로 채운 발행·저장. 단추 높이는 모두 같다 */
+/* 하단바: 왼쪽 공개 스위치와 글 삭제(장미색 글자 단추), 오른쪽 하는 일과 먹으로 채운 발행·저장. 단추 높이는 모두 같다 */
 .publish-bar { flex: none; display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 var(--gut) calc(10px + env(safe-area-inset-bottom, 0px)); min-width: 0; position: relative; }
 .pub-switch { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px 0 10px; border: 1px solid var(--line); background: var(--sheet); color: var(--ink); font: 13px var(--f-ui); white-space: nowrap; }
 .pub-switch:hover:not(:disabled) { border-color: var(--ink); }
@@ -40,8 +40,8 @@
 .pub-switch[aria-checked="true"] i { background: var(--ink); }
 .pub-switch[aria-checked="true"] i::after { transform: translateX(12px); background: var(--sheet); }
 .pub-switch:disabled { opacity: .45; }
-.pub-del { min-width: 0; background: var(--danger); border-color: var(--danger); color: var(--sheet); font-weight: 500; }
-.pub-del:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 82%, var(--sheet)); border-color: color-mix(in srgb, var(--danger) 82%, var(--sheet)); }
+.pub-del { height: 36px; padding: 0 8px; font-size: 13px; color: var(--danger); }
+.pub-del:hover:not(:disabled) { color: color-mix(in srgb, var(--danger) 78%, var(--ink)); }
 .pub-acts { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .pub-more { display: flex; gap: 8px; }
 .pub-go { background: var(--ink); border-color: var(--ink); color: var(--sheet); font-weight: 500; }
@@ -60,7 +60,7 @@
 /* 1000px 이하: 스위치 · 발행(저장) · ⋯, 비밀번호 보내기·파일 백업은 ⋯ 안 */
 @media(max-width: 1000px) {
   .publish-bar { padding: 0 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
-  .pub-switch { height: 44px; }
+  .pub-switch, .pub-del { height: 44px; }
   .publish-bar .tb-more { display: flex; margin-left: 0; order: 2; }
   .publish-bar .tb-more::before { display: none; }
   .pub-more { display: none; position: absolute; right: 10px; bottom: calc(58px + env(safe-area-inset-bottom, 0px)); z-index: 8; width: 168px; flex-direction: column; gap: 0; background: var(--sheet); border: 1px solid var(--ink); box-shadow: 0 -10px 26px color-mix(in srgb, var(--dark) 14%, transparent); }

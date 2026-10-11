@@ -1,12 +1,13 @@
 /*
  * 글결 미리보기 하단바(쪽 다듬기)
  * 미리보기 아래 한 줄에 갈래 단추 하나와 그 갈래의 값 단추들을 둔다. 값 단추를 누르면 같은 폭의 판이 단추에 붙어 펼쳐지고
- * (PC는 위로, 폰은 오른쪽으로 한 줄), 한 번에 하나만 열린다. 지금 값이 단추에서 가장 가깝다.
- * - 바탕: 지금 쪽의 장면(라이트·다크, 둘째 쪽부터는 그 쪽부터 반전)·바탕·전환(이 쪽으로 넘어올 때)·전환 속도(글 전체, 다음 넘김부터).
- * - 글: 나타나는 결·속도(쓰는 빠르기·쉼·마름이 함께, '다시 보기'를 눌러야 보임)·이 쪽의 글자 크기·정렬·이 쪽의 글 상자 폭(PC).
- *   크기·폭은 그 쪽 표시(크기110·폭30)로 들어가고 다시 쓰지 않고 바로 바뀐다. 글 자리는 글 상자를 끌어 옮기고, 글꼴은 편집 단계에서 고른다.
+ * (PC는 위로, 1000px 이하는 바 위에 화면 폭으로), 한 번에 하나만 열린다. 판의 순서는 고정이고 지금 값은 앞쪽 바로 표시한다.
+ * 값은 모두 지금 쪽에만 걸린다(쪽 표시 [[…]]에 적힘). 적지 않은 쪽은 글 전체 조판값을 따른다.
+ * - 바탕: 장면(라이트·다크, 둘째 쪽부터는 그 쪽부터 반전)·바탕·전환·전환 속도(이 쪽으로 넘어올 때, 둘째 쪽부터).
+ * - 글: 나타나는 결·속도(쓰는 빠르기·쉼·마름이 함께, '다시 보기'를 눌러야 보임)·글자 크기·정렬·글 상자 폭(PC).
+ *   크기·폭·정렬은 다시 쓰지 않고 바로 바뀐다. 글 자리는 글 상자를 끌어 옮기고, 글꼴은 편집 단계에서 고른다.
  * - 끝 장에 있으면 갈래가 끝 장(장면·바탕)과 카드(크기·폭·정렬·편집 제목으로)로 바뀐다.
- * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 강조(등장·머묾)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
+ * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 등장(자동과 등장 효과)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
  * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint).
  * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마. 전역 GeulPanels.
  */
@@ -25,7 +26,7 @@
     return n;
   }
 
-  const CATS = { ground: '바탕', text: '글', end: '끝 장', card: '카드' };
+  const CATS = { ground: '바탕', text: '글' };
   const CARD_ALIGN = { left: '왼쪽', center: '가운데', right: '오른쪽' };
   const opt = (v, label, extra) => Object.assign({ v, label: label == null ? String(v) : label }, extra);
   const num = (v) => (Math.round(v * 100) / 100).toFixed(Math.round(v * 100) % 10 ? 2 : 1);
@@ -41,16 +42,11 @@
 
     function caret() { const c = el('i', 'car'); c.setAttribute('aria-hidden', 'true'); return c; }
 
-    /* 지금 값이 단추에서 가장 가깝게: 지금 값이 든 무리를 먼저, 무리 안에서도 지금 값을 먼저 */
+    /* 판의 순서는 늘 같다(고른다고 바뀌지 않음). 첫 항목이 단추에서 가장 가깝고, 지금 값은 앞쪽 바로만 표시한다 */
     function ordered(spec) {
-      const isOn = (o) => (spec.multi ? false : o.v === spec.current);
       const names = [];
       spec.options.forEach((o) => { if (!names.includes(o.group || null)) names.push(o.group || null); });
-      const lists = names.map((g) => ({ g, items: spec.options.filter((o) => (o.group || null) === g) }));
-      lists.forEach((l) => { const i = l.items.findIndex(isOn); if (i > 0) l.items.unshift(...l.items.splice(i, 1)); });
-      const j = lists.findIndex((l) => l.items.some(isOn));
-      if (j > 0) lists.unshift(...lists.splice(j, 1));
-      return lists;
+      return names.map((g) => ({ g, items: spec.options.filter((o) => (o.group || null) === g) }));
     }
 
     function listDrop(spec, id) {
@@ -205,7 +201,7 @@
       refresh() {
         /* 속도·크기를 끄는 중에는 다시 그리지 않는다(끄는 손을 놓치지 않게) */
         const a = document.activeElement;
-        if (a && a.type === 'range' && root.contains(a)) return;
+        if (a && (a.type === 'range' || a.type === 'color') && root.contains(a)) return;
         render();
       },
       shut() { openKey = null; },
@@ -273,12 +269,15 @@
           }
         });
       }
-      vals.push({
-        key: 'turnSpeed', title: '전환 속도', label: `속도 ${num(st.turnSpeed)}×`, range: {
-          min: 0.7, max: 1.5, step: 0.05, value: st.turnSpeed,
-          shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.setSettings({ turnSpeed: v })
-        }
-      });
+      if (k > 0) {
+        const ts = st.turnSpeed * (pg.turnSpeed || 1);
+        vals.push({
+          key: 'turnSpeed', title: '이 쪽으로 넘어오는 전환 속도', label: `속도 ${num(ts)}×`, range: {
+            min: 0.7, max: 1.5, step: 0.05, value: ts,
+            shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.setPageLook(k, { turnSpeed: v })
+          }
+        });
+      }
       return vals;
     }
 
@@ -290,15 +289,18 @@
       const st = ctx.settings();
       const size = pg.size || st.size;
       const measure = pg.measure || st.measure;
+      const flow = T.flowName(pg.flow) || st.flow;
+      const speed = st.speed * (pg.speed || 1);
+      const align = pg.align || st.align;
       const w = (v) => (v < 14 ? '저절로' : v + '자');
       const vals = [{
-        key: 'flow', title: '나타나는 결', label: st.flow, current: st.flow,
+        key: 'flow', title: '이 쪽 나타나는 결', label: flow, current: flow,
         options: T.FLOW_NAMES.map((v) => opt(v)),
-        pick: (v) => ctx.setSettings({ flow: v })
+        pick: (v) => ctx.setPageLook(k, { flow: v })
       }, {
-        key: 'speed', title: '속도', label: `속도 ${num(st.speed)}×`, range: {
-          min: 0.8, max: 1.3, step: 0.05, value: Math.min(1.3, Math.max(0.8, st.speed)),
-          shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.setSettings({ speed: v })
+        key: 'speed', title: '이 쪽 속도', label: `속도 ${num(speed)}×`, range: {
+          min: 0.8, max: 1.3, step: 0.05, value: Math.min(1.3, Math.max(0.8, speed)),
+          shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.setPageLook(k, { speed: v })
         }
       }, {
         key: 'size', title: '이 쪽 글자 크기', label: `크기 ${Math.round(size * 100)}%`, range: {
@@ -307,9 +309,9 @@
           input: (v) => ctx.setPageLook(k, { size: Math.round(v * 100) })
         }
       }, {
-        key: 'align', title: '정렬', label: '정렬 ' + st.align, current: st.align,
+        key: 'align', title: '이 쪽 정렬', label: '정렬 ' + align, current: align,
         options: T.ALIGN_NAMES.map((v) => opt(v)),
-        pick: (v) => ctx.setSettings({ align: v })
+        pick: (v) => ctx.setPageLook(k, { align: v })
       }];
       if (ctx.wide()) {
         vals.push({
@@ -335,9 +337,16 @@
       }];
     }
 
+    /* 끝 장의 글: 카드 문구의 글꼴(여기서만 따로)·크기·폭·정렬 */
     function cardVals() {
       const en = ctx.ending();
+      const font = en.font && T.FONTS[en.font] ? en.font : null;
       const vals = [{
+        key: 'card-font', title: '카드 글꼴', label: font || '본문 글꼴', current: font,
+        font: font ? T.FONTS[font].css : null,
+        options: [opt(null, '본문 글꼴'), ...T.FONT_NAMES.map((v) => opt(v, v, { font: T.FONTS[v].css }))],
+        pick: (v) => ctx.setCard({ font: v })
+      }, {
         key: 'card-size', title: '글자 크기', label: '크기 ' + Math.round(en.size), range: {
           min: 28, max: 120, step: 1, value: en.size,
           shown: (v) => String(Math.round(v)), label: (v) => '크기 ' + Math.round(v), input: (v) => ctx.setCard({ size: v })
@@ -365,14 +374,22 @@
       const emNow = em ? (h.fx || '') : null;
       const groups = (names, group) => (E.BLOCK_GROUPS[names] || []).map((v) => opt(v, v, { group }));
       const off = !sel.on;
+      /* '없음'은 효과만 빼고 꾸밈·색을 남길 때만 둔다(남길 것이 없으면 빼기와 같으므로) */
+      const decorated = !!(h && (h.styles.length || h.color));
+      const hex = h && h.color && h.color[0] === '#' ? h.color : null;
       return [{
-        key: 'em', title: '강조', label: em ? (h.fx ? '강조 ' + h.fx : '강조 기본') : '강조 없음', current: emNow, off,
-        options: [opt(null, '없음'), opt('', '기본'), ...groups('등장', '등장'), ...groups('머묾', '머묾')],
+        key: 'em', title: '등장', label: em ? (h.fx ? '등장 ' + h.fx : '등장 자동') : '등장 없음', current: emNow, off,
+        options: [opt('', '자동'), ...groups('등장', null), ...(em && decorated ? [opt(null, '없음')] : [])],
         pick: (v) => ctx.ip({ act: 'em', v })
       }, {
         key: 'exit', title: '퇴장', label: exit ? '퇴장 ' + h.fx : '퇴장 없음', current: exit ? h.fx : null, off,
-        options: [opt(null, '없음'), ...groups('퇴장', null)],
+        options: [...groups('퇴장', null), ...(exit && decorated ? [opt(null, '없음')] : [])],
         pick: (v) => ctx.ip({ act: 'exit', v })
+      }, {
+        key: 'bspeed', title: '이 강조의 속도', label: `속도 ${num((h && h.speed) || 1)}×`, off: off || !(em || exit), range: {
+          min: 0.5, max: 2, step: 0.1, value: (h && h.speed) || 1,
+          shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.ip({ act: 'speed', v })
+        }
       }, {
         key: 'style', title: '꾸밈', off, multi: true,
         label: h && h.styles.length ? (h.styles.length === 1 ? '꾸밈 ' + h.styles[0] : `꾸밈 ${h.styles.length}가지`) : '꾸밈 없음',
@@ -380,17 +397,19 @@
         options: Object.keys(E.STYLES).map((v) => opt(v, v, { cls: 's-' + E.STYLES[v] })),
         pick: (v) => ctx.ip({ act: 'style', v })
       }, {
-        key: 'color', title: '색', label: h && h.color ? '색 ' + h.color : '색 없음', current: h ? h.color : null, off,
-        options: [opt(null, '없음'), ...Object.keys(E.COLORS).map((v) => opt(v, v, { swatch: E.COLORS[v] }))],
+        key: 'color', title: '색', label: h && h.color ? '색 ' + (hex ? '직접' : h.color) : '색 없음', current: h ? h.color : null, off,
+        options: [opt(null, '없음'), ...Object.keys(E.COLORS).map((v) => opt(v, v, { swatch: E.COLORS[v] })),
+          { v: '#', label: '직접 고르기', picker: true, on: !!hex, value: (hex || '#a63c33').toLowerCase() }],
         pick: (v) => ctx.ip({ act: 'color', v })
       }, { key: 'off', label: '빼기', act: () => ctx.ip({ act: 'off' }), off: !h }];
     }
 
     function vals() {
       if (edit) return pickVals();
-      return ({ ground: groundVals, text: textVals, end: endVals, card: cardVals })[cat]();
+      if (ctx.atEnd()) return cat === 'text' ? cardVals() : endVals();
+      return cat === 'text' ? textVals() : groundVals();
     }
-    const cats = () => (ctx.atEnd() ? ['end', 'card'] : ['ground', 'text']);
+    const cats = () => ['ground', 'text'];
 
     const ui = bar(root, {
       head() {
@@ -400,10 +419,6 @@
           options: cats().map((v) => opt(v, CATS[v])),
           pick: (v) => { cat = v; }
         };
-      },
-      before() {
-        if (ctx.atEnd() && !['end', 'card'].includes(cat)) cat = 'end';
-        if (!ctx.atEnd() && ['end', 'card'].includes(cat)) cat = 'ground';
       },
       vals,
       name: () => (edit ? 'pick' : cat),
@@ -417,11 +432,11 @@
       hint(on) {
         if (edit) return;
         ui.shut();
-        cat = ctx.atEnd() ? (on === 'box' ? 'card' : 'end') : on === 'box' ? 'text' : 'ground';
+        cat = on === 'box' ? 'text' : 'ground';
         render();
       },
       editing(on) { edit = on ? { sel: null } : null; ui.shut(); render(); },
-      selection(sel) { if (edit) { edit.sel = sel; render(); } },
+      selection(sel) { if (edit) { edit.sel = sel; ui.refresh(); } },
       close: () => ui.close(),
       state: () => ({ cat: edit ? 'pick' : cat, open: ui.open() }),
       set onState(fn) { onState = fn; }

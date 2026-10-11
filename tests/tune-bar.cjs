@@ -35,18 +35,23 @@ const fs = require('node:fs/promises');
       assert.equal(await pg.locator('#s-tune .tb-val[data-key=turn]').count(), 0);
       await frame.locator('#dots .dot').nth(1).click();
       await pg.waitForFunction(() => document.querySelector('#s-tune .tb-val[data-key=turn]'));
-      await pg.click('#s-tune .tb-val[data-key=turn]'); await pg.click('#tb-drop-turn .tb-li:has-text("조리개")');
-      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('[[조리개]]'));
-      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=turn] .tb-label'), '전환 조리개');
+      await pg.click('#s-tune .tb-val[data-key=turn]'); await pg.click('#tb-drop-turn .tb-li:has-text("섬광")');
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('[[섬광]]'));
+      assert.equal(await pg.textContent('#s-tune .tb-val[data-key=turn] .tb-label'), '전환 섬광');
       await pg.click('#s-tune .tb-val[data-key=ground]'); await pg.click('#tb-drop-ground .tb-li:has-text("원고지")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('원고지'));
 
-      // 바탕의 전환 속도: 글 전체 값, 다시 쓰지 않음
+      // 바탕의 전환 속도: 이 쪽으로 넘어올 때
       assert.equal(await pg.locator('#s-tune .tb-cat-item').count(), 1);
       await pg.click('#s-tune .tb-val[data-key=turnSpeed]');
       await pg.locator('#tb-drop-turnSpeed input').evaluate((n) => { n.value = '1.3'; n.dispatchEvent(new Event('input', { bubbles: true })); });
       await pg.keyboard.press('Escape');
-      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).settings.turnSpeed === 1.3);
+      // 전환 속도도 이 쪽에만(쪽 표시)
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('전환속도130'));
+      // 손을 멈추면 그 쪽으로 한 번 넘겨 보인다: 다시 둘째 쪽에 닿을 때까지 기다림
+      await pg.waitForTimeout(700);
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 1);
+      await pg.waitForTimeout(400);
       // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
       assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글']);
@@ -54,8 +59,14 @@ const fs = require('node:fs/promises');
       assert.equal(await pg.locator('#s-tune .tb-val[data-key=place], #s-tune .tb-val[data-key=font], #s-tune .tb-val[data-key=rest], #s-tune .tb-val[data-key=dry]').count(), 0);
       await pg.click('#s-tune .tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');
       assert.equal(await pg.textContent('#s-tune .tb-val[data-key=flow] .tb-label'), '바로');
+      // 결도 이 쪽에만
+      await pg.waitForFunction(() => /\[\[[^\]]*결바로/.test(JSON.parse(localStorage.getItem('geul.studio')).source));
+      assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('geul.studio')).settings.flow), '이어 쓰기');
       assert.ok(await pg.locator('#replay.due').count() === 1);
-      await pg.click('#replay');
+      // 넓은 화면은 하단바 오른쪽, 1000px 이하는 머리(안내 자리)의 다시 보기
+      assert.ok(await pg.locator('#replay-top.due').count() === 1);
+      await pg.click(width > 1000 ? '#replay' : '#replay-top');
+      assert.ok(await pg.locator('#replay-top.due').count() === 0);
       assert.ok(await pg.locator('#replay.due').count() === 0);
       await pg.waitForTimeout(1500);
       frame = pg.frameLocator('#screen-main .frame.on');
@@ -93,9 +104,19 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(() => !document.querySelector('#s-tune .tb-val[data-key=em]').disabled);
       await pg.click('#s-tune .tb-val[data-key=em]'); await pg.click('#tb-drop-em .tb-li:has-text("번짐")');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐:'));
+      // 고른 효과를 그 자리에서 보임: 고름은 그대로, 표시는 숨겼다가 끝나면 돌아옴
+      await frame.locator('.ip.ip-previewing .pv-ch').first().waitFor();
+      assert.equal(await frame.locator('.ip .m-mark.pv-hide').count() > 0, true);
+      assert.ok(await frame.locator('.ip-input').evaluate((ta) => ta.selectionStart !== ta.selectionEnd), '고름이 남음');
+      await frame.locator('.ip:not(.ip-previewing)').waitFor({ timeout: 8000 });
+      assert.equal(await frame.locator('.ip .pv-ch').count(), 0);
       await pg.click('#s-tune .tb-val[data-key=style]'); await pg.click('#tb-drop-style .tb-li:has-text("굵게")');
       assert.equal(await pg.locator('#tb-drop-style').count(), 1, '꾸밈은 여러 개라 판이 남음');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐+굵게:'));
+      // 이 강조의 속도: 머리에 속도150으로(Esc는 고치는 칸이 받아 고치기를 끝내므로 쓰지 않음)
+      await pg.click('#s-tune .tb-val[data-key=bspeed]');
+      await pg.locator('#tb-drop-bspeed input').evaluate((n) => { n.value = '1.5'; n.dispatchEvent(new Event('input', { bubbles: true })); });
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐+굵게+속도150:'));
       await pg.screenshot({ path: `tests/out/tune-bar-edit-${width}.png` });
       // X: 고치기 전으로
       await frame.locator('.ip-acts button').first().click();
@@ -108,6 +129,10 @@ const fs = require('node:fs/promises');
       await frame.locator('.ip').waitFor();
       await frame.locator('.ip-input').evaluate((ta) => { ta.focus(); ta.setSelectionRange(0, 4); document.dispatchEvent(new Event('selectionchange')); });
       await pg.waitForFunction(() => !document.querySelector('#s-tune .tb-val[data-key=color]').disabled);
+      // 색: 이름 있는 여섯과 늘 '직접 고르기'
+      await pg.click('#s-tune .tb-val[data-key=color]');
+      assert.equal(await pg.locator('#tb-drop-color .tb-picker input[type=color]').count(), 1);
+      await pg.keyboard.press('Escape');
       await pg.click('#s-tune .tb-val[data-key=color]'); await pg.click('#tb-drop-color .tb-li:has-text("파랑")');
       await frame.locator('.ip-acts button').last().click();
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{파랑:'));

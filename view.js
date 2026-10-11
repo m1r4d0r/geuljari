@@ -177,7 +177,8 @@
     const d = down;
     down = null;
     if (!d || zoomed || now - movedAt < 400 || now - d.t > 450 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) return;
-    if (e.target.closest('button, a, input, textarea, .ip, .end-card, .end-acts, .ops')) return;
+    if (e.target.closest('.sheet.is-current .end-card') && !e.target.closest('.end-move')) { tell({ type: 'geulgyeol:tap', on: 'box' }); return; }
+    if (e.target.closest('button, a, input, textarea, .ip, .end-acts, .ops')) return;
     if (window.GeulInplace && window.GeulInplace.editing()) return;
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
@@ -199,6 +200,11 @@
     if (!sheet) return;
     if (e.data.size) sheet.style.setProperty('--page-k', String(e.data.size)); else sheet.style.removeProperty('--page-k');
     if (e.data.measure) sheet.style.setProperty('--page-m', e.data.measure + 'em'); else sheet.style.removeProperty('--page-m');
+    const col = sheet.querySelector('.column');
+    const A = { '왼쪽': 'left', '가운데': 'center', '오른쪽': 'right', '양쪽': 'justify' };
+    if (col && 'align' in e.data) {
+      if (e.data.align) col.style.setProperty('--a-user', A[e.data.align] || 'var(--align)'); else col.style.removeProperty('--a-user');
+    }
     window.dispatchEvent(new Event('resize'));
   });
 

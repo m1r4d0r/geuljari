@@ -173,7 +173,7 @@
       pick(list) {
         st.moodsTouched = true;
         setMoods(list);
-        if (st.step === 'tune') { handOff(); $('replay').classList.add('due'); } else drawRail();
+        if (st.step === 'tune') { handOff(); markDue(true); } else drawRail();
       }
     });
   }
@@ -224,12 +224,13 @@
    * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
    */
   const GUIDE = [
-    { title: '분위기를 고르면', body: '그 결에 맞는 움직임을 기본으로 입혀요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '설정 칸에서 축마다 하나씩 골라요. 폰에서는 오른쪽 가장자리의 설정을 열어요. 고르기 전에는 글을 읽고 짐작해 둬요.' },
+    { title: '분위기를 고르면', body: '그 결에 맞는 움직임이 글 전체에 입혀져요. 따뜻하면 천천히 마르고, 숨차면 빠르게 써 내려가요.', tip: '하단바 분위기에서 축마다 하나씩 골라요. 살펴보기에서 두 낱말을 움직임으로 견줘 볼 수 있어요.' },
     { title: '줄 사이를 누르면', body: '거기서부터 다음 쪽으로 넘어가요. 한 쪽에 한 호흡씩 담아 보세요.', tip: '줄 사이에 마우스를 올리면 점선이 보여요. 띠 어디를 눌러도 돼요.' },
-    { title: '쪽 사이에서 반전', body: '이 쪽부터 배경이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '분위기가 바뀌는 자리는 반전 단추가 점선으로 먼저 알려 줘요. 미리보기에서는 하단바의 전환으로 넘김을 골라요.' },
+    { title: '쪽 사이에서 반전', body: '이 쪽부터 바탕이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '미리보기에서는 쪽마다 바탕과 글을 따로 다듬어요. 빈 바탕을 누르면 바탕, 글 상자를 누르면 글이에요.' },
     { title: '두 번 띄어 쓰면 쉼', body: '띄어쓰기를 두 번 한 곳은 잠깐 쉬었다가 이어서 써요. 화면에는 한 칸으로 보여요.', tip: '편집창에는 쉬는 자리가 호박색으로 표시돼요.' },
-    { title: '끌어 고르면 강조', body: '남기고 싶은 곳을 끌어 고르고 강조를 눌러요. 미리보기에서 글 상자를 두 번 누르면 효과와 글자 꾸밈도 더할 수 있어요.', tip: '여러 곳을 강조하면 조금씩 다른 움직임으로 나와요.' }
+    { title: '끌어 고르면 강조', body: '남기고 싶은 곳을 끌어 고르고 강조를 눌러요. 그곳만 따로 떠올라 글의 자리를 찾아요.', tip: '미리보기에서 글 상자를 두 번 누르면 등장·퇴장·속도·꾸밈·색을 고를 수 있어요.' }
   ];
+
   let guideAt = 0;
   function guideTo(k) {
     guideAt = Math.max(0, Math.min(GUIDE.length - 1, k));
@@ -386,6 +387,9 @@
    * 미리보기를 start({page, needle, next, done, ending}) 자리부터 다시 그린다. done이면 다 쓴 모습으로 바로,
    * ending이면 마지막 화면에 바로 놓는다.
    */
+  /* 바꾼 움직임을 아직 다시 보지 않았는지: 다시 보기 단추(하단바·머리)에 작은 점 */
+  function markDue(on) { ['replay', 'replay-top'].forEach((id) => $(id).classList.toggle('due', on)); }
+
   function play(start) {
     if (st.step !== 'tune' || !st.source.trim()) return;
     const s = Object.assign({ page: st.page }, start);
@@ -394,7 +398,7 @@
     handOff();
     const url = `view.html?v=${++pvN}&start=${encodeURIComponent(JSON.stringify(s))}#preview`;
     screens().forEach((sc) => sc.load(url));
-    if (!s.done) $('replay').classList.remove('due');
+    if (!s.done) markDue(false);
     save();
   }
   const show = (start) => play(Object.assign({ page: st.page }, start, { done: true }));
@@ -415,12 +419,11 @@
    * 병렬은 PC와 폰을 같은 배율로 나란히.
    */
   /* 하단바가 무대 위에 겹치는 높이. 같은 기기 틀은 그 아래까지 채우고 눈금만 올리며, 줄인 틀은 이 높이를 비워 둔다.
-     1000px 이하에서는 하단바가 왼쪽 아래 세로 줄이라 줄인 틀을 그 위에 둔다 */
+     1000px 이하에서는 하단바가 조금 더 높은 한 줄이다 */
   const stacked = window.matchMedia('(max-width: 1000px)');
-  const barRoom = () => (stacked.matches ? 250 : 64);
+  const barRoom = () => (stacked.matches ? 72 : 64);
   function tellInset() {
-    const same = mode() === native();
-    post(main, { type: 'geulgyeol:inset', bottom: same && !stacked.matches ? 64 : 0 });
+    post(main, { type: 'geulgyeol:inset', bottom: mode() === native() ? barRoom() : 0 });
   }
 
   function fit() {
@@ -673,7 +676,7 @@
     save();
     if (st.step !== 'tune') return;
     if (keys.every((k) => LIVE.includes(k))) postAll({ type: 'geulgyeol:style', settings: st.settings });
-    else if (keys.every((k) => MOTION.includes(k))) $('replay').classList.add('due');
+    else if (keys.every((k) => MOTION.includes(k))) markDue(true);
     else show(here());
   }
 
@@ -693,15 +696,36 @@
     postAll({ type: 'geulgyeol:ending', ending: st.ending });
   }
 
-  /* 쪽마다 글자 크기·글 상자 폭: 그 쪽 표시에 적고, 미리보기 장에는 다시 쓰지 않고 바로 건다. 글 전체 값과 같으면 표시를 뺀다 */
+  /*
+   * 쪽마다 다듬기: 그 쪽 표시에 적는다. 글 전체 값과 같으면 표시를 뺀다.
+   * 크기(%)·폭(자)·정렬은 미리보기 장에 다시 쓰지 않고 바로 걸고, 결·속도는 '다시 보기'를 기다리며,
+   * 전환 속도는 손을 멈추면 그 쪽으로 한 번 넘겨 보인다. 속도·전환 속도는 글 전체 값에 대한 배율(%)로 적는다.
+   */
+  let turnTimer = 0;
   function setPageLook(k, part) {
+    const base = st.settings;
+    const ratio = (v, b) => { const f = Math.round((v / b) * 100); return f === 100 ? null : f; };
+    const MARK = {
+      size: (v) => (v && v !== Math.round(base.size * 100) ? v : null),
+      measure: (v) => (v && v !== base.measure ? v : null),
+      speed: (v) => ratio(v, base.speed),
+      turnSpeed: (v) => ratio(v, base.turnSpeed),
+      flow: (v) => (v === base.flow ? null : v),
+      align: (v) => (v === base.align ? null : v)
+    };
     let t = st.source;
-    if ('size' in part) t = S.setPageMark(t, k, 'size', part.size && part.size !== Math.round(st.settings.size * 100) ? part.size : null);
-    if ('measure' in part) t = S.setPageMark(t, k, 'measure', part.measure && part.measure !== st.settings.measure ? part.measure : null);
+    Object.keys(part).forEach((key) => { t = S.setPageMark(t, k, key, MARK[key](part[key])); });
     setSource(t);
     handOff();
-    const pg = allPages()[k] || {};
-    postAll({ type: 'geulgyeol:sheet', page: k, size: pg.size || null, measure: pg.measure || null });
+    if ('size' in part || 'measure' in part || 'align' in part) {
+      const pg = allPages()[k] || {};
+      postAll({ type: 'geulgyeol:sheet', page: k, size: pg.size || null, measure: pg.measure || null, align: pg.align || null });
+    }
+    if ('speed' in part || 'flow' in part) markDue(true);
+    if ('turnSpeed' in part) {
+      clearTimeout(turnTimer);
+      turnTimer = setTimeout(() => show({ page: k - 1, done: true, next: true }), 450);
+    }
   }
 
   const panels = P.mount($('tune-tools'), {
@@ -726,6 +750,17 @@
     document.body.classList.toggle('tune-cat-open', s2.open === 'cat');
   };
   $('replay').addEventListener('click', () => replay());
+  $('replay-top').addEventListener('click', () => replay());
+
+  /* 1000px 이하의 ⋯: 하단바 오른쪽 묶음을 작은 판으로 접는다. 고르면, 밖을 누르면, Esc면 닫는다 */
+  document.querySelectorAll('.tb-more').forEach((b) => {
+    const barEl = b.closest('.tune-bar');
+    const set = (on) => { barEl.classList.toggle('more-open', on); b.setAttribute('aria-expanded', String(on)); };
+    b.addEventListener('click', () => set(!barEl.classList.contains('more-open')));
+    barEl.querySelectorAll('.tb-tools button, .tb-side button').forEach((x) => x.addEventListener('click', () => set(false)));
+    document.addEventListener('pointerdown', (e) => { if (!barEl.contains(e.target)) set(false); });
+    barEl.addEventListener('keydown', (e) => { if (e.key === 'Escape' && barEl.classList.contains('more-open')) { set(false); b.focus(); } });
+  });
 
   function enterTune(fresh) {
     T.useFont(document, st.settings);

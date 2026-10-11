@@ -26,7 +26,7 @@
     });
     status.hidden = true;
   } catch (e) {
-    status.querySelector('h1').textContent = '글을 펼칠 수 없어요.';
+    status.querySelector('h1').textContent = '글의 자리를 찾지 못했어요.';
     document.getElementById('read-message').textContent = e.message;
   }
 })();

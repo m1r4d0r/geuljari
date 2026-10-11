@@ -5,7 +5,8 @@
     wrong_password:'비밀번호가 맞지 않아요.', not_found:'글을 찾을 수 없거나 발행이 중단됐어요.',
     conflict:'다른 곳에서 글이 바뀌었어요. 현재 글을 따로 보관한 뒤 다시 불러와 주세요.',
     storage_unavailable:'발행 서버에 연결할 수 없어요. 잠시 뒤 다시 시도해 주세요.',
-    too_large:'글이 너무 길어요. 나누어 발행해 주세요.', invalid_password:'비밀번호를 4~128자로 입력해 주세요.'
+    too_large:'글이나 카드 이미지가 너무 커요. 내용을 줄인 뒤 다시 시도해 주세요.', invalid_password:'비밀번호를 4~128자로 입력해 주세요.',
+    invalid_og_image:'카드 이미지를 확인하지 못했어요. 다시 시도해 주세요.'
   };
   async function api(path, method, data) {
     let response;
@@ -26,7 +27,7 @@
       $('publish-new').hidden = !!active;
       $('publish-password').required = !active;
       $('publish-delete').hidden = !active;
-      $('publish-submit').textContent = active ? '변경 내용 저장' : '이대로 발행하기';
+      $('publish-submit').textContent = active ? '고친 내용 저장' : '이대로 발행하기';
       $('publish-result').hidden = !active;
       // 발행 상태는 편집·발행 하단바 오른쪽에 같은 모양으로 보여요.
       const label = active ? `${active.record.live ? '발행 중' : '발행 중단'} · ${active.record.title || '제목 없는 글'} · ${new Date(active.record.updatedAt).toLocaleDateString('ko-KR')}` : '';
@@ -34,8 +35,13 @@
       if (active) {
         $('publish-url').value = link(active); $('publish-visit').href = link(active);
         $('publish-visit').hidden = !active.record.live;
-        $('publish-result').querySelector('h2').textContent = active.record.live ? '글의 자리가 생겼어요.' : '글을 보관하고 있어요.';
       }
+      // 머리말은 지금 상태를 말해요: 아직 · 자리를 찾음 · 닫아 둠
+      const live = active && active.record.live;
+      $('publish-heading').textContent = !active ? '글의 자리를 찾아요.' : live ? '글이 자리를 찾았어요.' : '글이 자리에서 쉬고 있어요.';
+      $('publish-intro').textContent = !active ? '다듬은 모습 그대로 링크 하나에 놓아 둬요.'
+        : live ? '아래 링크로 읽을 수 있어요. 글을 고친 뒤 저장하면 같은 링크에 바로 반영돼요.'
+        : '지금은 아무도 읽을 수 없어요. 다시 열려면 아래에서 열어 두기를 고르고 저장해 주세요.';
     }
     function lock(on) {
       busy = on;
@@ -53,7 +59,7 @@
     document.querySelectorAll('.publication-manage').forEach(b => { b.onclick = ctx.manage; });
     $('publish-form').onsubmit = async e => {
       e.preventDefault(); if (busy) return;
-      lock(true); $('publish-message').textContent = '글을 암호화해서 보관하고 있어요.';
+      lock(true); $('publish-message').textContent = $('publish-live').checked ? '공유 이미지를 만들고 글을 잠가서 자리에 놓고 있어요.' : '글을 잠가서 자리에 놓고 있어요.';
       try {
         const snapshot = structuredClone(ctx.snapshot()), live = $('publish-live').checked;
         const password = active ? active.password : $('publish-password').value;
@@ -61,14 +67,17 @@
         const signature = JSON.stringify([snapshot, live, password, active?.id, active?.record.revision]);
         if (!pending || pending.signature !== signature) {
           const id = active?.id || C.random(16), key = active?.key || C.random(32);
-          pending = { id, key, signature, sealed:await C.seal(snapshot, id, key) };
+          pending = { id, key, signature, sealed:await C.seal(snapshot, id, key), ogImage:live ? await window.GeulOG.render(snapshot) : undefined };
         }
         const target = active || pending;
         const sealed = pending.sealed;
-        const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, password, revision:active?.record.revision });
+        const record = await api(active ? '/' + target.id : '', active ? 'PUT' : 'POST', { id:target.id, title:snapshot.title, live, ...sealed, ogImage:pending.ogImage, password, revision:active?.record.revision });
+        const first = !active;
         active = { id:target.id, key:target.key, password, record }; pending = null;
         $('publish-password').value = '';
-        render(); $('publish-message').textContent = live ? '저장했어요. 아래에서 링크와 비밀번호를 남겨 두세요.' : '저장했어요. 지금은 다른 사람이 읽을 수 없어요.';
+        render();
+        // 처음 발행하면 맨 위에 생긴 링크 면으로 올라가요.
+        if (first) document.querySelector('.publish-scroll').scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); $('publish-message').textContent = live ? '저장했어요. 링크와 비밀번호를 남겨 두세요.' : '저장했어요. 지금은 닫혀 있어요.';
       } catch (err) { $('publish-message').textContent = err.message; }
       finally { lock(false); }
     };

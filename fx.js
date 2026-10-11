@@ -27,8 +27,10 @@
   function animate(el, frames, opts) {
     if (!canAnimate) return null;
     const o = Object.assign({ fill: 'none' }, opts);
-    if (o.duration) o.duration /= pace;
-    if (o.delay) o.delay /= pace;
+    /* 글 전체 속도에 글자마다의 배율(쪽 속도·강조 블록 속도, data-pace)을 곱한다 */
+    const k = pace * ((el && el.dataset && Number(el.dataset.pace)) || 1);
+    if (o.duration) o.duration /= k;
+    if (o.delay) o.delay /= k;
     try { return el.animate(frames, o); } catch (e) { return null; }
   }
 
@@ -42,7 +44,7 @@
       el.classList.add('drying');
       el.classList.remove('wet', 'soak');
       el._dry = setTimeout(() => el.classList.remove('drying'), 2000);
-    }, (hold || 1400) / pace);
+    }, (hold || 1400) / (pace * ((el.dataset && Number(el.dataset.pace)) || 1)));
   }
 
   /* 번짐: 글자색을 키프레임에 담아 그림자로 번지다가 또렷해진다 */
@@ -76,12 +78,14 @@
       return animate(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 1000, easing: 'ease-out' });
     },
 
+    /* 떠오름: 흐림(filter) 없이 위치·투명도만 움직여 글자가 많아도 끊기지 않게. 거의 다 올라온 뒤 천천히 자리에 앉는다 */
     rise(el) {
       wet(el, 1000);
       return animate(el, [
-        { opacity: 0, transform: 'translateY(.5em)', filter: 'blur(4px)' },
-        { opacity: 1, transform: 'translateY(0)', filter: 'blur(0px)' }
-      ], { duration: 750, easing: 'cubic-bezier(.2, .65, .25, 1)' });
+        { opacity: 0, transform: 'translate3d(0, .42em, 0)' },
+        { opacity: .85, transform: 'translate3d(0, .06em, 0)', offset: .55 },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+      ], { duration: 1100, easing: 'cubic-bezier(.33, 0, .2, 1)' });
     },
 
     bleed(el) {
@@ -313,8 +317,10 @@
 
   /* 글자 꾸밈 클래스 */
   function decorate(el, c) {
+    if (c.pace && c.pace !== 1) el.dataset.pace = String(c.pace);
     if (c.st) for (const k of c.st) el.classList.add('s-' + k);
-    if (c.color) el.classList.add('c-' + c.color);
+    if (c.color && c.color[0] === '#') el.style.color = c.color;
+    else if (c.color) el.classList.add('c-' + c.color);
   }
 
   /* 엔진이 짠 문단 하나를 inner 안에 줄·어절·글자로 그리고, 재생기에 넘길 항목을 돌려준다.

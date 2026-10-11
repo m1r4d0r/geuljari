@@ -21,8 +21,8 @@
 
   /* 낱말마다 조판값에 주는 영향과 고를 때 보이는 짧은 풀이 */
   const MOOD = {
-    '따뜻한': { turn: '조리개', dry: '느리게', note: '천천히 마르고, 빛이 열리듯 넘겨요' },
-    '차가운': { turn: '셔터', dry: '빨리', note: '빨리 마르고, 짧게 끊어 넘겨요' },
+    '따뜻한': { turn: '피어남', dry: '느리게', note: '천천히 마르고, 빛이 피어나듯 넘겨요' },
+    '차가운': { turn: '섬광', dry: '빨리', note: '빨리 마르고, 번쩍 넘겨요' },
     '젖은': { flow: '번짐', note: '글자가 번지며 나타나요' },
     '마른': { flow: '이어 쓰기', note: '번짐 없이 또박또박 나타나요' },
     '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 오래 쉬어요' },
@@ -30,7 +30,7 @@
   };
 
   /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로, 바로는 효과 없이 한 번에 놓는다 */
-  const FLOWS = { '바로': 'now', '이어 쓰기': null, '번짐': 'bleed', '떠오름': 'rise', '타자': 'type' };
+  const FLOWS = { '바로': 'now', '이어 쓰기': null, '번짐': 'bleed', '떠오름': 'rise', '초점': 'focus', '타자': 'type' };
   /* 바로: 보통 글자를 처음부터 놓고, 강조는 그 뒤 잠깐 쉬었다가 제 움직임으로 */
   const NOW_LEAD = 400;
   const FLOW_NAMES = Object.keys(FLOWS);
@@ -41,11 +41,13 @@
   const PACE = 1.15;
   const TURN_PACE = 1.2;
   const DRY_NAMES = Object.keys(DRY);
-  const GROUNDS = { '라이트': ['창빛', '원고지', '잎그늘', '새벽', '편지지', '오로라'], '다크': ['영사광', '빛커튼', '물빛', '타자', '편지지', '오로라'] };
+  const GROUNDS = { '라이트': ['창빛', '원고지', '잎그늘', '새벽', '편지지', '오로라', '단색'], '다크': ['영사광', '빛커튼', '물빛', '타자', '편지지', '오로라', '단색'] };
   const OLD_SCENE = { '낮': '라이트', '밤': '다크' };
-  /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀌는 쪽에는 스밈을 빼고 고른다. */
+  /* 넘김 이름은 엔진의 TURNS를 따른다. 장면이 바뀌는 쪽에는 스밈을 빼고 고른다.
+     막·셔터·조리개는 고르는 판에서 뺐다(이미 적힌 쪽 표시는 그대로 넘긴다). */
   const TURNS = (global.Geulgyeol && global.Geulgyeol.TURNS) || { '쓸기': 'sweep' };
-  const TURN_NAMES = Object.keys(TURNS);
+  const RETIRED_TURNS = ['막', '셔터', '조리개'];
+  const TURN_NAMES = Object.keys(TURNS).filter((n) => !RETIRED_TURNS.includes(n));
   const SCENE_TURNS = TURN_NAMES.filter((n) => n !== '스밈');
   /* 본문 글꼴. css는 font-family, q는 Google Fonts 이름 */
   const FONTS = {
@@ -199,14 +201,12 @@
     para.span = Math.max(em.length ? para.span - shift : 0, 700);
     return para;
   }
+  /* 쪽 표시의 결 이름(띄어쓰기 없음) → 흐름 이름 */
+  const flowName = (w) => FLOW_NAMES.find((n) => n.replace(/\s/g, '') === w) || null;
+  /* 쪽마다: 그 쪽 표시의 결이 있으면 그것, 없으면 글 전체 결 */
   function patchFlow(E, s) {
-    if (!FLOWS[s.flow]) return;
-    const parse = E.parse;
-    E.parse = function (text) {
-      const out = parse(text);
-      out.paragraphs.forEach((p) => flowCells(p, s));
-      return out;
-    };
+    if (!E.setFlowHook) return;
+    E.setFlowHook((para, w) => flowCells(para, { flow: flowName(w) || s.flow }));
   }
 
   /* 두 색을 t만큼 섞는다(#rrggbb) */
@@ -263,7 +263,7 @@
   global.GeulTune = {
     AXES, WORDS, MOOD, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
-    PACE, TURN_PACE, dryTime, turnPace,
+    PACE, TURN_PACE, dryTime, turnPace, flowName,
     defaults, normalize, oneEach, fromMoods, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
   };
 })(typeof window !== 'undefined' ? window : globalThis);

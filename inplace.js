@@ -4,6 +4,7 @@
  * 글은 편집실에서 그 쪽 몫만 받아 오고(geulgyeol:edit-req → edit-slice), 고칠 때마다 돌려보낸다(geulgyeol:edit).
  * 꾸밈 막대는 편집실 하단바의 '고른 곳' 갈래다. 고른 곳이 바뀌면 그 모습을 알리고(geulgyeol:sel),
  * 하단바에서 고른 것을 받아(geulgyeol:ip) 고른 곳에 건다: 강조(등장·머묾), 퇴장, 꾸밈(굵게·기울임·밑줄·취소선), 색, 빼기.
+ * 효과·퇴장을 고르면 고름을 둔 채 그 자리에서 움직임을 한 번 보인다(표시는 잠깐 숨김).
  * 끝내기는 글 상자 아래 오른쪽 모서리의 두 단추다. X는 고치기 전 글로 되돌리고, 체크(와 Esc)는 고친 대로 둔다.
  * 닫으면 편집실이 그 쪽을 다시 그린다(geulgyeol:edit-done). 효과·퇴장을 고쳤으면 마지막으로 고친 자리부터 다시 써 보인다.
  * 전역 GeulInplace.
@@ -74,11 +75,17 @@
     col.classList.add('ip-hidden');
     ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'touchstart', 'click'].forEach((t) => box.addEventListener(t, (e) => e.stopPropagation()));
 
-    const ed = ED.attach(ta, mirror, { onInput() { send(); report(); } });
+    const ed = ED.attach(ta, mirror, {
+      onInput() {
+        if (cur) { clearTimeout(cur.pvTimer); box.classList.remove('ip-previewing'); }
+        send();
+        report();
+      }
+    });
     ed.firstPage = page;
     ta.value = text;
     ed.draw();
-    cur = { col, page, box, ta, ed, before: text, replay: null, last: '' };
+    cur = { col, page, box, ta, mirror, ed, before: text, replay: null, last: '', pvTimer: 0 };
     ta.focus({ preventScroll: true });
     ta.setSelectionRange(ta.value.length, ta.value.length);
 
@@ -125,7 +132,7 @@
     const h = blk ? blk.head : null;
     const msg = {
       type: 'geulgyeol:sel', on,
-      head: h ? { fx: h.fx || null, em: !!blk.em, styles: h.styles.slice(), color: h.color || null } : null
+      head: h ? { fx: h.fx || null, em: !!blk.em, styles: h.styles.slice(), color: h.color || null, speed: h.speed || null } : null
     };
     const key = JSON.stringify(msg);
     if (key === cur.last) return;
@@ -167,7 +174,7 @@
 
   /*
    * 하단바에서 온 것: {act:'em', v: 효과 이름 | '' 이름 없는 강조 | null 강조 빼기}, {act:'exit', v: 퇴장 이름 | null},
-   * {act:'style', v: 꾸밈 이름(켜고 끔)}, {act:'color', v: 색 이름 | null}, {act:'off'} 표시 빼기
+   * {act:'style', v: 꾸밈 이름(켜고 끔)}, {act:'color', v: 색 이름 | #rrggbb | null}, {act:'speed', v: 배율}, {act:'off'} 표시 빼기
    */
   function command(d) {
     if (d.act === 'off') { removeAll(); return; }
@@ -183,15 +190,77 @@
       } else if (d.act === 'color') {
         h.color = d.v || null;
         if (emNow && !h.fx) h.keep = true;
+      } else if (d.act === 'speed') {
+        h.speed = Math.abs(d.v - 1) < 0.01 ? null : d.v;
+        if (emNow && !h.fx) h.keep = true;
       }
       return h;
     });
     if (!r) return;
     put(r.next, r.sel);
+    /* 속도는 막대를 끄는 동안 바뀌므로 손을 멈추면 한 번 보인다 */
+    if (d.act === 'speed') {
+      clearTimeout(cur.speedTimer);
+      const c = cur;
+      cur.speedTimer = setTimeout(() => { if (cur === c) { const b = blockAtSel(); if (b && b.head.fx) preview(b); } }, 350);
+    }
     if ((d.act === 'em' || d.act === 'exit') && d.v) {
       const needle = E.stripMarks(r.next.slice(r.sel[0], r.sel[1])).replace(/\s+/g, ' ').trim().slice(0, 14);
       cur.replay = { page: cur.page, needle };
+      const blk = blockAtSel();
+      if (blk) preview(blk);
     }
+  }
+
+  /*
+   * 고른 효과를 그 자리에서 한 번 보인다. 고름은 그대로 두고, 그 블록의 {{머리: }} 표시와 강조 면은 잠깐 숨겼다가
+   * 움직임이 끝나면 편집창을 다시 그려 돌려놓는다. 퇴장은 글자를 잠깐 보인 뒤 물러나게 한다.
+   */
+  const PREVIEW_HOLD = 600;
+  function preview(blk) {
+    const G = window.GeulFx;
+    const cfg = E.BLOCKS[blk.head.fx];
+    if (!G || !cfg || !cur) return;
+    const c = cur;
+    clearTimeout(c.pvTimer);
+    const idx = (c.ta.value.slice(0, blk.os).match(/\{\{/g) || []).length;
+    const parts = [...c.mirror.querySelectorAll(`[data-b="${idx}"]`)];
+    if (!parts.length) return;
+    c.box.classList.add('ip-previewing');
+    const k = blk.head.speed || 1;
+    const chars = [];
+    parts.forEach((n) => {
+      if (n.classList.contains('m-mark')) { n.classList.add('pv-hide'); return; }
+      n.classList.add('pv-plain');
+      const text = n.textContent;
+      n.textContent = '';
+      Array.from(text).forEach((ch) => {
+        if (/\s/.test(ch)) { n.append(ch); return; }
+        const s = el('span', 'pv-ch', ch);
+        if (k !== 1) s.dataset.pace = String(k);
+        n.append(s);
+        chars.push(s);
+      });
+    });
+    const step = (typeof cfg.char === 'number' ? cfg.char : 70) / k;
+    const anim = G.FX[cfg.fx] ? cfg.fx : 'fade';
+    let end = 0;
+    chars.forEach((s, i) => {
+      const t = i * step;
+      s.style.opacity = '0';
+      setTimeout(() => { if (cur !== c) return; s.style.opacity = ''; G.FX[anim](s); }, t);
+      end = Math.max(end, t + (E.SETTLE[anim] || 900) / k);
+    });
+    if (cfg.exit && G.FX[cfg.exit]) {
+      const out = end + PREVIEW_HOLD;
+      chars.forEach((s, i) => setTimeout(() => { if (cur === c) G.FX[cfg.exit](s); }, out + i * 45));
+      end = out + chars.length * 45 + 1400;
+    }
+    c.pvTimer = setTimeout(() => {
+      if (cur !== c) return;
+      c.box.classList.remove('ip-previewing');
+      c.ed.draw();
+    }, end + 200);
   }
 
   function removeAll() {

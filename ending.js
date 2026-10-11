@@ -15,8 +15,8 @@
   const DEFAULT = { scene: '라이트', ground: '편지지' };
   /* 장면마다 쓸 수 있는 바탕(엔진 값). 편지지·오로라는 두 장면 모두 */
   const SCENE_GROUNDS = {
-    day: ['window', 'wongoji', 'leaf', 'dawn', 'letter', 'aurora'],
-    night: ['projector', 'drape', 'caustic', 'typing', 'letter', 'aurora']
+    day: ['window', 'wongoji', 'leaf', 'dawn', 'letter', 'aurora', 'plain'],
+    night: ['projector', 'drape', 'caustic', 'typing', 'letter', 'aurora', 'plain']
   };
   const FAM = {
     mark: "'Song Myung', 'Noto Serif KR', serif",
@@ -80,15 +80,45 @@
     return `rgba(${m ? m[1].split(',').slice(0, 3).join(',') : '0, 0, 0'}, ${a})`;
   }
 
-  /* 끝 장에 걸린 장면 색과 제목 글꼴(--f-title, ending.css) */
-  function readLook(sheet) {
+  /* 글꼴 목록 link가 다 붙을 때까지(없거나 이미 붙었으면 바로) */
+  function sheetLoaded(id) {
+    const link = document.getElementById(id);
+    if (!link) return Promise.resolve();
+    if (link.sheetReady) return link.sheetReady;
+    if (link.sheet) return Promise.resolve();
+    return new Promise((r) => { link.addEventListener('load', r, { once: true }); link.addEventListener('error', r, { once: true }); });
+  }
+
+  /* 카드 글꼴: 고른 이름이 있으면 그 글꼴을 불러 쓰고, 없으면 본문 글꼴(--f-title) */
+  function cardFont(name) {
+    const T = window.GeulTune;
+    const f = name && T && T.FONTS && T.FONTS[name];
+    if (!f) return '';
+    const id = 'geul-card-font';
+    let link = document.getElementById(id);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      document.head.append(link);
+    }
+    const href = `https://fonts.googleapis.com/css2?family=${f.q}&display=swap`;
+    if (link.href !== href) {
+      link.sheetReady = new Promise((r) => { link.onload = r; link.onerror = r; });
+      link.href = href;
+    }
+    return `${f.css}, ${FAM.mark}`;
+  }
+
+  /* 끝 장에 걸린 장면 색과 제목 글꼴 */
+  function readLook(sheet, card) {
     const cs = getComputedStyle(sheet);
     const v = (k) => cs.getPropertyValue(k).trim();
     return {
       ink: color(v('--ink'), '#1D2321'),
       soft: color(v('--ink-soft'), '#5D6662'),
       paper: color(v('--paper'), '#ECEFE9'),
-      title: v('--f-title') || FAM.mark
+      title: cardFont(card && card.font) || v('--f-title') || FAM.mark
     };
   }
 
@@ -101,17 +131,23 @@
   function fontsFor(L, text, date) {
     const F = document.fonts;
     if (!F || !F.load) return { ready: Promise.resolve(true), late: null };
-    const all = Promise.all([
+    /* 본문·카드 글꼴은 글꼴 목록(stylesheet)이 붙은 뒤에야 불러진다 */
+    const all = Promise.all(['geul-font', 'geul-card-font'].map(sheetLoaded)).then(() => Promise.all([
       F.load(`400 ${SIZES[0]}px ${L.title}`, text || '가'),
       F.load(`400 22px ${FAM.code}`, date)
-    ]).then(() => true, () => true);
+    ])).then(() => true, () => true);
     return { ready: Promise.race([all, new Promise((r) => setTimeout(() => r(false), FONT_WAIT))]), late: all };
   }
 
   /* ---------- 줄 나누기 ---------- */
 
-  /* 어절 단위로 max 폭에 맞춰 줄을 나눈다. 한 어절이 한 줄보다 길면 글자 단위로 끊는다 */
+  /* 엔터로 나눈 줄마다 어절 단위로 max 폭에 맞춰 나눈다. 빈 줄은 빈 줄로 둔다 */
   function wrap(ctx, text, max) {
+    return text.split('\n').flatMap((ln) => (ln.trim() ? wrapLine(ctx, ln, max) : ['']));
+  }
+
+  /* 한 줄을 어절 단위로 나눈다. 한 어절이 한 줄보다 길면 글자 단위로 끊는다 */
+  function wrapLine(ctx, text, max) {
     const out = [];
     let line = '';
     text.split(' ').forEach((w) => {
@@ -138,7 +174,7 @@
     ctx.font = `400 ${size}px ${fam}`;
     const lines = wrap(ctx, text, max);
     const keep = lines.slice(0, n);
-    let last = Array.from(lines.slice(n - 1).join(' '));
+    let last = Array.from(lines.slice(n - 1).join(' ').trim());
     while (last.length && ctx.measureText(last.join('').trimEnd() + '…').width > max) last.pop();
     keep[n - 1] = last.join('').trimEnd() + '…';
     return { size, lines: keep };
@@ -276,7 +312,7 @@
     if (!st) return;
     const seq = ++st.seq;
     st.dirty = false;
-    st.look = readLook(st.sheet);
+    st.look = readLook(st.sheet, st.card);
     const title = clean(st.title);
     const fonts = fontsFor(st.look, title || st.line || '가', st.made.mark);
     if (!(await fonts.ready)) fonts.late.then(() => { if (seq === st.seq) { st.bareKey = ''; redraw(); } });
@@ -336,6 +372,7 @@
     if (!st.field) return;
     st.zone.style.setProperty('--ts', String(st.card.size / W));
     st.field.style.textAlign = st.card.align;
+    st.field.style.fontFamily = cardFont(st.card.font) || '';
     st.field.style.maxHeight = `${Math.max(1, Math.floor(st.Z.h / (st.card.size * LEAD))) * LEAD}em`;
     st.field.style.height = 'auto';
     st.field.style.height = st.field.scrollHeight + 'px';
@@ -360,10 +397,16 @@
     move.setAttribute('aria-label', '카드 문구 위치 이동. 끌거나 방향키를 사용하세요.');
     zone.append(ta, move); st.zone = zone; st.field = ta;
     ta.addEventListener('input', () => {
-      st.card.text = ta.value.replace(/[\r\n]+/g, ' ');
+      st.card.text = ta.value;
       changed(st);
     });
-    ta.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); ta.blur(); } });
+    /* 엔터는 줄 나눔(카드에 드는 줄까지), Esc는 끝내기 */
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); ta.blur(); return; }
+      if (e.key !== 'Enter' || e.isComposing) return;
+      const room = Math.max(1, Math.floor(st.Z.h / (st.card.size * LEAD)));
+      if (ta.value.split('\n').length >= Math.min(4, room)) e.preventDefault();
+    });
     ta.addEventListener('focus', () => st.fig.classList.add('editing'));
     ta.addEventListener('blur', () => { flush().then(() => { if (document.activeElement !== ta) st.fig.classList.remove('editing'); }); });
     let drag = null;
@@ -371,13 +414,26 @@
       e.preventDefault(); move.setPointerCapture(e.pointerId);
       drag = { x:e.clientX, y:e.clientY, cx:st.card.x, cy:st.card.y, scale:st.fig.getBoundingClientRect().width / W };
     });
+    /* 끄는 동안 가로·세로 가운데에 SNAP(카드 px) 안으로 들면 가운데에 붙고 가운데 선이 보인다 */
+    const SNAP = 16;
     move.addEventListener('pointermove', e => {
       if (!drag) return;
-      st.card.x = Math.max(0, Math.min(100, drag.cx + (e.clientX - drag.x) / drag.scale / Math.max(1, W - 120 - st.Z.w) * 100));
-      st.card.y = Math.max(0, Math.min(100, drag.cy + (e.clientY - drag.y) / drag.scale / 160 * 100));
+      const span = Math.max(1, W - 120 - st.Z.w);
+      let x = Math.max(0, Math.min(100, drag.cx + (e.clientX - drag.x) / drag.scale / span * 100));
+      let y = Math.max(0, Math.min(100, drag.cy + (e.clientY - drag.y) / drag.scale / 160 * 100));
+      const midY = window.GeulCardSettings.MID_Y;
+      const onX = Math.abs(x - 50) * span / 100 < SNAP, onY = Math.abs(y - midY) * 160 / 100 < SNAP;
+      if (onX) x = 50;
+      if (onY) y = midY;
+      st.fig.classList.toggle('snap-x', onX);
+      st.fig.classList.toggle('snap-y', onY);
+      st.card.x = x; st.card.y = y;
       changed(st);
     });
-    ['pointerup','pointercancel','lostpointercapture'].forEach(type => move.addEventListener(type, () => { drag = null; }));
+    ['pointerup','pointercancel','lostpointercapture'].forEach(type => move.addEventListener(type, () => {
+      drag = null;
+      st.fig.classList.remove('snap-x', 'snap-y');
+    }));
     move.addEventListener('keydown', e => {
       const delta = { ArrowLeft:['x',-2], ArrowRight:['x',2], ArrowUp:['y',-2], ArrowDown:['y',2] }[e.key];
       if (!delta) return; e.preventDefault(); e.stopPropagation();
@@ -459,11 +515,20 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       if (!cur || !cur.sheet.isConnected) return;
-      const L = readLook(cur.sheet);
+      const L = readLook(cur.sheet, cur.card);
       if (lookKey(L) !== cur.drawnKey) redraw();
       sizeField(cur);
     }, 150);
   });
+
+  /* 늦게 받은 글꼴이 있으면 카드를 다시 그린다(캔버스는 글꼴이 바뀌어도 저절로 다시 그려지지 않는다) */
+  if (document.fonts && document.fonts.addEventListener) {
+    document.fonts.addEventListener('loadingdone', () => {
+      if (!cur || !cur.sheet.isConnected) return;
+      cur.bareKey = '';
+      later();
+    });
+  }
 
   /* 병렬 미리보기의 다른 틀에서 바꾼 카드도 같은 값으로 그려요. */
   window.addEventListener('message', e => {
@@ -481,5 +546,22 @@
     return { canvas: cur.canvas, blob: cur.blob, url: cur.url, title: clean(cur.title) };
   }
 
-  window.GeulEnding = { build, card, W, H };
+  /* 발행용 한 장. 현재 미리보기와 무관하게 전달받은 설정만 그려요. */
+  async function exportCard(o) {
+    const end = pickEnding(o.ending), card = window.GeulCardSettings.normalize(o.ending);
+    const sheet = el('section', 'sheet ending');
+    sheet.dataset.scene = end.scene; sheet.dataset.ground = end.ground;
+    document.body.append(sheet);
+    try {
+      const st = { sheet, end, card, made:madeOn(o.made), title:card.text === null ? clean(o.title).slice(0, 40) || firstSentence(o.text) : card.text };
+      position(st); st.look = readLook(sheet, card);
+      const fonts = fontsFor(st.look, st.title, st.made.mark);
+      await (fonts.late || fonts.ready);
+      const blob = await toBlob(drawCard(st, true));
+      if (!blob) throw new Error('카드 이미지를 만들지 못했어요. 다시 시도해 주세요.');
+      return blob;
+    } finally { sheet.remove(); }
+  }
+
+  window.GeulEnding = { build, card, exportCard, W, H };
 })();

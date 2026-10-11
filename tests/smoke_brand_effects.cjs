@@ -43,11 +43,11 @@ const fs = require('node:fs/promises');
       await pg.goto(origin+'/flip-lab.html');
       await pg.click('[data-for=day] button[data-ground=wongoji]');
       await pg.click('[data-for=night] button[data-ground=typing]');
-      for (const turn of ['iris','bloom','blinds','curtain','sunrise','sunset','flash','sweep','ink','glitch','dive']) {
+      for (const turn of ['bloom','sunrise','sunset','flash','sweep','ink','glitch','dive']) {
         await pg.click(`[data-turn=${turn}]`); await pg.waitForTimeout(1400);
         assert.equal(await pg.locator('.sheet.is-current').count(),1,turn);
       }
-      await context.close(); console.log(`${width}px: 글자리 SVG, 원고지·타자 렌더, 넘김 11종 통과`);
+      await context.close(); console.log(`${width}px: 글자리 SVG, 원고지·타자 렌더, 넘김 8종 통과`);
     }
     assert.deepEqual(errors,[]);
   } finally {await browser?.close();await close();}

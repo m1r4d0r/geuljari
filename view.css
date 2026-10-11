@@ -96,3 +96,9 @@
 .ip-acts button:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
 .ip-acts svg { display: block; }
 @media (max-width: 599px) { .ip-acts button { width: 44px; height: 44px; } }
+
+/* 고른 효과를 그 자리에서 보이는 동안: 그 블록의 표시와 강조 면을 숨기고, 고름 면도 비운다 */
+.ip .pv-hide { display: none; }
+.ip .pv-plain { background: none; text-decoration: none; }
+.ip .pv-ch { display: inline-block; }
+.ip.ip-previewing .ip-input::selection { background: transparent; }

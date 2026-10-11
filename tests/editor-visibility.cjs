@@ -16,7 +16,10 @@ const fs = require('node:fs/promises');
       // 편집 하단바: 분위기(축마다 값 단추)·테마. 불러오기·저장·새로 쓰기는 오른쪽 아래에 늘
       assert.equal(await pg.textContent('.write-bar .tb-cat .tb-label'),'분위기');
       assert.equal(await pg.locator('.write-bar .tb-val[data-key^=ax-]').count(),3);
+      // 1000px 이하는 ⋯ 안에
+      if(width<=1000) { for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('#'+id),false,id); await pg.click('.write-bar .tb-more'); }
       for(const id of ['load-open','file-save','clear']) assert.equal(await pg.isVisible('.write-bar .tb-side #'+id),true,id);
+      if(width<=1000) { await pg.click('.write-bar .tb-more'); assert.equal(await pg.isVisible('#load-open'),false); }
       assert.equal(await pg.locator('.write-help li').count(),3); assert.equal(await pg.isVisible('.write-help'),true);
       assert.equal(await pg.locator('#sample, #go-tune').count(),0);
       assert.equal(await pg.locator('button').filter({hasText:/^미리보기$/}).count(),1);
@@ -33,6 +36,7 @@ const fs = require('node:fs/promises');
       const [hc,cc]=[await pg.locator('.write-help').boundingBox(), await pg.locator('#count').boundingBox()];
       assert.ok(cc.y>=hc.y+hc.height-1,'집계는 쓰는 법 아래');
       await pg.screenshot({path:`tests/out/editor-visible-${width}.png`});
+      if(width<=1000) await pg.click('.write-bar .tb-more');
       await pg.click('#load-open'); await pg.waitForSelector('#load-dialog[open]');
       assert.equal(await pg.isVisible('#load-file'),true); await pg.click('#load-close');
       await pg.click('#guide-open'); assert.equal(await pg.isVisible('#guide'),true); await pg.click('#g-skip');

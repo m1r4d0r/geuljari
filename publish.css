@@ -1,4 +1,4 @@
-/* 발행은 종이 한 장의 양식으로, 단계 이동은 헤더에 두어요. */
+/* 발행은 종이 한 장의 양식으로, 단계 이동은 헤더에 두어요. 발행한 뒤에는 링크 면이 맨 위에 와요. */
 .publish-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 48px var(--gut) 80px; }
 .publish-sheet { width: min(100%, 640px); margin: 0 auto; }
 .publish h1 { margin: 14px 0; font: 32px/1.4 var(--f-body); font-weight: 400; }
@@ -11,9 +11,13 @@
 .pub-check input { flex: none; margin-top: 5px; accent-color: var(--ink); }
 .pub-actions { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-top: 24px; }
 .pub-message { min-height: 22px; margin-top: 20px; overflow-wrap: anywhere; }
-.pub-result { border-top: 1px solid var(--ink); margin-top: 24px; padding-top: 24px; }
-.pub-keep { margin: 32px 0 0; padding-top: 20px; border-top: 1px solid var(--line); font: 500 13px/1.6 var(--f-ui); }
-.pub-keep + .pub-actions { margin-top: 14px; }
+.pub-result { margin: 0 0 36px; padding: 4px 20px 22px; background: var(--sheet); border-top: 1px solid var(--ink); }
+.pub-result .pub-field:first-child { margin-top: 16px; }
+.pub-result #publish-url { background: var(--paper); font-family: var(--f-num); font-size: 13px; }
+a.btn { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
+.pub-keep { margin: 26px 0 0; padding-top: 18px; border-top: 1px solid var(--line); font: 500 13px/1.6 var(--f-ui); }
+.pub-keep + .pub-note { margin: 4px 0 0; }
+.pub-keep + .pub-note + .pub-actions { margin-top: 14px; }
 .publication-strip { margin-left: auto; min-width: 0; display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--lead); }
 .publication-strip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .publication-strip .link { flex: none; height: 28px; font-size: 12px; color: var(--ink); }
@@ -27,8 +31,26 @@
   .publish h1 { font-size: 27px; }
   .load-dialog { padding: 20px; }
 }
-.publish-guide { list-style: none; padding: 0; margin: 0 0 30px; border-block: 1px solid var(--line); }
-.publish-guide li { display: grid; gap: 5px; padding: 16px 0; }
-.publish-guide li + li { border-top: 1px solid var(--line); }
-.publish-guide b { font-weight: 500; }
-.publish-guide span { color: var(--lead); font-size: 12px; line-height: 1.8; }
+
+/* 링크·비밀번호: 왼쪽에 이름과 하는 일, 오른쪽에 짧은 줄 */
+.pub-keys { margin: 0 0 36px; border-block: 1px solid var(--line); }
+.pub-key { display: grid; grid-template-columns: 112px 1fr; gap: 0 20px; padding: 18px 0; }
+.pub-key + .pub-key { border-top: 1px solid var(--line); }
+.pub-key dt { display: flex; flex-direction: column; gap: 4px; }
+.pub-key dt b { font-weight: 500; }
+.pub-key dt span { font-size: 12px; color: var(--lead); }
+.pub-key dd { margin: 0; min-width: 0; }
+.pub-key ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pub-key li { position: relative; padding-left: 14px; font-size: 13px; line-height: 1.7; color: var(--lead); word-break: keep-all; }
+.pub-key li::before { content: ''; position: absolute; left: 0; top: .8em; width: 6px; height: 1px; background: var(--lead); }
+/* 링크 생김새: 열쇠(# 뒤)를 면으로 짚는다 */
+.pub-url { margin: 0 0 10px; font-size: 12px; color: var(--ink); overflow-wrap: anywhere; }
+.pub-url i { font-style: normal; color: var(--lead); }
+.pub-url em { font-style: normal; padding: 1px 3px; margin-left: 1px; background: var(--smudge); }
+.pub-message:empty { display: none; }
+
+@media(max-width: 600px) {
+  .pub-key { grid-template-columns: 1fr; gap: 10px; }
+  .pub-key dt { flex-direction: row; align-items: baseline; gap: 10px; }
+  .pub-result { padding: 4px 16px 18px; }
+}

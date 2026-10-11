@@ -1,7 +1,7 @@
 /*
  * 글결 분위기 살펴보기
  * 편집실 위에 뜨는 판. 심상 세 축(온도·물기·숨)을 한 장에 한 축씩 보이고, 축의 두 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
- * - 온도: 강조한 글자가 젖은 먹으로 떠올라 마르는 시간(마름)과, 다크 쪽으로 넘어가는 결(조리개·셔터).
+ * - 온도: 강조한 글자가 젖은 먹으로 떠올라 마르는 시간(마름)과, 다크 쪽으로 넘어가는 결(피어남·섬광).
  * - 물기: 보통 글자가 나타나는 결(번짐·이어 쓰기).
  * - 숨: 쓰는 빠르기와 두 번 띄어 쓴 쉼의 길이. 쓰는 자리에 커서가 깜박인다.
  * 카드 아래 시간 막대에는 글자가 나온 때와 낱말이 바꾸는 시간(나타나는 동안·쉼·마름·넘김)을 두 낱말이 같은 눈금으로 그린다.
@@ -283,7 +283,7 @@
   }
 
   /*
-   * 다크 쪽으로 넘김: flip.js의 셔터(가로 살이 한꺼번에 벌어짐)와 조리개(가운데에서 둥글게 열림)를 카드 크기로. 셔터가 아니면 조리개로 그린다.
+   * 다크 쪽으로 넘김: flip.js의 섬광(하얗게 번쩍이는 사이에 바뀜)과 피어남(바닥 가운데에서 둥글게 부풂)을 카드 크기로. 섬광이 아니면 피어남으로 그린다.
    * flip.js처럼 모양은 진행값에 곧게 따르고, 움직임의 결은 timing의 곡선(ease)이 정한다.
    */
   function turn(o, t) {
@@ -296,20 +296,16 @@
     const mid = Math.sin(Math.PI * q);
     const moving = q > 0.0005 && q < 0.9995;
     night.style.visibility = q <= 0.0005 ? 'hidden' : 'visible';
-    if (o.mode === 'blinds') {
-      const band = Math.max(12, H / 7);
-      const open = (band * q).toFixed(2);
-      const mask = moving ? `repeating-linear-gradient(to bottom, #000 0, #000 ${open}px, transparent ${open}px, transparent ${band.toFixed(2)}px)` : '';
-      night.style.webkitMaskImage = mask;
-      night.style.maskImage = mask;
-      glint.style.background = moving
-        ? `repeating-linear-gradient(to bottom, rgba(255,244,222,0) 0, rgba(255,244,222,0) ${open}px, rgba(255,244,222,.7) ${open}px, rgba(255,244,222,0) ${(+open + 2).toFixed(2)}px, rgba(255,244,222,0) ${band.toFixed(2)}px)`
-        : '';
-      glint.style.opacity = moving ? mid.toFixed(3) : '0';
+    if (o.mode === 'flash') {
+      night.style.clipPath = '';
+      night.style.opacity = moving ? (q < 0.5 ? '0' : '1') : '';
+      glint.style.background = moving ? 'rgba(255,250,240,1)' : '';
+      glint.style.opacity = moving ? Math.max(0, 1 - Math.abs(q - 0.5) * 2.6).toFixed(3) : '0';
       ring.style.opacity = '0';
     } else {
-      const R = Math.hypot(W, H) * 0.56 * q;
-      night.style.clipPath = moving ? `circle(${R.toFixed(1)}px at 50% 50%)` : '';
+      const R = Math.hypot(W, H) * 1.05 * q;
+      night.style.opacity = '';
+      night.style.clipPath = moving ? `circle(${R.toFixed(1)}px at 50% 100%)` : '';
       night.style.transform = moving ? `scale(${(1.04 - 0.04 * e).toFixed(4)})` : '';
       ring.style.width = ring.style.height = (R * 2).toFixed(1) + 'px';
       ring.style.opacity = moving ? mid.toFixed(3) : '0';

@@ -11,6 +11,7 @@
  * - curtain(막): 영사 스크린이 위에서 내려오듯 새 장이 위에서부터 덮고, 아랫단에 빛줄이 따라 내려온다.
  * - sunrise(해돋이): 아래 지평에 먼저 빛이 돌고, 새 장이 아래에서부터 차오르며 차오르는 끝 위로 따뜻한 빛이 떠오른다.
  * - sunset(해넘이): 새 장이 위에서부터 내려오고, 끝 아래로 빛이 지며 앞 장은 노을빛으로 저문다.
+ * - glass(유리): 앞 장에 균열이 드러난 뒤 불규칙한 면이 기울어 떨어진다. 파편은 같은 진행값에서 같은 자리로 돌아온다.
  * - flash(섬광): 찰칵 하고 하얗게 번쩍이는 사이에 장이 바뀌고, 빛이 빠지며 새 장이 드러난다.
  * - drift(스밈): 장면이 같은 페이지끼리. 새 장이 위에서 옅게 겹쳐 오고, 글은 넘기는 방향으로 조금 밀리며 바뀐다.
  * dir=1이면 시계방향(앞으로), dir=-1이면 반시계방향(되돌아가기).
@@ -71,6 +72,7 @@
     sunset: { lead: 220, run: 1150, tail: 260, make: () => powInOut(0.38, 1.8, 3) },
     /* 섬광: 순간 번쩍하고 천천히 빠진다 */
     flash: { lead: 0, run: 950, tail: 0, make: () => popFade(0.11, 0.42) },
+    glass: { lead: 0, run: 1150, tail: 0, make: () => bez(0.32, 0, 0.42, 1) },
     /* 스밈: 머뭇거림 없이 스며들고 길게 가라앉는다(render 안의 겹침 곡선과 합쳐서) */
     drift: { lead: 0, run: 780, tail: 0, make: () => bez(0.3, 0.1, 0.45, 1) }
   };
@@ -81,6 +83,79 @@
     const t = Object.prototype.hasOwnProperty.call(TIMING, mode) ? TIMING[mode] : FALLBACK;
     if (!t.ease) t.ease = t.make();
     return { lead: t.lead, run: t.run, tail: t.tail, ease: t.ease };
+  }
+
+  /* 고정된 씨앗의 수직이등분선으로 나눈 면. 진행 방향·프레임마다 난수를 새로 뽑지 않는다. */
+  function glassCells(w, h) {
+    const seeds = [[.08,.12],[.38,.07],[.72,.16],[.94,.08],[.17,.41],[.47,.34],
+      [.82,.46],[.06,.76],[.36,.69],[.64,.82],[.96,.74],[.22,.98]].map(([x,y]) => [x*w,y*h]);
+    return seeds.map(([x,y], i) => {
+      let points = [[0,0],[w,0],[w,h],[0,h]];
+      seeds.forEach(([xx,yy], j) => {
+        if (i === j) return;
+        const a = xx-x, b = yy-y, c = (xx*xx+yy*yy-x*x-y*y)/2;
+        const next = [];
+        points.forEach((v,k) => {
+          const u = points[(k+1)%points.length];
+          const dv = a*v[0]+b*v[1]-c, du = a*u[0]+b*u[1]-c;
+          if (dv <= 0) next.push(v);
+          if ((dv <= 0) !== (du <= 0)) {
+            const t = dv/(dv-du);
+            next.push([v[0]+t*(u[0]-v[0]),v[1]+t*(u[1]-v[1])]);
+          }
+        });
+        points = next;
+      });
+      return { x, y, points };
+    });
+  }
+
+  function glassLayer(stage, sheet, w, h) {
+    const layer = document.createElement('div');
+    layer.className = 'flip-glass';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.inert = true;
+    const template = sheet.cloneNode(true);
+    template.classList.remove('is-moving', 'is-current');
+    template.classList.add('glass-copy');
+    template.style.cssText = `width:${w}px;height:${h}px;visibility:visible;`;
+    [template, ...template.querySelectorAll('[id]')].forEach((n) => n.removeAttribute('id'));
+    const originals = [...sheet.querySelectorAll('canvas')];
+    template.querySelectorAll('canvas').forEach((node, i) => {
+      const img = document.createElement('img');
+      const source = node.classList.contains('ground') && global.GeulBackdrop
+        ? global.GeulBackdrop.snapshot(sheet) : originals[i];
+      if (source) img.src = source.toDataURL();
+      img.className = node.className;
+      img.style.cssText = node.style.cssText;
+      img.width = node.width; img.height = node.height;
+      img.alt = '';
+      node.replaceWith(img);
+    });
+    const scrolls = [...sheet.querySelectorAll('.scroll')].map((n) => n.scrollTop);
+    const auroraTimes = [...sheet.querySelectorAll('.au')].map((n) => n.getAnimations()[0]?.currentTime || 0);
+    const shards = glassCells(w,h).map((cell,i) => {
+      const node = document.createElement('div');
+      node.className = 'glass-shard';
+      node.style.transformOrigin = `${cell.x}px ${cell.y}px`;
+      node.style.clipPath = `polygon(${cell.points.map(([x,y]) => `${x}px ${y}px`).join(',')})`;
+      const copy = template.cloneNode(true);
+      const edge = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      edge.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      edge.setAttribute('class', 'glass-edge');
+      const poly = document.createElementNS(edge.namespaceURI, 'polygon');
+      poly.setAttribute('points', cell.points.map((v) => v.join(',')).join(' '));
+      edge.append(poly);
+      node.append(copy, edge);
+      layer.append(node);
+      return { node, copy, edge, ...cell, i };
+    });
+    stage.append(layer);
+    shards.forEach(({copy}) => {
+      copy.querySelectorAll('.scroll').forEach((n,i) => { n.scrollTop = scrolls[i]; });
+      copy.querySelectorAll('.au').forEach((n,i) => n.getAnimations().forEach((a) => { a.pause(); a.currentTime = auroraTimes[i]; }));
+    });
+    return { layer, shards };
   }
 
   /* opts.content: 장 안에서 글이 담긴 요소를 찾는 선택자(스밈에서 글만 밀 때 씀) */
@@ -108,20 +183,23 @@
 
     let pair = null;
     let g = null;
+    let glass = null;
 
     function measure() {
-      const r = stage.getBoundingClientRect();
+      const r = { width: stage.clientWidth, height: stage.clientHeight };
       const R = Math.hypot(r.width / 2, r.height) * 1.12;
       g = { W: r.width, H: r.height, R };
       stage.style.setProperty('--flip-r', R + 'px');
     }
 
     function begin(from, to, mode, dir, axis) {
-      if (pair && pair.from === from && pair.to === to && pair.mode === mode && pair.dir === dir) return;
+      if (pair && pair.from === from && pair.to === to && pair.requestedMode === mode && pair.dir === dir) return;
       clear();
       measure();
+      const requestedMode = mode;
+      if (mode === 'glass' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) mode = 'drift';
       pair = {
-        from, to, mode, dir: dir < 0 ? -1 : 1, axis: axis === 'y' ? 'y' : 'x',
+        from, to, mode, requestedMode, dir: dir < 0 ? -1 : 1, axis: axis === 'y' ? 'y' : 'x',
         fromText: contentSel ? from.querySelector(contentSel) : null,
         toText: contentSel ? to.querySelector(contentSel) : null
       };
@@ -132,6 +210,7 @@
       from.style.zIndex = coverFrom ? '2' : '1';
       to.style.zIndex = coverFrom ? '1' : '2';
       ring.classList.toggle('is-low', mode === 'bloom');
+      if (mode === 'glass') glass = glassLayer(stage, from, g.W, g.H);
     }
 
     function wedge(p) {
@@ -152,11 +231,32 @@
     function render(p, light) {
       if (!pair) return;
       const q = clamp01(p);
+      pair.progress = q;
+      pair.light = light;
       const lit = light == null ? (q > 0 && q < 1 ? 1 : 0) : clamp01(light);
       const mid = Math.sin(Math.PI * q);
       const { from, to, mode, dir } = pair;
 
-      if (mode === 'drift') {
+      if (mode === 'glass') {
+        // 초반에는 온전한 장 위로 균열만 보이고, 안쪽 면부터 조금씩 떨어진다.
+        const active = q > 0 && q < 1;
+        from.style.visibility = q === 0 ? 'visible' : 'hidden';
+        to.style.visibility = q === 0 ? 'hidden' : 'visible';
+        glass.layer.style.visibility = active ? 'visible' : 'hidden';
+        const span = Math.min(g.W, g.H);
+        glass.shards.forEach(({node,edge,x,y,i}) => {
+          const distance = Math.hypot(x/g.W-.48, y/g.H-.42);
+          const t = clamp01((q-.12-distance*.12)/.72);
+          const travel = t*t*t;
+          const dx = (x/g.W-.48)*span*.18*travel;
+          const dy = span*(.02*t+.26*travel)*(0.8+(i%3)*.1);
+          const rotation = ((i%2 ? 1 : -1)*(3+i%4))*travel;
+          node.style.transform = `translate3d(${dx*dir}px,${dy}px,0) rotate(${rotation*dir}deg) rotateX(${(4+i%4)*travel}deg) rotateY(${(i%2 ? 1 : -1)*(10+i%5)*travel}deg) scale(${1-.018*t})`;
+          node.style.opacity = String(1-smooth(clamp01((t-.28)/.72)));
+          edge.style.opacity = String(smooth(clamp01(q/.16))*(1-t)*.45);
+        });
+        lights.forEach((n) => { n.style.opacity = '0'; });
+      } else if (mode === 'drift') {
         const e = smooth(q);
         const shift = (pair.axis === 'x' ? g.W : g.H) * 0.06;
         const mv = (v) => (pair.axis === 'x' ? `translate3d(${v}px,0,0)` : `translate3d(0,${v}px,0)`);
@@ -312,6 +412,7 @@
     }
 
     function clear() {
+      if (glass) { glass.layer.remove(); glass = null; }
       if (pair) {
         [pair.from, pair.to].forEach((s) => {
           s.classList.remove('is-moving');
@@ -335,7 +436,15 @@
       lights.forEach((n) => { n.style.opacity = '0'; });
     }
 
-    window.addEventListener('resize', () => { if (pair) measure(); });
+    window.addEventListener('resize', () => {
+      if (!pair) return;
+      measure();
+      if (glass) {
+        glass.layer.remove();
+        glass = glassLayer(stage, pair.from, g.W, g.H);
+        render(pair.progress || 0, pair.light);
+      }
+    });
 
     return {
       begin,

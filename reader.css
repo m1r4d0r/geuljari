@@ -99,6 +99,8 @@ body {
 .scroll::-webkit-scrollbar { display: none; }
 .scroll::before, .scroll::after { content: ""; flex: 1 0 0; }
 .sheet.fits .scroll { touch-action: none; }
+/* 넘치는 장: 마지막 줄까지 화면 가운데(또렷한 띠)로 올려 읽을 수 있게 아래를 화면 반만큼 비운다 */
+.sheet.has-band .scroll { padding-bottom: calc(50vh + env(safe-area-inset-bottom, 0px)); }
 
 .column {
   flex: none;

@@ -199,6 +199,8 @@
   function measureFits() {
     pages.forEach((P) => {
       if (window.GeulManuscript) window.GeulManuscript.layout(P.el);
+      /* 넘치는 장의 아래 여백(has-band)은 빼고 잰다 */
+      P.el.classList.remove('has-band');
       P.fits = P.scroll.scrollHeight <= P.scroll.clientHeight + 4;
       P.el.classList.toggle('fits', P.fits);
       P.el.classList.toggle('has-band', !P.fits);

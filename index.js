@@ -128,7 +128,22 @@
   ['focusin', 'focusout'].forEach((t) => document.addEventListener(t, () => {
     const a = document.activeElement;
     document.body.classList.toggle('typing', a === ta || a === $('title'));
+    fitKeyboard();
   }));
+
+  /*
+   * 자판이 올라와도 화면 높이가 줄지 않는 브라우저(iOS 사파리 등)에서는 쓰는 동안 몸 높이를 보이는 화면(visualViewport)에 맞춘다.
+   * 그래야 편집창 아래가 자판 밑에 숨지 않고, 마지막 줄까지 굴려 올려 고칠 수 있다.
+   */
+  const vv = window.visualViewport;
+  function fitKeyboard() {
+    const on = vv && document.body.classList.contains('typing') && vv.height < window.innerHeight - 80;
+    if (on) {
+      document.documentElement.style.setProperty('--app-h', vv.height + 'px');
+      if (window.scrollY) window.scrollTo(0, 0);
+    } else document.documentElement.style.removeProperty('--app-h');
+  }
+  if (vv) { vv.addEventListener('resize', fitKeyboard); vv.addEventListener('scroll', fitKeyboard); }
 
   $('title').value = st.title;
   $('title').addEventListener('input', (e) => { st.title = e.target.value; save(); handOff(); });

@@ -132,7 +132,7 @@
     const h = blk ? blk.head : null;
     const msg = {
       type: 'geulgyeol:sel', on,
-      head: h ? { fx: h.fx || null, em: !!blk.em, styles: h.styles.slice(), color: h.color || null } : null
+      head: h ? { fx: h.fx || null, em: !!blk.em, styles: h.styles.slice(), color: h.color || null, speed: h.speed || null } : null
     };
     const key = JSON.stringify(msg);
     if (key === cur.last) return;
@@ -174,7 +174,7 @@
 
   /*
    * 하단바에서 온 것: {act:'em', v: 효과 이름 | '' 이름 없는 강조 | null 강조 빼기}, {act:'exit', v: 퇴장 이름 | null},
-   * {act:'style', v: 꾸밈 이름(켜고 끔)}, {act:'color', v: 색 이름 | null}, {act:'off'} 표시 빼기
+   * {act:'style', v: 꾸밈 이름(켜고 끔)}, {act:'color', v: 색 이름 | #rrggbb | null}, {act:'speed', v: 배율}, {act:'off'} 표시 빼기
    */
   function command(d) {
     if (d.act === 'off') { removeAll(); return; }
@@ -190,11 +190,20 @@
       } else if (d.act === 'color') {
         h.color = d.v || null;
         if (emNow && !h.fx) h.keep = true;
+      } else if (d.act === 'speed') {
+        h.speed = Math.abs(d.v - 1) < 0.01 ? null : d.v;
+        if (emNow && !h.fx) h.keep = true;
       }
       return h;
     });
     if (!r) return;
     put(r.next, r.sel);
+    /* 속도는 막대를 끄는 동안 바뀌므로 손을 멈추면 한 번 보인다 */
+    if (d.act === 'speed') {
+      clearTimeout(cur.speedTimer);
+      const c = cur;
+      cur.speedTimer = setTimeout(() => { if (cur === c) { const b = blockAtSel(); if (b && b.head.fx) preview(b); } }, 350);
+    }
     if ((d.act === 'em' || d.act === 'exit') && d.v) {
       const needle = E.stripMarks(r.next.slice(r.sel[0], r.sel[1])).replace(/\s+/g, ' ').trim().slice(0, 14);
       cur.replay = { page: cur.page, needle };
@@ -218,6 +227,7 @@
     const parts = [...c.mirror.querySelectorAll(`[data-b="${idx}"]`)];
     if (!parts.length) return;
     c.box.classList.add('ip-previewing');
+    const k = blk.head.speed || 1;
     const chars = [];
     parts.forEach((n) => {
       if (n.classList.contains('m-mark')) { n.classList.add('pv-hide'); return; }
@@ -227,18 +237,19 @@
       Array.from(text).forEach((ch) => {
         if (/\s/.test(ch)) { n.append(ch); return; }
         const s = el('span', 'pv-ch', ch);
+        if (k !== 1) s.dataset.pace = String(k);
         n.append(s);
         chars.push(s);
       });
     });
-    const step = typeof cfg.char === 'number' ? cfg.char : 70;
+    const step = (typeof cfg.char === 'number' ? cfg.char : 70) / k;
     const anim = G.FX[cfg.fx] ? cfg.fx : 'fade';
     let end = 0;
     chars.forEach((s, i) => {
       const t = i * step;
       s.style.opacity = '0';
       setTimeout(() => { if (cur !== c) return; s.style.opacity = ''; G.FX[anim](s); }, t);
-      end = Math.max(end, t + (E.SETTLE[anim] || 900));
+      end = Math.max(end, t + (E.SETTLE[anim] || 900) / k);
     });
     if (cfg.exit && G.FX[cfg.exit]) {
       const out = end + PREVIEW_HOLD;

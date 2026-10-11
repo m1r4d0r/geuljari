@@ -27,8 +27,10 @@
   function animate(el, frames, opts) {
     if (!canAnimate) return null;
     const o = Object.assign({ fill: 'none' }, opts);
-    if (o.duration) o.duration /= pace;
-    if (o.delay) o.delay /= pace;
+    /* 글 전체 속도에 글자마다의 배율(쪽 속도·강조 블록 속도, data-pace)을 곱한다 */
+    const k = pace * ((el && el.dataset && Number(el.dataset.pace)) || 1);
+    if (o.duration) o.duration /= k;
+    if (o.delay) o.delay /= k;
     try { return el.animate(frames, o); } catch (e) { return null; }
   }
 
@@ -42,7 +44,7 @@
       el.classList.add('drying');
       el.classList.remove('wet', 'soak');
       el._dry = setTimeout(() => el.classList.remove('drying'), 2000);
-    }, (hold || 1400) / pace);
+    }, (hold || 1400) / (pace * ((el.dataset && Number(el.dataset.pace)) || 1)));
   }
 
   /* 번짐: 글자색을 키프레임에 담아 그림자로 번지다가 또렷해진다 */
@@ -315,6 +317,7 @@
 
   /* 글자 꾸밈 클래스 */
   function decorate(el, c) {
+    if (c.pace && c.pace !== 1) el.dataset.pace = String(c.pace);
     if (c.st) for (const k of c.st) el.classList.add('s-' + k);
     if (c.color && c.color[0] === '#') el.style.color = c.color;
     else if (c.color) el.classList.add('c-' + c.color);

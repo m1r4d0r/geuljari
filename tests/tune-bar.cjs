@@ -113,6 +113,10 @@ const fs = require('node:fs/promises');
       await pg.click('#s-tune .tb-val[data-key=style]'); await pg.click('#tb-drop-style .tb-li:has-text("굵게")');
       assert.equal(await pg.locator('#tb-drop-style').count(), 1, '꾸밈은 여러 개라 판이 남음');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐+굵게:'));
+      // 이 강조의 속도: 머리에 속도150으로(Esc는 고치는 칸이 받아 고치기를 끝내므로 쓰지 않음)
+      await pg.click('#s-tune .tb-val[data-key=bspeed]');
+      await pg.locator('#tb-drop-bspeed input').evaluate((n) => { n.value = '1.5'; n.dispatchEvent(new Event('input', { bubbles: true })); });
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('{{번짐+굵게+속도150:'));
       await pg.screenshot({ path: `tests/out/tune-bar-edit-${width}.png` });
       // X: 고치기 전으로
       await frame.locator('.ip-acts button').first().click();

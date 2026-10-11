@@ -379,6 +379,11 @@
         options: [...groups('퇴장', null), ...(exit && decorated ? [opt(null, '없음')] : [])],
         pick: (v) => ctx.ip({ act: 'exit', v })
       }, {
+        key: 'bspeed', title: '이 강조의 속도', label: `속도 ${num((h && h.speed) || 1)}×`, off: off || !(em || exit), range: {
+          min: 0.5, max: 2, step: 0.1, value: (h && h.speed) || 1,
+          shown: (v) => `${num(v)}×`, label: (v) => `속도 ${num(v)}×`, input: (v) => ctx.ip({ act: 'speed', v })
+        }
+      }, {
         key: 'style', title: '꾸밈', off, multi: true,
         label: h && h.styles.length ? (h.styles.length === 1 ? '꾸밈 ' + h.styles[0] : `꾸밈 ${h.styles.length}가지`) : '꾸밈 없음',
         current: h ? h.styles : [],

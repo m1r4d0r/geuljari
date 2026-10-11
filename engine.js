@@ -80,26 +80,31 @@
   const WORD_ALT = HEAD_WORDS.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
   /* 직접 고른 색은 #rrggbb 그대로 머리에 적는다: {{#A63C33:…}}, {{번짐+#A63C33:…}} */
   const HEX_WORD = '#[0-9A-Fa-f]{6}';
-  const HEAD_SRC = `(?:${WORD_ALT}|${HEX_WORD})(?:\\+(?:${WORD_ALT}|${HEX_WORD}))*`;
+  /* 강조 블록 하나의 빠르기: {{번짐+속도80:…}} (80% = 0.8배). 강조인 블록에만 걸린다 */
+  const SPEED_WORD = '속도\\d{2,3}';
+  const HEAD_SRC = `(?:${WORD_ALT}|${HEX_WORD}|${SPEED_WORD})(?:\\+(?:${WORD_ALT}|${HEX_WORD}|${SPEED_WORD}))*`;
 
-  /* 블록 머리('떨림+굵게+빨강')를 {fx, keep, styles, color}로 읽는다. fx는 효과 이름(없으면 null) */
+  /* 블록 머리('떨림+굵게+빨강+속도80')를 {fx, keep, styles, color, speed}로 읽는다. fx는 효과 이름(없으면 null), speed는 배율(없으면 null) */
   function parseHead(head) {
-    const out = { fx: null, keep: false, styles: [], color: null };
+    const out = { fx: null, keep: false, styles: [], color: null, speed: null };
     String(head || '').split('+').forEach((w) => {
       if (BLOCKS[w]) out.fx = w;
       else if (w === KEEP) out.keep = true;
       else if (STYLES[w]) { if (!out.styles.includes(w)) out.styles.push(w); }
       else if (COLORS[w] || /^#[0-9A-Fa-f]{6}$/.test(w)) out.color = w;
+      else if (/^속도\d{2,3}$/.test(w)) out.speed = Number(w.slice(2)) / 100;
     });
     return out;
   }
-  /* {fx, keep, styles, color} → 블록 머리 글(이름 없는 강조만이면 빈 글) */
+  /* {fx, keep, styles, color, speed} → 블록 머리 글(이름 없는 강조만이면 빈 글) */
   function headText(h) {
     const words = [];
+    const sp = h.speed && Math.round(h.speed * 100) !== 100 ? '속도' + Math.round(h.speed * 100) : null;
     if (h.fx) words.push(h.fx);
-    else if (h.keep && (h.styles.length || h.color)) words.push(KEEP);
+    else if (h.keep && (h.styles.length || h.color || sp)) words.push(KEEP);
     words.push(...h.styles);
     if (h.color) words.push(h.color);
+    if (sp) words.push(sp);
     return words.join('+');
   }
 
@@ -203,6 +208,7 @@
     let fx = null;
     let st = '';
     let color = null;
+    let sp = 1;
     let block = -1;
     let pendingOpen = null;
     for (let i = 0; i < g.length; i++) {
@@ -213,6 +219,7 @@
         fx = em ? (h.fx || DEFAULT_CYCLE[(ctr.k++) % DEFAULT_CYCLE.length]) : null;
         st = h.styles.map((w) => STYLES[w]).join('');
         color = h.color ? (COLORS[h.color] || h.color) : null;
+        sp = em && h.speed ? h.speed : 1;
         if (em) block++;
         pendingOpen = EM_OPEN + (m ? m[0] : '');
         i += 1 + (m ? graphemes(m[0]).length : 0);
@@ -223,6 +230,7 @@
         fx = null;
         st = '';
         color = null;
+        sp = 1;
         for (let k = cells.length - 1; k >= 0; k--) {
           if (cells[k].ch === '\n' || isSpace(cells[k].ch)) continue;
           cells[k].close = (cells[k].close || 0) + 1;
@@ -234,6 +242,7 @@
       const cell = { ch: g[i], em, fx: em ? fx : null, block: em ? block : -1 };
       if (st) cell.st = st;
       if (color) cell.color = color;
+      if (sp !== 1) cell.pace = sp;
       if (g[i] !== '\n' && !isSpace(g[i]) && pendingOpen) { cell.open = pendingOpen; pendingOpen = null; }
       cells.push(cell);
     }
@@ -350,9 +359,11 @@
      * 블록에서 빠져나올 때: 블록의 뒤 뜸만큼 쉬되, 블록 글자가 다 나타나기 전에는 다음 글을 시작하지 않는다.
      * 퇴장 블록도 여기서는 보통 블록처럼 지나가고, 물러나는 시각은 그 쪽 글을 끝까지 쓴 뒤로 미룬다(fx.buildParagraph·읽기 틀).
      */
+    /* 블록 속도(머리의 속도80 등): 그 블록의 뜸·글자 사이·움직임 길이를 함께 */
+    const ps = (c) => (c && c.pace) || 1;
     const leave = (pc) => {
       const cfg = BLOCKS[pc.fx];
-      t = Math.max(t + cfg.after, emEnd + AFTER_GAP);
+      t = Math.max(t + cfg.after / ps(pc), emEnd + AFTER_GAP);
     };
 
     para.lines.forEach((line, li) => {
@@ -360,7 +371,7 @@
       const first = cells[0];
       const continues = li > 0 && prev && first.em && first.block === prev.block;
       const lastEm = cells[cells.length - 1].em;
-      if (li > 0) t += continues ? stepOf(BLOCKS[prev.fx], 'line', bi) : TIME.lineBreak;
+      if (li > 0) t += continues ? stepOf(BLOCKS[prev.fx], 'line', bi) / ps(prev) : TIME.lineBreak;
       if (continues) unitBreak = false;
       const short = line.kind === 'short';
       if (short && !continues) t += TIME.shortBefore;
@@ -373,7 +384,7 @@
         tk.afterRest = ti > 0 && tk.gap > 1;
         if (ti > 0) {
           if (tk.afterRest) t += (tk.gap - 1) * TIME.restPerSpace;
-          if (prev && c0.em && !drip && c0.block === prev.block) t += stepOf(BLOCKS[prev.fx], 'group', bi);
+          if (prev && c0.em && !drip && c0.block === prev.block) t += stepOf(BLOCKS[prev.fx], 'group', bi) / ps(prev);
           else if (!c0.em || drip) t += (short ? TIME.shortChar : rate) * (tk.afterRest ? 1.8 : 1);
         }
         if (drip && prevRole !== 'drip') t += TIME.dripBefore;
@@ -387,14 +398,14 @@
           const cfg = em ? BLOCKS[c.fx] : null;
           if (em && (!prev || prev.block !== c.block)) {
             if (prev) leave(prev);
-            t = Math.max(t + cfg.before, flowEnd);
+            t = Math.max(t + cfg.before / ps(c), flowEnd);
             bi = 0;
             unitBreak = false;
             blocks[c.block] = { cfg, start: t, end: t, cells: [] };
           } else if (!em && prev) {
             leave(prev);
           } else if (em && cfg.unit && unitBreak && tk.letters > 0) {
-            t += cfg.unitGap;
+            t += cfg.unitGap / ps(c);
           }
           if (tk.letters > 0) unitBreak = false;
 
@@ -406,7 +417,7 @@
 
           if (drip) t += TIME.dripChar;
           else if (em) {
-            t += stepOf(cfg, 'char', bi);
+            t += stepOf(cfg, 'char', bi) / ps(c);
             bi++;
             const B = blocks[c.block];
             B.end = c.t;
@@ -414,8 +425,8 @@
           } else if (short) t += TIME.shortChar * (nearRest ? slow : 1);
           else { t += rate * (1 + TIME.flowEase * Math.exp(-flowIndex / 5)) * (nearRest ? slow : 1); flowIndex++; }
 
-          end = Math.max(end, c.t + SETTLE[c.anim]);
-          if (em) emEnd = Math.max(emEnd, c.t + ENTER[c.anim]);
+          end = Math.max(end, c.t + SETTLE[c.anim] / ps(c));
+          if (em) emEnd = Math.max(emEnd, c.t + ENTER[c.anim] / ps(c));
           else flowEnd = Math.max(flowEnd, c.t + ENTER[c.anim]);
           prev = em ? c : null;
         });
@@ -439,7 +450,7 @@
         para.events.push({ type: 'spot', t: Math.round(B.start), end: Math.round(B.end + 2600) });
         end = Math.max(end, B.end + 3600);
       }
-      if (B.cfg.exit) para.events.push({ type: 'exit', fx: B.cfg.exit, hold: B.cfg.hold, cells: B.cells });
+      if (B.cfg.exit) para.events.push({ type: 'exit', fx: B.cfg.exit, hold: B.cfg.hold / ps(B.cells[0]), cells: B.cells });
     });
     para.lead = Math.round(t);
     para.span = Math.round(end);
@@ -511,7 +522,8 @@
   function pace(para, k) {
     if (para.paced) return;
     para.paced = k;
-    para.lines.forEach((l) => l.tokens.forEach((tk) => tk.cells.forEach((c) => { c.t = Math.round(c.t / k); })));
+    /* 글자마다의 움직임 길이도 같은 배율로(fx.js가 data-pace로 읽음) */
+    para.lines.forEach((l) => l.tokens.forEach((tk) => tk.cells.forEach((c) => { c.t = Math.round(c.t / k); c.pace = (c.pace || 1) * k; })));
     para.lead = Math.round(para.lead / k);
     para.span = Math.round(para.span / k);
     (para.events || []).forEach((ev) => { if (typeof ev.t === 'number') ev.t = Math.round(ev.t / k); if (typeof ev.end === 'number') ev.end = Math.round(ev.end / k); if (ev.hold) ev.hold = Math.round(ev.hold / k); });

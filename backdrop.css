@@ -170,15 +170,15 @@
   inset: 0;
   pointer-events: none;
   --pass: color-mix(in srgb, var(--theme-light, #FFFAEE) calc(var(--tint-light, 0) * 100%), #FFFAEE);
-  --pass-a: 34%;
-  --pass-shade: color-mix(in srgb, var(--ink) 5%, transparent);
+  --pass-a: 58%;
+  --pass-shade: color-mix(in srgb, var(--ink) 7%, transparent);
   /* 종이·글 위에 얹는다: 빛 줄기 둘레를 아주 옅게 그늘지게 해서 빛이 드러난다 */
   background: linear-gradient(105deg, var(--pass-shade) 30%, transparent 42%, color-mix(in srgb, var(--pass) var(--pass-a), transparent) 50%, transparent 58%, var(--pass-shade) 70%) 0 0 / 300% 100% no-repeat;
   background-position: calc(50% - var(--ptr-x, 0) * 21% - var(--pass-d)) 0;
   animation: geul-pass 40s ease-in-out infinite alternate;
 }
 .sheet[data-ground="letter"][data-scene="night"]::after,
-.sheet[data-ground="wongoji"][data-scene="night"]:has(.ln)::after { --pass-a: 12%; --pass-shade: rgba(0, 0, 0, .14); }
+.sheet[data-ground="wongoji"][data-scene="night"]:has(.ln)::after { --pass-a: 18%; --pass-shade: rgba(0, 0, 0, .18); }
 @keyframes geul-pass { from { --pass-d: -6%; } to { --pass-d: 6%; } }
 @media (prefers-reduced-motion: reduce) {
   .sheet[data-ground="letter"]::after, .sheet[data-ground="wongoji"]::after { animation: none; }

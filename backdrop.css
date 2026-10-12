@@ -159,22 +159,27 @@
 }
 
 /* ---------- 지나가는 빛 ----------
-   CSS로 그리는 종이 바탕(편지지, 글이 칸에 앉은 원고지)에도 비스듬한 빛 한 줄기가 아주 천천히 오간다(96초에 한쪽으로, 양 끝은 장 밖이라 돌아서는 자리가 보이지 않음)(빈 원고지는 캔버스가 그린다).
-   빛 색은 볕 색에서 주색을 밝힌 빛(--theme-light) 쪽으로 --tint-light만큼. 장 밖으로 넘치지 않게 배경 자리만 옮긴다. 움직임 줄이기면 멈춘 채 둔다. */
-.sheet[data-ground="letter"]::before,
-.sheet[data-ground="wongoji"]:has(.ln)::before {
+   CSS로 그리는 종이 바탕(편지지, 글이 칸에 앉은 원고지)에도 비스듬한 빛 한 줄기가 비친다(빈 원고지는 캔버스가 같은 빛을 그린다).
+   빛 줄기는 손(포인터, backdrop.js가 --ptr-x에 -1~1로 얹음)을 따라 좌우로 옮겨 가고, 그와 따로 40초에 한 번 천천히 흔들린다(ease-in-out alternate라 끊김 없음).
+   빛 색은 볕 색에서 주색을 밝힌 빛(--theme-light) 쪽으로 --tint-light만큼. 장 밖으로 넘치지 않게 배경 자리만 옮긴다. 움직임 줄이기면 흔들림은 멈춘다. */
+@property --pass-d { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+.sheet[data-ground="letter"]::after,
+.sheet[data-ground="wongoji"]:has(.ln)::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   --pass: color-mix(in srgb, var(--theme-light, #FFFAEE) calc(var(--tint-light, 0) * 100%), #FFFAEE);
-  --pass-a: 16%;
-  background: linear-gradient(105deg, transparent 42%, color-mix(in srgb, var(--pass) var(--pass-a), transparent) 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
-  animation: geul-pass 96s ease-in-out infinite alternate;
+  --pass-a: 34%;
+  --pass-shade: color-mix(in srgb, var(--ink) 5%, transparent);
+  /* 종이·글 위에 얹는다: 빛 줄기 둘레를 아주 옅게 그늘지게 해서 빛이 드러난다 */
+  background: linear-gradient(105deg, var(--pass-shade) 30%, transparent 42%, color-mix(in srgb, var(--pass) var(--pass-a), transparent) 50%, transparent 58%, var(--pass-shade) 70%) 0 0 / 300% 100% no-repeat;
+  background-position: calc(50% - var(--ptr-x, 0) * 21% - var(--pass-d)) 0;
+  animation: geul-pass 40s ease-in-out infinite alternate;
 }
-.sheet[data-ground="letter"][data-scene="night"]::before,
-.sheet[data-ground="wongoji"][data-scene="night"]:has(.ln)::before { --pass-a: 5%; }
-@keyframes geul-pass { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+.sheet[data-ground="letter"][data-scene="night"]::after,
+.sheet[data-ground="wongoji"][data-scene="night"]:has(.ln)::after { --pass-a: 12%; --pass-shade: rgba(0, 0, 0, .14); }
+@keyframes geul-pass { from { --pass-d: -6%; } to { --pass-d: 6%; } }
 @media (prefers-reduced-motion: reduce) {
-  .sheet[data-ground="letter"]::before, .sheet[data-ground="wongoji"]::before { animation: none; background-position: 60% 0; }
+  .sheet[data-ground="letter"]::after, .sheet[data-ground="wongoji"]::after { animation: none; }
 }

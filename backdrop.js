@@ -7,8 +7,8 @@
  *   css: 층을 만들지 않는다. 장의 data-ground를 보고 CSS(backdrop.css, reader.css 끝의 편지지 부분)가 그린다.
  * 라이트
  *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀌고, 2분에 한 번 해 길을 따라 볕이 조금 기울었다 돌아오며 희었다 노을빛이 된다.
- *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 비스듬한 빛이 2분 30초에 한 번 오갔다 돌아온다.
- *   - leaf(잎그늘): 나뭇잎 사이로 드는 볕. 바람에 잎이 흔들리듯 볕 조각이 느리게 일렁인다.
+ *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 비스듬한 빛 줄기가 손(포인터)을 따라 좌우로 옮겨 가고 손이 없으면 가운데 언저리에서 천천히 흔들린다.
+ *   - leaf(잎그늘): 뾰족한 잎 그림자 두 겹(가까운 큰 잎·먼 작은 잎)이 바람에 저마다 흔들리고, 잎 사이로 볕이 든다. 우듬지가 성긴 곳은 천천히 옮겨 간다.
  *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛이 44초에 한 번 숨 쉬듯 차올랐다 가라앉고, 그 위를 엷은 안개 결이 천천히 흐른다.
  * 다크
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
@@ -127,17 +127,46 @@
       }
     `,
     leaf: `
+      /* 잎 하나: 양 끝이 뾰족한 잎 모양(잎 공간에서 x는 -1~1), 그림자라 가장자리는 조금 무르게 */
+      float leafShape(vec2 q) {
+        float w = 0.36 * (1.0 - q.x * q.x);
+        float d = abs(q.y) - max(w, 0.0);
+        return step(abs(q.x), 1.0) * (1.0 - smoothstep(-0.07, 0.07, d));
+      }
+      /* 칸마다 잎 하나를 아무렇게나 놓고 바람에 조금씩 흔든다(이웃 칸까지 보아 잎이 칸 경계에서 잘리지 않게) */
+      float leaves(vec2 p, float t, float sc, float seed) {
+        vec2 g = p * sc;
+        vec2 id = floor(g);
+        float acc = 0.0;
+        for (int j = -1; j <= 1; j++) {
+          for (int i = -1; i <= 1; i++) {
+            vec2 c = id + vec2(float(i), float(j));
+            float h = hash(c + seed);
+            vec2 o = vec2(hash(c + seed + 3.1), hash(c + seed + 7.7));
+            float sway = sin(t * 0.55 + h * 6.28) * 0.14 + sin(t * 0.21 + h * 3.1) * 0.06;
+            vec2 q = g - c - o - vec2(sin(t * 0.4 + h * 5.0), cos(t * 0.33 + h * 4.0)) * 0.035;
+            float an = h * 6.28 + sway;
+            q = mat2(cos(an), -sin(an), sin(an), cos(an)) * q;
+            q /= 0.5 + 0.28 * hash(c + seed + 1.3);
+            acc = max(acc, leafShape(q));
+          }
+        }
+        return acc;
+      }
       void main() {
         float asp = uRes.x / uRes.y;
         vec2 p = vec2(vUv.x * asp, vUv.y) + uPtr * vec2(0.03, -0.02);
-        float t = uTime * 0.05;
-        vec2 w = vec2(fbm(p * 1.4 + vec2(t, 0.0)), fbm(p * 1.4 + vec2(0.0, t * 0.8) + 5.0));
-        float n = fbm(p * 3.2 + w * 1.6 + vec2(t * 0.6, -t * 0.4));
-        float spots = smoothstep(0.5, 0.66, n) * (0.7 + 0.3 * fbm(p * 0.7 + t * 0.2));
-        float shade = (1.0 - spots) * (0.05 + 0.05 * fbm(p * 1.1 - t * 0.3));
-        vec4 sun = vec4(tinted(vec3(1.0, 0.97, 0.86)) * spots * 0.32, spots * 0.32);
+        float t = uTime;
+        // 잎 두 겹(가까운 큰 잎·먼 작은 잎)과, 잎이 성긴 곳과 빽빽한 곳이 천천히 바뀌는 우듬지
+        float near = leaves(p, t, 2.6, 0.0);
+        float far = leaves(p + vec2(0.37, 0.19), t * 0.8, 4.4, 11.0) * 0.8;
+        float canopy = smoothstep(0.38, 0.68, fbm(p * 0.8 + vec2(t * 0.006, -t * 0.004)));
+        float cover = clamp(max(near, far) * (0.6 + 0.4 * canopy) + canopy * 0.22, 0.0, 1.0);
+        float sun = (1.0 - cover) * (0.75 + 0.25 * fbm(p * 0.7 + t * 0.012));
+        vec4 lit = vec4(tinted(vec3(1.0, 0.97, 0.86)) * sun * 0.3, sun * 0.3);
         float edge = 0.03 * smoothstep(0.3, 1.2, length(vUv - 0.5) * 1.6);
-        gl_FragColor = over(sun, vec4(uInk * (shade + edge), shade + edge));
+        float shadeA = cover * 0.075 + edge;
+        gl_FragColor = over(lit, vec4(uInk * shadeA, shadeA));
       }
     `,
     dawn: `
@@ -150,8 +179,8 @@
         float br = 0.5 - 0.5 * cos(uTime * 6.28318 / 44.0);
         float glow = exp(-h * mix(2.9, 1.9, br)) * mix(0.82, 1.14, br);
         float haze = fbm(vec2(p.x * 0.8 + t, h * 3.0 - t * 0.5));
-        // 새벽빛은 주색을 더 많이(빛 스밈의 2.2배) 받아, 아래에서 번지는 빛이 주색 쪽 새벽으로 물든다
-        vec3 warm = mix(mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h)), uTint, min(0.7, uTintK * 2.2));
+        // 새벽빛은 주색을 조금 더(빛 스밈의 1.2배, 많아야 40%) 받아 주색 쪽 새벽으로 물든다
+        vec3 warm = mix(mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h)), uTint, min(0.4, uTintK * 1.2));
         float a = glow * (0.30 + 0.14 * haze);
         float bands = 0.035 * smoothstep(0.45, 0.75, fbm(vec2(p.x * 0.5 - t * 0.7, h * 8.0)));
         gl_FragColor = over(vec4(warm * a, a), vec4(uInk * bands, bands));
@@ -502,6 +531,8 @@
 
   /* 포인터를 따라 빛 덩이 판을 조금 옮긴다 */
   function nudge() {
+    /* CSS로 그리는 지나가는 빛(backdrop.css)도 손을 따라온다 */
+    document.documentElement.style.setProperty('--ptr-x', px.toFixed(3));
     entries.forEach((e) => {
       if (e.field && e.active) e.field.style.transform = `translate3d(${(px * 1.2).toFixed(3)}%, ${(py * 0.9).toFixed(3)}%, 0)`;
     });
@@ -582,12 +613,16 @@
     const { off, pad } = e.off;
     ctx.clearRect(0, 0, w, h);
     ctx.drawImage(off, -pad + ptr[0] * pad * 0.4, -pad + ptr[1] * pad * 0.4);
-    /* 빛은 2분 30초에 한 번 오갔다 돌아온다. 양 끝에서는 장 밖에 있어서 되돌아서는 자리가 보이지 않는다 */
-    const s = 0.5 - 0.9 * Math.cos(t * 2 * Math.PI / 150000);
+    /* 빛 줄기는 손(포인터)을 따라 좌우로 옮겨 가고, 손이 없으면 가운데 언저리에서 1분 30초에 한 번 천천히 흔들린다 */
+    const s = 0.5 + 0.12 * Math.sin(t * 2 * Math.PI / 90000) + 0.42 * ptr[0];
     const g = ctx.createLinearGradient(w * (s - 0.35), 0, w * (s + 0.35), h);
-    g.addColorStop(0, 'rgba(255,250,238,0)');
-    g.addColorStop(0.5, 'rgba(255,250,238,0.14)');
-    g.addColorStop(1, 'rgba(255,250,238,0)');
+    /* 빛 줄기 둘레는 아주 옅게 그늘지게 해서 빛이 드러난다 */
+    const sh = `rgba(${e.ink.map((x) => Math.round(x * 255)).join(',')},0.04)`;
+    g.addColorStop(0, sh);
+    g.addColorStop(0.3, 'rgba(255,250,238,0)');
+    g.addColorStop(0.5, 'rgba(255,250,238,0.3)');
+    g.addColorStop(0.7, 'rgba(255,250,238,0)');
+    g.addColorStop(1, sh);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     const v = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.hypot(w, h) * 0.62);

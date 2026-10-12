@@ -9,7 +9,7 @@
 }
 
 [data-scene="day"] {
-  --paper: #ECEDF0;
+  --paper: var(--theme-paper, #ECEDF0);
   --ink: var(--theme-ink, #2C2F6B);
   --ink-soft: var(--theme-lead, #565988);
   --wet: var(--theme-wet, #8C8EAE);

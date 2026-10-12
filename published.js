@@ -19,8 +19,7 @@
     root.setProperty('--fs-k', String(s.size));
     if (s.measure) root.setProperty('--m-user', s.measure + 'em');
     if (T.ALIGNS[s.align]) root.setProperty('--a-user', T.ALIGNS[s.align]);
-    const theme = T.themeVars(s.theme);
-    for (const [name, variable] of Object.entries({ ink:'ink', lead:'lead', wet:'wet-ink', 'night-paper':'night-paper', 'night-ink':'night-ink', 'night-soft':'night-soft', 'night-wet':'night-wet' })) root.setProperty('--theme-' + name, theme['--' + variable]);
+    T.useReaderTheme(document, s.theme);
     root.setProperty('--dry', T.dryTime(s) + 's');
     window.GeulReaderOpts = { ...T.turnsOf(s), turnPace:T.turnPace(s), source:{ text:T.sceneLine(s) + '\n' + d.source, title:d.title, made:d.made, ending:d.ending }, editHref };
     await new Promise((resolve, reject) => {

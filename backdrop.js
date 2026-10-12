@@ -20,6 +20,8 @@
  *   - plain(단색, css): 장면의 종이색 하나. 아무것도 그리지 않는다.
  *   - aurora(오로라, dom): 주색 빛 덩이 둘과 주색에서 색상을 비튼 덩이 하나가 서로 다른 주기(51·64·43초)로 천천히 밀려다닌다.
  *     위에 고운 낟알과 비껴 든 유리 빛을 얹는다. 라이트에서는 옅게, 다크에서는 빛나게.
+ * 주색은 바탕에 조금 스민다(tune.js TINT, 문서의 --theme-light·--tint-light·--tint-line): 셰이더의 빛 색은 주색을 밝힌 빛 쪽으로 --tint-light만큼(tinted),
+ *   원고지 칸 선은 붉은 먹에서 주색 쪽으로 --tint-line만큼. 라이트 종이색은 view.css의 --theme-paper가 맡는다.
  * 포인터(마우스·손가락)를 움직이면 바탕이 그쪽으로 아주 조금, 느리게 따라온다(편지지는 그대로).
  * 바탕 층은 곁에 둘 장(keep)에만 만들고 나머지는 거둬서, 페이지가 많아도 WebGL 문맥이 몇 개만 산다.
  *   곁에 둔 장의 오로라는 멈춰 있고 지금 그리는 장만 흐른다.
@@ -78,6 +80,9 @@
     uniform vec2 uPtr;
     uniform vec3 uInk;
     uniform vec3 uPaper;
+    uniform vec3 uTint;
+    uniform float uTintK;
+    vec3 tinted(vec3 c) { return mix(c, uTint, uTintK); }
     varying vec2 vUv;
     float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
     float noise(vec2 p) {
@@ -110,7 +115,7 @@
         float bar = max(1.0 - smoothstep(0.012, 0.012 + soft, abs(q.x)), 1.0 - smoothstep(0.012, 0.012 + soft, abs(q.y)));
         float light = win * (1.0 - bar * 0.8);
         light *= 0.68 + 0.32 * fbm(vec2(t * 0.03, 0.0) + q * 1.3);
-        vec4 warm = vec4(vec3(1.0, 0.975, 0.92) * light * 0.34, light * 0.34);
+        vec4 warm = vec4(tinted(vec3(1.0, 0.975, 0.92)) * light * 0.34, light * 0.34);
         float edge = smoothstep(0.25, 1.15, length(vUv - 0.5) * 1.6);
         float shadeA = 0.045 * (1.0 - light) + 0.035 * edge;
         gl_FragColor = over(warm, vec4(uInk * shadeA, shadeA));
@@ -125,7 +130,7 @@
         float n = fbm(p * 3.2 + w * 1.6 + vec2(t * 0.6, -t * 0.4));
         float spots = smoothstep(0.5, 0.66, n) * (0.7 + 0.3 * fbm(p * 0.7 + t * 0.2));
         float shade = (1.0 - spots) * (0.05 + 0.05 * fbm(p * 1.1 - t * 0.3));
-        vec4 sun = vec4(vec3(1.0, 0.97, 0.86) * spots * 0.32, spots * 0.32);
+        vec4 sun = vec4(tinted(vec3(1.0, 0.97, 0.86)) * spots * 0.32, spots * 0.32);
         float edge = 0.03 * smoothstep(0.3, 1.2, length(vUv - 0.5) * 1.6);
         gl_FragColor = over(sun, vec4(uInk * (shade + edge), shade + edge));
       }
@@ -138,7 +143,7 @@
         float h = vUv.y + uPtr.y * 0.01;
         float glow = exp(-h * 2.4);
         float haze = fbm(vec2(p.x * 0.8 + t, h * 3.0 - t * 0.5));
-        vec3 warm = mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h));
+        vec3 warm = tinted(mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h)));
         float a = glow * (0.30 + 0.14 * haze);
         float bands = 0.035 * smoothstep(0.45, 0.75, fbm(vec2(p.x * 0.5 - t * 0.7, h * 8.0)));
         gl_FragColor = over(vec4(warm * a, a), vec4(uInk * bands, bands));
@@ -163,7 +168,7 @@
           float rays = 0.4 + 0.6 * fbm(vec2(xx * 22.0, t * 2.0 + fk * 3.0));
           float patchy = 0.25 + 0.75 * smoothstep(0.22, 0.6, fbm(vec2(xx * 0.8 - t * 0.5, fk * 7.0)));
           float I = body * rays * patchy * (1.0 - fk * 0.35);
-          vec3 col = mix(vec3(0.42, 0.80, 0.66), vec3(0.55, 0.46, 0.82), smoothstep(0.02, 0.24, above));
+          vec3 col = tinted(mix(vec3(0.42, 0.80, 0.66), vec3(0.55, 0.46, 0.82), smoothstep(0.02, 0.24, above)));
           acc += col * I;
           A += I;
         }
@@ -203,7 +208,7 @@
         I += max(dust, 0.0) * cone * fall * 0.55;
         float a = clamp(I, 0.0, 1.0);
         float vig = 0.25 * smoothstep(0.3, 1.2, length(vUv - vec2(0.5, 0.3)) * 1.4);
-        vec4 c = over(vec4(vec3(1.0, 0.94, 0.82) * a, a), vec4(vec3(0.0), vig));
+        vec4 c = over(vec4(tinted(vec3(1.0, 0.94, 0.82)) * a, a), vec4(vec3(0.0), vig));
         gl_FragColor = over(grain(0.045), c);
       }
     `,
@@ -230,7 +235,7 @@
         float top = smoothstep(0.0, 0.85, vUv.y);
         float drift = 0.6 + 0.4 * fbm(vec2(vUv.x * 2.0 + uTime * 0.005, vUv.y * 1.5));
         float a = clamp(c * 0.34 * top * drift, 0.0, 0.4);
-        vec4 light = vec4(vec3(0.78, 0.90, 1.0) * a, a);
+        vec4 light = vec4(tinted(vec3(0.78, 0.90, 1.0)) * a, a);
         float vig = 0.2 * smoothstep(0.35, 1.2, length(vUv - vec2(0.5, 0.55)) * 1.5);
         vec4 col = over(light, vec4(vec3(0.0), vig));
         gl_FragColor = over(grain(0.035), col);
@@ -270,7 +275,7 @@
         float I = g * 0.075 * fade * fresh + cursor * 0.24;
         I *= 0.86 + 0.14 * sin(vUv.y * uRes.y * 1.4);
         float glow = 0.05 * exp(-length((vUv - vec2(0.5, 0.45)) * vec2(1.0, 1.3)) * 2.4) * (0.96 + 0.04 * noise(vec2(t * 6.0, 0.0)));
-        vec3 phos = mix(uInk, vec3(0.62, 0.95, 0.78), 0.55);
+        vec3 phos = mix(uInk, tinted(vec3(0.62, 0.95, 0.78)), 0.55);
         float a = clamp(I + glow, 0.0, 0.5);
         float vig = 0.24 * smoothstep(0.3, 1.2, length(vUv - 0.5) * 1.5);
         vec4 col = over(vec4(phos * a, a), vec4(vec3(0.0), vig));
@@ -303,7 +308,7 @@
     gl.linkProgram(pr);
     if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
     const u = {};
-    ['uRes', 'uTime', 'uPtr', 'uInk', 'uPaper'].forEach((n) => { u[n] = gl.getUniformLocation(pr, n); });
+    ['uRes', 'uTime', 'uPtr', 'uInk', 'uPaper', 'uTint', 'uTintK'].forEach((n) => { u[n] = gl.getUniformLocation(pr, n); });
     e.programs[e.kind] = { pr, u };
     return e.programs[e.kind];
   }
@@ -367,6 +372,19 @@
     const cs = getComputedStyle(e.sheet);
     e.ink = rgb(cs.getPropertyValue('--ink'));
     e.paper = rgb(cs.getPropertyValue('--paper'));
+    e.tint = tintOf();
+    /* 칸 선 색이 바뀌면(주색·스밈 세기) 원고지 밑그림을 다시 그린다 */
+    const key = e.ink.join() + '|' + e.tint.line;
+    if (e.colorKey !== key) { e.colorKey = key; e.off = null; }
+  }
+
+  /* 주색이 바탕에 스미는 빛 색과 세기(문서 변수가 없으면 스미지 않음) */
+  const NO_TINT = { light: [1, 1, 1], k: 0, line: 0 };
+  function tintOf() {
+    const cs = getComputedStyle(document.documentElement);
+    const light = parse(cs.getPropertyValue('--theme-light'));
+    const num = (n) => { const v = parseFloat(cs.getPropertyValue(n)); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0; };
+    return light ? { light, k: num('--tint-light'), line: num('--tint-line') } : NO_TINT;
   }
 
   /*
@@ -487,7 +505,7 @@
     const c = off.getContext('2d');
     const r = rand(20261011);
     const ink = e.ink.map((v) => Math.round(v * 255)).join(',');
-    const rule = '178,84,64';
+    const rule = mixC([178 / 255, 84 / 255, 64 / 255], e.ink, (e.tint || NO_TINT).line).map((v) => Math.round(v * 255)).join(',');
 
     for (let i = 0; i < 40; i++) {
       const x = r() * w;
@@ -622,6 +640,9 @@
     gl.uniform2f(P.u.uPtr, ptr[0], ptr[1]);
     gl.uniform3fv(P.u.uInk, e.ink);
     gl.uniform3fv(P.u.uPaper, e.paper);
+    const tn = e.tint || NO_TINT;
+    gl.uniform3fv(P.u.uTint, tn.light);
+    gl.uniform1f(P.u.uTintK, tn.k);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -722,7 +743,7 @@
     tmp.height = out.height;
     const gl = glContext(tmp, true);
     if (!gl) return;
-    const e = { kind, gl, w: tmp.width, h: tmp.height, programs: {}, ink: colors.ink, paper: colors.paper };
+    const e = { kind, gl, w: tmp.width, h: tmp.height, programs: {}, ink: colors.ink, paper: colors.paper, tint: tintOf() };
     drawGl(e, STILL_T, [0, 0]);
     if (e.programs[kind]) out.getContext('2d').drawImage(tmp, 0, 0);
     loseGl(gl);
@@ -732,7 +753,7 @@
     const tmp = document.createElement('canvas');
     tmp.width = out.width;
     tmp.height = out.height;
-    const e = { ctx: tmp.getContext('2d'), w: tmp.width, h: tmp.height, scale: 1, ink: colors.ink };
+    const e = { ctx: tmp.getContext('2d'), w: tmp.width, h: tmp.height, scale: 1, ink: colors.ink, tint: tintOf() };
     drawWongoji(e, STILL_T, [0, 0]);
     out.getContext('2d').drawImage(tmp, 0, 0);
   }

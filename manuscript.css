@@ -1,6 +1,6 @@
 /* 칸은 글 기둥에 붙어 함께 움직인다. 글자 효과가 움직여도 격자는 제자리에 남는다. */
-.sheet[data-ground="wongoji"] { --wg-rule:rgba(137,83,62,.32); }
-.sheet[data-ground="wongoji"][data-scene="night"] { --wg-rule:rgba(207,171,144,.32); }
+.sheet[data-ground="wongoji"] { --wg-rule:color-mix(in srgb, color-mix(in srgb, var(--ink) var(--tint-line-pc, 0%), rgb(137 83 62)) 32%, transparent); }
+.sheet[data-ground="wongoji"][data-scene="night"] { --wg-rule:color-mix(in srgb, color-mix(in srgb, var(--ink) var(--tint-line-pc, 0%), rgb(207 171 144)) 32%, transparent); }
 .sheet[data-ground="wongoji"] .column {
   position:relative;
   width:calc(var(--wg-cell,32px) * var(--wg-cols,12)) !important;

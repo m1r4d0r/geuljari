@@ -33,14 +33,7 @@
     root.setProperty('--fs-k', String(v.size));
     if (v.measure) root.setProperty('--m-user', v.measure + 'em'); else root.removeProperty('--m-user');
     if (T.ALIGNS[v.align]) root.setProperty('--a-user', T.ALIGNS[v.align]); else root.removeProperty('--a-user');
-    const tv = T.themeVars(v.theme);
-    root.setProperty('--theme-ink', tv['--ink']);
-    root.setProperty('--theme-lead', tv['--lead']);
-    root.setProperty('--theme-wet', tv['--wet-ink']);
-    root.setProperty('--theme-night-paper', tv['--night-paper']);
-    root.setProperty('--theme-night-ink', tv['--night-ink']);
-    root.setProperty('--theme-night-soft', tv['--night-soft']);
-    root.setProperty('--theme-night-wet', tv['--night-wet']);
+    T.useReaderTheme(document, v.theme);
   }
   window.addEventListener('message', (e) => {
     if (e.origin !== location.origin || !e.data || e.data.type !== 'geulgyeol:style') return;

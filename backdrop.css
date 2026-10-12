@@ -154,3 +154,24 @@
 @media (prefers-reduced-motion: reduce) {
   .au { animation: none; }
 }
+
+/* ---------- 지나가는 빛 ----------
+   CSS로 그리는 종이 바탕(편지지, 글이 칸에 앉은 원고지)에도 비스듬한 빛 한 줄기가 아주 천천히 지나간다(빈 원고지는 캔버스가 그린다).
+   빛 색은 볕 색에서 주색을 밝힌 빛(--theme-light) 쪽으로 --tint-light만큼. 장 밖으로 넘치지 않게 배경 자리만 옮긴다. 움직임 줄이기면 멈춘 채 둔다. */
+.sheet[data-ground="letter"]::before,
+.sheet[data-ground="wongoji"]:has(.ln)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --pass: color-mix(in srgb, var(--theme-light, #FFFAEE) calc(var(--tint-light, 0) * 100%), #FFFAEE);
+  --pass-a: 16%;
+  background: linear-gradient(105deg, transparent 42%, color-mix(in srgb, var(--pass) var(--pass-a), transparent) 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
+  animation: geul-pass 96s linear infinite;
+}
+.sheet[data-ground="letter"][data-scene="night"]::before,
+.sheet[data-ground="wongoji"][data-scene="night"]:has(.ln)::before { --pass-a: 5%; }
+@keyframes geul-pass { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .sheet[data-ground="letter"]::before, .sheet[data-ground="wongoji"]::before { animation: none; background-position: 60% 0; }
+}

@@ -266,6 +266,40 @@
     for (let k = 0; k < 6 && light(ink) > 0.42; k++) ink = mix(ink, '#000000', 0.25);
     return ink;
   }
+  /*
+   * 주색이 바탕에 스미는 세기(0~1). paper: 라이트 종이색에 주색, light: 바탕의 빛(볕·영사광·물빛·커튼·타자 화면)에 주색을 밝힌 빛,
+   * line: 원고지 칸 선에 주색. 바탕 스밈 시험판에서 바꿔 보며 정한다.
+   */
+  const TINT = { paper: 0.035, light: 0.18, line: 0.45 };
+  /* 주색을 빛으로: 색상은 그대로, 채도는 누르고 아주 밝게 */
+  function lightTint(ink) {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(ink.slice(i, i + 2), 16) / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0;
+    if (d) h = (mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60;
+    const s = d ? Math.min(0.6, Math.max(0.28, d / (1 - Math.abs(mx + mn - 1)))) : 0;
+    const l = 0.84;
+    const k = (n) => (n + (h + 360) / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => Math.round((l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))) * 255).toString(16).padStart(2, '0');
+    return '#' + f(0) + f(8) + f(4);
+  }
+  /* 읽기 틀(미리보기·공개 뷰어·공유 그림)에 거는 주색 변수. 장면 변수는 이것을 받아 쓴다(view.css) */
+  function readerVars(theme, tint) {
+    const t = Object.assign({}, TINT, tint || {});
+    const v = themeVars(theme);
+    const ink = v['--ink'];
+    return {
+      '--theme-ink': ink, '--theme-lead': v['--lead'], '--theme-wet': v['--wet-ink'],
+      '--theme-paper': mix(PAPER, ink, t.paper),
+      '--theme-night-paper': v['--night-paper'], '--theme-night-ink': v['--night-ink'], '--theme-night-soft': v['--night-soft'], '--theme-night-wet': v['--night-wet'],
+      '--theme-light': lightTint(ink), '--tint-light': String(t.light), '--tint-line': String(t.line), '--tint-line-pc': Math.round(t.line * 100) + '%'
+    };
+  }
+  function useReaderTheme(doc, theme, tint) {
+    Object.entries(readerVars(theme, tint)).forEach(([k, v]) => doc.documentElement.style.setProperty(k, v));
+  }
+
   /* 주색에서 만든 색 변수들(편집실·미리보기 공통). 다크 쪽 색은 --dark·--dark-ink, 미리보기에서는 --theme-night-* */
   function themeVars(theme) {
     const ink = themeInk(theme);
@@ -305,6 +339,6 @@
     AXES, WORDS, MOOD, IMAGES, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
     PACE, TURN_PACE, dryTime, turnPace, flowName,
-    defaults, normalize, oneEach, fromMoods, turnsOf, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme
+    defaults, normalize, oneEach, fromMoods, turnsOf, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme, TINT, readerVars, useReaderTheme, lightTint
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -145,7 +145,8 @@
         float h = vUv.y + uPtr.y * 0.01;
         float glow = exp(-h * 2.4);
         float haze = fbm(vec2(p.x * 0.8 + t, h * 3.0 - t * 0.5));
-        vec3 warm = tinted(mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h)));
+        // 새벽빛은 주색을 더 많이(빛 스밈의 2.2배) 받아, 아래에서 번지는 빛이 주색 쪽 새벽으로 물든다
+        vec3 warm = mix(mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h)), uTint, min(0.7, uTintK * 2.2));
         float a = glow * (0.30 + 0.14 * haze);
         float bands = 0.035 * smoothstep(0.45, 0.75, fbm(vec2(p.x * 0.5 - t * 0.7, h * 8.0)));
         gl_FragColor = over(vec4(warm * a, a), vec4(uInk * bands, bands));

@@ -80,53 +80,56 @@
 }
 [data-scene="night"] .au-field { mix-blend-mode: screen; }
 
-/* 덩이는 흐림 필터 대신 가장자리로 갈수록 천천히 사라지는 둥근 그라디언트(상자 안에서 다 사라짐) */
+/* 덩이는 흐림 필터 대신 가장자리로 갈수록 천천히 사라지는 둥근 그라디언트(상자 안에서 다 사라짐).
+   움직임은 가로·세로·크기·기울기를 저마다 다른 주기로 오가게(ease-in-out alternate) 따로 흘린다.
+   방향을 바꾸는 순간이 축마다 어긋나서 덩이는 멈추지 않고 휘어 도는 길을 그리고, 같은 그림이 잘 돌아오지 않는다. 회전은 ±3° 안 */
+@property --ax { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@property --ay { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@property --as { syntax: '<number>'; inherits: false; initial-value: 1; }
+@property --ar { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 .au {
   will-change: transform;
   background-repeat: no-repeat;
-  animation: 51s ease-in-out var(--au-t, 0s) infinite paused geul-au1;
+  transform: translate(var(--ax), var(--ay)) scale(var(--as)) rotate(var(--ar));
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-delay: var(--au-t, 0s);
+  animation-play-state: paused;
 }
 .ground-aurora.is-live .au { animation-play-state: running; }
 .au-1 {
   left: -30%; top: -45%; width: 110%; height: 80%;
   background-image: radial-gradient(closest-side, var(--au-1) 0%, color-mix(in srgb, var(--au-1) 78%, transparent) 22%,
     color-mix(in srgb, var(--au-1) 46%, transparent) 46%, color-mix(in srgb, var(--au-1) 18%, transparent) 70%, transparent 100%);
+  animation-name: geul-a1x, geul-a1y, geul-a1s, geul-a1r;
+  animation-duration: 29s, 37s, 23s, 41s;
 }
 .au-2 {
   right: -38%; top: -10%; width: 100%; height: 95%;
   background-image: radial-gradient(closest-side, var(--au-2) 0%, color-mix(in srgb, var(--au-2) 78%, transparent) 22%,
     color-mix(in srgb, var(--au-2) 46%, transparent) 46%, color-mix(in srgb, var(--au-2) 18%, transparent) 70%, transparent 100%);
-  animation-name: geul-au2;
-  animation-duration: 64s;
+  animation-name: geul-a2x, geul-a2y, geul-a2s, geul-a2r;
+  animation-duration: 34s, 26s, 31s, 47s;
 }
 .au-3 {
   left: -10%; bottom: -60%; width: 90%; height: 90%;
   background-image: radial-gradient(closest-side, var(--au-3) 0%, color-mix(in srgb, var(--au-3) 78%, transparent) 22%,
     color-mix(in srgb, var(--au-3) 46%, transparent) 46%, color-mix(in srgb, var(--au-3) 18%, transparent) 70%, transparent 100%);
-  animation-name: geul-au3;
-  animation-duration: 43s;
+  animation-name: geul-a3x, geul-a3y, geul-a3s;
+  animation-duration: 24s, 33s, 21s;
 }
-/* 0%와 100% 자세가 같아 이음새가 없고, 주기가 서로 어긋나 같은 그림이 잘 돌아오지 않는다. 회전은 ±3° 안 */
-@keyframes geul-au1 {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  28% { transform: translate(26%, 10%) scale(1.06) rotate(2deg); }
-  55% { transform: translate(54%, 22%) scale(.96) rotate(3deg); }
-  78% { transform: translate(30%, 32%) scale(1.03) rotate(1deg); }
-  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-}
-@keyframes geul-au2 {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  24% { transform: translate(-22%, 18%) scale(1.05) rotate(-2deg); }
-  52% { transform: translate(-56%, 30%) scale(1.1) rotate(-3deg); }
-  78% { transform: translate(-30%, 6%) scale(.97) rotate(-1deg); }
-  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-}
-@keyframes geul-au3 {
-  0% { transform: translate(0, 0) scale(1); }
-  38% { transform: translate(30%, -22%) scale(1.12); }
-  68% { transform: translate(52%, -8%) scale(1.04); }
-  100% { transform: translate(0, 0) scale(1); }
-}
+@keyframes geul-a1x { from { --ax: 0%; } to { --ax: 54%; } }
+@keyframes geul-a1y { from { --ay: 0%; } to { --ay: 32%; } }
+@keyframes geul-a1s { from { --as: .96; } to { --as: 1.06; } }
+@keyframes geul-a1r { from { --ar: 0deg; } to { --ar: 3deg; } }
+@keyframes geul-a2x { from { --ax: 0%; } to { --ax: -56%; } }
+@keyframes geul-a2y { from { --ay: 0%; } to { --ay: 30%; } }
+@keyframes geul-a2s { from { --as: .97; } to { --as: 1.1; } }
+@keyframes geul-a2r { from { --ar: 0deg; } to { --ar: -3deg; } }
+@keyframes geul-a3x { from { --ax: 0%; } to { --ax: 52%; } }
+@keyframes geul-a3y { from { --ay: 0%; } to { --ay: -22%; } }
+@keyframes geul-a3s { from { --as: 1; } to { --as: 1.12; } }
 
 /* 낟알: 흑백 잡음 한 장을 overlay로 겹친다 */
 .au-grain {
@@ -156,7 +159,7 @@
 }
 
 /* ---------- 지나가는 빛 ----------
-   CSS로 그리는 종이 바탕(편지지, 글이 칸에 앉은 원고지)에도 비스듬한 빛 한 줄기가 아주 천천히 지나간다(빈 원고지는 캔버스가 그린다).
+   CSS로 그리는 종이 바탕(편지지, 글이 칸에 앉은 원고지)에도 비스듬한 빛 한 줄기가 아주 천천히 오간다(96초에 한쪽으로, 양 끝은 장 밖이라 돌아서는 자리가 보이지 않음)(빈 원고지는 캔버스가 그린다).
    빛 색은 볕 색에서 주색을 밝힌 빛(--theme-light) 쪽으로 --tint-light만큼. 장 밖으로 넘치지 않게 배경 자리만 옮긴다. 움직임 줄이기면 멈춘 채 둔다. */
 .sheet[data-ground="letter"]::before,
 .sheet[data-ground="wongoji"]:has(.ln)::before {
@@ -167,7 +170,7 @@
   --pass: color-mix(in srgb, var(--theme-light, #FFFAEE) calc(var(--tint-light, 0) * 100%), #FFFAEE);
   --pass-a: 16%;
   background: linear-gradient(105deg, transparent 42%, color-mix(in srgb, var(--pass) var(--pass-a), transparent) 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
-  animation: geul-pass 96s linear infinite;
+  animation: geul-pass 96s ease-in-out infinite alternate;
 }
 .sheet[data-ground="letter"][data-scene="night"]::before,
 .sheet[data-ground="wongoji"][data-scene="night"]:has(.ln)::before { --pass-a: 5%; }

@@ -6,10 +6,10 @@
  *   dom: 흐린 빛 덩이 몇 개를 CSS 애니메이션으로 밀고 간다. 색은 여기서 정해 변수로 얹고, 모양은 backdrop.css.
  *   css: 층을 만들지 않는다. 장의 data-ground를 보고 CSS(backdrop.css, reader.css 끝의 편지지 부분)가 그린다.
  * 라이트
- *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀐다.
- *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 빛이 아주 천천히 비스듬히 지나간다.
+ *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀌고, 2분에 한 번 해 길을 따라 볕이 조금 기울었다 돌아오며 희었다 노을빛이 된다.
+ *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 비스듬한 빛이 2분 30초에 한 번 오갔다 돌아온다.
  *   - leaf(잎그늘): 나뭇잎 사이로 드는 볕. 바람에 잎이 흔들리듯 볕 조각이 느리게 일렁인다.
- *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛과 그 위를 천천히 흐르는 엷은 안개 결.
+ *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛이 44초에 한 번 숨 쉬듯 차올랐다 가라앉고, 그 위를 엷은 안개 결이 천천히 흐른다.
  * 다크
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
  *   - drape(빛커튼): 아랫단이 밝고 위로 갈수록 바래는 빛의 커튼. 결이 세로로 잘게 일렁인다.
@@ -107,17 +107,20 @@
         float asp = uRes.x / uRes.y;
         vec2 p = vec2(vUv.x * asp, vUv.y);
         float t = uTime;
-        vec2 c = vec2(asp * 0.64, 0.56) + vec2(sin(t * 0.013), cos(t * 0.011)) * 0.03 + uPtr * vec2(0.035, -0.02);
+        // 해의 길: 2분에 한 번 오가며 볕이 조금 기울고 미끄러지고, 높을 때는 희게 낮을 때는 노을빛으로
+        float sun = sin(t * 6.28318 / 120.0);
+        vec2 c = vec2(asp * 0.64, 0.56) + vec2(sin(t * 0.013), cos(t * 0.011)) * 0.03 + vec2(0.05, -0.025) * sun + uPtr * vec2(0.035, -0.02);
         vec2 q = p - c;
-        float an = -0.42;
+        float an = -0.42 + 0.07 * sun;
         q = mat2(cos(an), -sin(an), sin(an), cos(an)) * q;
-        q.x += q.y * 0.55;
+        q.x += q.y * (0.55 + 0.14 * sun);
         float soft = 0.045;
         float win = rect(q, vec2(0.44, 0.31), soft);
         float bar = max(1.0 - smoothstep(0.012, 0.012 + soft, abs(q.x)), 1.0 - smoothstep(0.012, 0.012 + soft, abs(q.y)));
         float light = win * (1.0 - bar * 0.8);
         light *= 0.68 + 0.32 * fbm(vec2(t * 0.03, 0.0) + q * 1.3);
-        vec4 warm = vec4(tinted(vec3(1.0, 0.975, 0.92)) * light * 0.34, light * 0.34);
+        vec3 sunCol = mix(vec3(1.0, 0.99, 0.96), vec3(1.0, 0.92, 0.80), 0.5 + 0.5 * sun);
+        vec4 warm = vec4(tinted(sunCol) * light * 0.34, light * 0.34);
         float edge = smoothstep(0.25, 1.15, length(vUv - 0.5) * 1.6);
         float shadeA = 0.045 * (1.0 - light) + 0.035 * edge;
         gl_FragColor = over(warm, vec4(uInk * shadeA, shadeA));
@@ -143,7 +146,9 @@
         vec2 p = vec2(vUv.x * asp, vUv.y);
         float t = uTime * 0.015;
         float h = vUv.y + uPtr.y * 0.01;
-        float glow = exp(-h * 2.4);
+        // 숨: 44초에 한 번 아래쪽 빛이 천천히 차올랐다가 가라앉는다(코사인이라 끝에서 저절로 느려져 끊김이 없다)
+        float br = 0.5 - 0.5 * cos(uTime * 6.28318 / 44.0);
+        float glow = exp(-h * mix(2.9, 1.9, br)) * mix(0.82, 1.14, br);
         float haze = fbm(vec2(p.x * 0.8 + t, h * 3.0 - t * 0.5));
         // 새벽빛은 주색을 더 많이(빛 스밈의 2.2배) 받아, 아래에서 번지는 빛이 주색 쪽 새벽으로 물든다
         vec3 warm = mix(mix(vec3(1.0, 0.84, 0.70), vec3(0.97, 0.93, 0.88), smoothstep(0.0, 0.55, h)), uTint, min(0.7, uTintK * 2.2));
@@ -577,7 +582,8 @@
     const { off, pad } = e.off;
     ctx.clearRect(0, 0, w, h);
     ctx.drawImage(off, -pad + ptr[0] * pad * 0.4, -pad + ptr[1] * pad * 0.4);
-    const s = ((t * 0.000012) % 1.6) - 0.3;
+    /* 빛은 2분 30초에 한 번 오갔다 돌아온다. 양 끝에서는 장 밖에 있어서 되돌아서는 자리가 보이지 않는다 */
+    const s = 0.5 - 0.9 * Math.cos(t * 2 * Math.PI / 150000);
     const g = ctx.createLinearGradient(w * (s - 0.35), 0, w * (s + 0.35), h);
     g.addColorStop(0, 'rgba(255,250,238,0)');
     g.addColorStop(0.5, 'rgba(255,250,238,0.14)');

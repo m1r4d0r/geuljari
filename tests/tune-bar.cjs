@@ -58,19 +58,63 @@ const fs = require('node:fs/promises');
       // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
       assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글', '전체 설정']);
-      // 갈래 판 맨 위의 전체 설정: 글 전체 값 창이 뜨고 닫힌다
+      // 갈래 판 맨 위의 전체 설정: 글 전체 값 창. 칸 넷과 두 칸 폭의 속도 막대, 탭은 머리 줄 아래 선의 오른쪽 끝
+      // 편집실은 조금 뒤에 저장하므로 저장된 값이 맞을 때까지 기다림(s: 저장된 편집실 상태)
+      const until = (cond) => pg.waitForFunction(`(() => { const s = JSON.parse(localStorage.getItem('geul.studio')); return ${cond}; })()`, null, { timeout: 4000 });
+      const openAll = async () => { await pg.click('#s-tune .tb-cat'); await pg.click('#s-tune .tb-cat-item .tb-li:has-text("전체 설정")'); await pg.locator('#all-dialog').waitFor(); };
+      const slide = (v) => pg.locator('#all-body .as-slide input').evaluate((n, x) => { n.value = x; n.dispatchEvent(new Event('input', { bubbles: true })); }, v);
       await pg.click('#s-tune .tb-cat-item .tb-li:has-text("전체 설정")');
       assert.equal(await pg.isVisible('#all-dialog'), true);
-      assert.equal(await pg.locator('#all-body .as-btn').count(), 5);
+      assert.equal(await pg.locator('#all-body .as-btn').count(), 4);
+      assert.equal(await pg.locator('#all-body .as-wide .as-slide input').count(), 1);
+      const edge = await pg.evaluate(() => { const h = document.querySelector('.as-head').getBoundingClientRect(); const t = document.querySelector('.as-tabs').getBoundingClientRect(); return { right: Math.round(h.right - t.right), bottom: Math.round(h.bottom - 1 - t.bottom) }; });
+      assert.deepEqual(edge, { right: 0, bottom: 0 }, '탭은 선 오른쪽 끝에 붙음');
+      // 둘째 쪽은 하단바에서 전환·전환 속도를 골라 '따로'가 켜져 있음. 끄면 걷히고 다시 켜면 돌아옴
+      assert.equal(await pg.getAttribute('.as-switch', 'aria-checked'), 'true');
+      assert.equal(await pg.textContent('.as-page .as-note'), '2쪽은 전환·전환 속도를 따로 정했어요.');
+      await pg.click('.as-switch');
+      assert.equal(await pg.getAttribute('.as-switch', 'aria-checked'), 'false');
+      await until(`!s.source.includes('섬광') && !s.source.includes('전환속도') && s.source.includes('[[원고지]]')`); // 따로 끄면 쪽 값만 걷힘
+      await pg.click('.as-switch');
+      await until(`s.source.includes('전환속도130')`); // 다시 켜면 돌아옴
+      await pg.click('.as-switch');
+      // 글 탭: 속도는 맨 아래 막대. 바꾸고 취소하면 연 때로
       await pg.click('#all-dialog [data-tab=text]');
       assert.equal(await pg.getAttribute('#all-dialog [data-tab=text]', 'aria-selected'), 'true');
+      assert.deepEqual(await pg.locator('#all-body .as-btn').evaluateAll((l) => l.map((b) => b.dataset.key)), ['flow', 'size', 'measure', 'align']);
       await pg.click('#all-body .as-btn[data-key=flow]');
       assert.equal(await pg.locator('#all-body .as-drop .as-li').count(), 6);
       await pg.keyboard.press('Escape');
       assert.equal(await pg.isVisible('#all-dialog'), true);
       assert.equal(await pg.locator('#all-body .as-drop').count(), 0);
-      await pg.click('#all-close');
+      await slide('1.3');
+      assert.equal(await pg.textContent('#all-body .as-val'), '1.3×');
+      await until('s.settings.speed === 1.3');
+      await pg.click('.as-cancel');
       assert.equal(await pg.isVisible('#all-dialog'), false);
+      await until(`s.source.includes('섬광:전환속도130') && s.settings.speed === 1`); // 취소하면 쪽 값도 돌아옴
+      // 전체 초기화: 모든 쪽 값과 전체 값을 걷고, Esc(취소)면 돌아옴
+      await openAll();
+      await pg.click('#all-dialog [data-tab=text]');
+      await slide('1.2');
+      await pg.click('.as-reset');
+      await until(`s.settings.speed === 1 && !s.source.includes('섬광')`);
+      assert.equal(await pg.getAttribute('.as-switch', 'aria-checked'), 'false');
+      await pg.keyboard.press('Escape');
+      assert.equal(await pg.isVisible('#all-dialog'), false);
+      await until(`s.source.includes('전환속도130')`);
+      // 저장하면 남음
+      await openAll();
+      await pg.click('#all-dialog [data-tab=text]');
+      await slide('1.1');
+      await pg.click('.as-save');
+      assert.equal(await pg.isVisible('#all-dialog'), false);
+      await until('s.settings.speed === 1.1');
+      await openAll();
+      await pg.click('#all-dialog [data-tab=text]');
+      await slide('1');
+      await pg.click('.as-save');
+      await until('s.settings.speed === 1');
       await pg.click('#s-tune .tb-cat');
       await pg.click('#s-tune .tb-cat-item .tb-li:has-text("글")');
       assert.equal(await pg.locator('#s-tune .tb-val[data-key=place], #s-tune .tb-val[data-key=font], #s-tune .tb-val[data-key=rest], #s-tune .tb-val[data-key=dry]').count(), 0);

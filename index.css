@@ -499,17 +499,27 @@ body[data-step="tune"] .toast { top: 76px; bottom: auto; }
   .steps button { padding-inline: 6px; }
 }
 
-/* 전체 설정 창(all-settings.js): 교정쇄 면 한 장. 위 오른쪽 모서리에 색인 탭(바탕·글, 고른 탭은 하단바 갈래 단추처럼 먹으로 채움)이 붙고,
-   칸은 두 줄로 이름 아래 값 단추. 단추를 누르면 같은 폭의 판이 단추에 붙어 다른 칸 위로 덮인다(창 밖으로 나가도 됨) */
-.all-dialog { overflow: visible; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); border-top: 3px double var(--ink); padding: 24px 26px 18px; width: min(460px, calc(100% - 24px)); max-width: none; max-height: none; }
+/* 전체 설정 창(all-settings.js): 교정쇄 면 한 장. 머리 줄 아래 먹선 오른쪽 끝에 색인 탭(바탕·글, 고른 탭은 하단바 갈래 단추처럼 먹으로 채움)이 붙고,
+   선 아래 한 줄에 지금 쪽의 '따로' 스위치. 칸은 두 줄로 이름 아래 값 단추, 맨 아래 속도 막대는 두 칸 폭.
+   단추를 누르면 같은 폭의 판이 단추에 붙어 다른 칸 위로 덮인다(창 밖으로 나가도 됨). 아래 줄은 전체 초기화와 취소·저장 */
+.all-dialog { overflow: visible; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); border-top: 3px double var(--ink); padding: 22px 26px 18px; width: min(460px, calc(100% - 24px)); max-width: none; max-height: none; }
 .all-dialog::backdrop { background: color-mix(in srgb, var(--dark) 45%, transparent); }
-.as-tabs { position: absolute; right: 18px; bottom: 100%; display: flex; gap: 4px; }
-.as-tabs button { height: 32px; min-width: 72px; padding: 0 16px; border: 1px solid var(--ink); border-bottom: 0; background: var(--sheet); color: var(--lead); font: 13px var(--f-ui); }
+.as-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--ink); }
+.all-dialog h2 { padding-bottom: 8px; font-family: var(--f-body); font-weight: 400; font-size: 24px; line-height: 1.2; }
+.as-tabs { display: flex; flex: none; }
+.as-tabs button { height: 32px; min-width: 64px; padding: 0 16px; border: 1px solid var(--ink); border-bottom: 0; background: var(--sheet); color: var(--lead); font: 13px var(--f-ui); }
+.as-tabs button + button { margin-left: -1px; }
 .as-tabs button:hover { color: var(--ink); }
 .as-tabs button[aria-selected="true"] { background: var(--ink); color: var(--sheet); }
-.all-dialog h2 { font-family: var(--f-body); font-weight: 400; font-size: 24px; }
-.as-note { margin-top: 6px; font-size: 12px; line-height: 1.7; color: var(--lead); }
-.as-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+.as-page { min-height: 40px; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.as-note { font-size: 12px; line-height: 1.6; color: var(--lead); }
+.as-note.on { color: var(--ink); }
+.as-switch { flex: none; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; color: var(--ink); font: 12px var(--f-ui); white-space: nowrap; }
+.as-switch i { position: relative; flex: none; width: 26px; height: 14px; border: 1px solid var(--ink); background: var(--sheet); transition: background .2s ease; }
+.as-switch i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; background: var(--ink); transition: transform .2s ease, background .2s ease; }
+.as-switch[aria-checked="true"] i { background: var(--ink); }
+.as-switch[aria-checked="true"] i::after { transform: translateX(12px); background: var(--sheet); }
+.as-grid { margin-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
 .as-cell { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .as-name { font: 11px var(--f-ui); color: var(--lead); }
 .as-item { position: relative; }
@@ -527,14 +537,21 @@ body[data-step="tune"] .toast { top: 76px; bottom: auto; }
 .as-li.on { box-shadow: inset 3px 0 var(--ink); font-weight: 500; }
 .as-range { flex-direction: row; align-items: center; gap: 8px; padding: 12px; }
 .as-range.up { flex-direction: row; }
-.as-range input { flex: 1; min-width: 0; accent-color: var(--ink); }
-.as-range .k { font: 10px var(--f-num); color: var(--faint); }
+.as-range input, .as-slide input { flex: 1; min-width: 0; accent-color: var(--ink); }
+.as-range .k, .as-slide .k { font: 10px var(--f-num); color: var(--faint); }
+.as-wide { grid-column: 1 / -1; }
+.as-wide-top { display: flex; align-items: baseline; justify-content: space-between; }
+.as-val { font: 12px var(--f-num); color: var(--ink); }
+.as-slide { height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--line); background: var(--sheet); }
 .as-foot { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.as-foot .btn { height: 36px; padding: 0 18px; font-size: 13px; }
-.as-marks .link { height: 32px; font-size: 12px; color: var(--danger); }
-.as-none { font-size: 12px; color: var(--faint); }
+.as-acts { display: flex; gap: 8px; }
+.as-foot .btn { height: 36px; padding: 0 18px; font-size: 13px; letter-spacing: 0; }
+.as-reset { height: 32px; font-size: 12px; color: var(--danger); }
+.as-reset:hover { color: var(--danger); opacity: .8; }
 @media (max-width: 420px) {
-  .all-dialog { padding: 20px 16px 16px; }
+  .all-dialog { padding: 18px 16px 16px; }
+  .all-dialog h2 { font-size: 21px; }
   .as-grid { gap: 12px 8px; }
-  .as-tabs { right: 12px; }
+  .as-tabs button { min-width: 0; padding: 0 14px; }
 }
+

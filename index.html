@@ -150,11 +150,13 @@
   </section>
 </main>
 <dialog id="all-dialog" class="all-dialog" aria-labelledby="all-heading">
-  <div class="as-tabs" role="tablist" aria-label="전체 설정 갈래"><button type="button" role="tab" data-tab="ground">바탕</button><button type="button" role="tab" data-tab="text">글</button></div>
-  <h2 id="all-heading">전체 설정</h2>
-  <p class="as-note">모든 쪽에 같이 걸려요. 하단바에서 쪽마다 따로 고른 값이 있으면 그 쪽은 그 값을 따라요.</p>
+  <div class="as-head">
+    <h2 id="all-heading">전체 설정</h2>
+    <div class="as-tabs" role="tablist" aria-label="전체 설정 갈래"><button type="button" role="tab" data-tab="ground">바탕</button><button type="button" role="tab" data-tab="text">글</button></div>
+  </div>
+  <div class="as-page"></div>
   <div id="all-body" role="tabpanel"></div>
-  <div class="as-foot"><span class="as-marks"></span><button type="button" class="btn" id="all-close">닫기</button></div>
+  <div class="as-foot"><button type="button" class="link as-reset">전체 초기화</button><span class="as-acts"><button type="button" class="btn as-cancel">취소</button><button type="button" class="btn fill as-save">저장</button></span></div>
 </dialog>
 <dialog id="load-dialog" class="load-dialog" aria-labelledby="load-heading">
   <form id="load-form">

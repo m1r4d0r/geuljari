@@ -794,15 +794,31 @@
     openAll: (cat) => allSet.open(cat)
   });
 
-  /* 전체 설정: 갈래 판 맨 위에서 여는 창. 고르면 글 전체 조판값에 바로 건다 */
+  /* 전체 설정: 갈래 판 맨 위에서 여는 창. 고르면 미리보기에 바로 걸고, 취소하면 연 때로 되돌린다 */
   const allSet = window.GeulAllSettings.mount($('all-dialog'), $('all-body'), {
     settings: () => st.settings,
     set: (part) => { setSettings(part); panels.refresh(); },
     get: () => st.source,
     setText(text) { setSource(text); handOff(); show(here()); panels.refresh(); },
-    pages: () => allPages().length
+    pages: () => allPages().length,
+    page: () => (st.atEnd ? null : Math.min(st.page, allPages().length - 1)),
+    restore(snap) {
+      st.settings = snap.settings;
+      setSource(snap.source);
+      T.useFont(document, st.settings);
+      T.useTheme(document, st.settings);
+      handOff();
+      show(here());
+      panels.refresh();
+    },
+    /* 전체 값은 분위기에서 정해진 값으로(장면·글꼴·주색은 편집 단계의 것을 그대로) */
+    reset(text) {
+      setSource(text);
+      const s = st.settings;
+      setSettings(T.fromMoods(st.moods, { scene: s.scene, font: s.font, theme: s.theme }));
+      panels.refresh();
+    }
   });
-  $('all-close').addEventListener('click', () => allSet.close());
   panels.onState = () => {
     const s2 = panels.state();
     document.body.dataset.tuneCat = s2.cat;

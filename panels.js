@@ -217,7 +217,7 @@
    *      show(start) 다 쓴 모습으로 바로 보이기, wide() 넓은 틀(PC)을 보고 있는지, atEnd() 끝 장에 있는지,
    *      ending() 끝 장의 {scene, ground, text, size, width, align…}, setEnding(part) 끝 장의 장면·바탕 바꾸기(그 화면을 다시 보인다),
    *      setCard(part) 카드 문구·배치 바꾸기(다시 그리지 않음), setPageLook(k, {size, measure}) 그 쪽의 크기(%)·폭(자, 0은 저절로),
-   *      ip(cmd) 고치는 중인 글 상자에 고른 것을 보내기, openAll() 전체 설정 창 열기
+   *      ip(cmd) 고치는 중인 글 상자에 고른 것을 보내기, openAll(cat) 전체 설정 창 열기(지금 갈래의 탭으로)
    */
   function mount(root, ctx) {
     let cat = 'ground';
@@ -418,7 +418,7 @@
         return {
           key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat,
           options: [...cats().map((v) => opt(v, CATS[v])), ...(ctx.openAll ? [opt('@all', '전체 설정', { group: '모든 쪽', cls: 'tb-li-all' })] : [])],
-          pick: (v) => { if (v === '@all') ctx.openAll(); else cat = v; }
+          pick: (v) => { if (v === '@all') ctx.openAll(cat); else cat = v; }
         };
       },
       vals,

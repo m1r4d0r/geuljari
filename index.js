@@ -791,7 +791,7 @@
     setCard,
     setPageLook,
     ip: (cmd) => post(main, Object.assign({ type: 'geulgyeol:ip' }, cmd)),
-    openAll: () => allSet.open()
+    openAll: (cat) => allSet.open(cat)
   });
 
   /* 전체 설정: 갈래 판 맨 위에서 여는 창. 고르면 글 전체 조판값에 바로 건다 */

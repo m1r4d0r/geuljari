@@ -9,6 +9,7 @@
  *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀌고, 2분에 한 번 해 길을 따라 볕이 조금 기울었다 돌아오며 희었다 노을빛이 된다.
  *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 비스듬한 빛 줄기가 손(포인터)을 따라 좌우로 옮겨 가고 손이 없으면 가운데 언저리에서 천천히 흔들린다.
  *   - leaf(잎그늘): 느티나무의 타원형 잎 그림자 세 겹이 서로 다른 가지 밑동을 중심으로 흔들린다. 가까운 가지·중간 가지·먼 가지의 농도와 흐림, 주기와 위상을 달리해 겹치는 빛 틈도 변한다.
+ *     손을 따라 가까운 가지일수록 더 옮겨 가고, 그늘 빛깔에는 주색이, 틈으로 든 볕에는 주색 빛이 스민다.
  *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛이 44초에 한 번 숨 쉬듯 차올랐다 가라앉고, 그 위를 엷은 안개 결이 천천히 흐른다.
  * 다크
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
@@ -149,26 +150,27 @@
         float span=min(aspect,1.0);
         vec2 p=vec2(vUv.x*aspect,1.0-vUv.y);
         float t=uTime;
-        // 가지 그림자 세 겹이 각자의 밑동을 중심으로 흔들린다.
+        // 가지 그림자 세 겹이 각자의 밑동을 중심으로 흔들린다. 손(포인터)을 따라 가까운 가지일수록 더 옮겨 가 겹 사이에 깊이가 생긴다.
         // 주기·축·위상을 달리해 잎 사이의 겹침과 빛 틈도 변한다.
         vec2 nearUV=branchUV(p,vec2(-0.08*span,-0.10*span),span*1.02,vec2(0.0,0.16),
           sin(t*0.53)*0.035+sin(t*1.11+0.5)*0.008,
-          vec2(sin(t*0.43+0.4)*0.006,cos(t*0.61)*0.010)+uPtr*vec2(0.004,-0.003),
+          vec2(sin(t*0.43+0.4)*0.006,cos(t*0.61)*0.010)+uPtr*vec2(0.018,-0.012),
           sin(t*1.27+1.1)*0.004);
         vec2 midUV=branchUV(p,vec2(aspect-span*0.94,0.08*span),span*1.04,vec2(1.0,0.42),
           sin(t*0.39+2.2)*0.029+cos(t*0.83)*0.006,
-          vec2(cos(t*0.57+0.8)*0.009,sin(t*0.32+1.4)*0.006)+uPtr*vec2(0.002,-0.0015),
+          vec2(cos(t*0.57+0.8)*0.009,sin(t*0.32+1.4)*0.006)+uPtr*vec2(0.010,-0.007),
           cos(t*0.94+2.6)*0.003);
         vec2 farUV=branchUV(p,vec2(-0.06*span,1.0-span*1.12),span*1.20,vec2(0.12,1.0),
           sin(t*0.25+4.1)*0.016+sin(t*0.66)*0.004,
-          vec2(sin(t*0.31+3.0)*0.004,cos(t*0.23+2.0)*0.005)+uPtr*vec2(0.001,-0.0008),
+          vec2(sin(t*0.31+3.0)*0.004,cos(t*0.23+2.0)*0.005)+uPtr*vec2(0.005,-0.0035),
           sin(t*0.71+0.7)*0.002);
         float near=leafShadow(uLeafNear,nearUV);
         float middle=leafShadow(uLeafMid,midUV);
         float far=leafShadow(uLeafFar,farUV);
         float shadeA=1.0-(1.0-near*0.21)*(1.0-middle*0.17)*(1.0-far*0.12);
         float sun=(1.0-near)*(1.0-middle)*(1.0-far);
-        vec3 shadowColor=mix(uInk,vec3(0.28,0.31,0.27),0.72);
+        // 그늘 빛깔은 잎 초록 회색에 주색(uInk)이 스민다. 스밈 세기(uTintK)가 클수록 주색 쪽으로
+        vec3 shadowColor=mix(vec3(0.28,0.31,0.27),uInk,0.28+0.9*uTintK);
         float lightA=sun*0.17;
         gl_FragColor=over(vec4(shadowColor*shadeA,shadeA),
           vec4(tinted(vec3(1.0,0.98,0.91))*lightA,lightA));

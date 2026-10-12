@@ -4,8 +4,9 @@
  * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 바뀐 장면의 바탕(altGround), 마름,
  *   넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때: turn은 다크로, turnLight는 라이트로, 비면 turn과 같음), 글꼴,
  *   글자 크기(배율), 글 상자 폭(PC, 0이면 저절로), 정렬(저절로·왼쪽·가운데·오른쪽·양쪽), 주색(테마).
- * 심상은 네 축이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
- *   심상(빛·바람·물·시간·종이) → 두 장면의 바탕과 장면이 바뀔 때의 넘김 / 물기 → 흐름·마름 / 숨 → 속도·쉼 / 호흡 → 글 상자 폭
+ * 심상은 세 축이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
+ *   심상(빛·바람·물·시간·종이) → 두 장면의 바탕과 장면이 바뀔 때의 넘김 / 물기 → 흐름·마름 / 호흡 → 글 상자 폭
+ *   축을 바꾸면 그 축이 맡은 값만 바뀐다(setAxis). 속도·쉼 같은 나머지 값은 전체 설정에서 고른다.
  * 속도는 흐름·블록·효과 움직임의 시간과 띄어 쓴 쉼·마르는 시간을 함께 늘이고 줄인다(docs/효과-규칙.md).
  * 넘김은 따로 전환 속도(turnSpeed)를 따른다. 둘 다 화면의 1.0×가 엔진 기본보다 조금 빠르다(PACE·TURN_PACE).
  * 전역 GeulTune.
@@ -16,7 +17,6 @@
   const AXES = [
     { name: '심상', words: ['빛', '바람', '물', '시간', '종이'] },
     { name: '물기', words: ['젖은', '마른'] },
-    { name: '숨', words: ['고요한', '숨찬'] },
     { name: '호흡', words: ['긴', '짧은'] }
   ];
   const WORDS = AXES.flatMap((a) => a.words);
@@ -38,8 +38,6 @@
     '종이': { image: IMAGES['종이'], note: '원고지와 타자, 먹이 번지고 글자가 튀듯 넘겨요' },
     '젖은': { flow: '번짐', dry: '느리게', note: '글자가 번지며 나타나고 천천히 말라요' },
     '마른': { flow: '이어 쓰기', dry: '빨리', note: '번짐 없이 또박또박 나타나고 빨리 말라요' },
-    '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 오래 쉬어요' },
-    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 짧게 쉬어요' },
     '긴': { measure: 34, note: '한 줄에 많이 담아 길게 읽혀요' },
     '짧은': { measure: 18, note: '줄을 짧게 끊어 한 줄씩 읽혀요' }
   };
@@ -138,25 +136,43 @@
     return AXES.flatMap((a) => out.filter((w) => a.words.includes(w)));
   }
 
+  /* 축이 맡은 값 */
+  const AXIS_KEYS = { '심상': ['ground', 'altGround', 'turn', 'turnLight'], '물기': ['flow', 'dry'], '호흡': ['measure'] };
+  /* 목록에서 빠진 낱말(숨: 고요한·숨찬). 이 낱말을 고른 글은 속도·쉼을 기본으로 돌린다 */
+  const RETIRED_WORDS = ['고요한', '숨찬'];
+
   /*
-   * 심상에서 조판값을 만든다. 심상이 맡지 않는 값(장면·글꼴 등)은 keep(지금 조판값)을 그대로 둔다.
-   * 심상(빛·바람…)을 고르면 처음 장면의 바탕·바뀐 장면의 바탕·두 방향 넘김이 그 한 벌로 바뀌고, 고르지 않으면 바탕은 지금 것을 둔다.
+   * 축 하나의 낱말을 바꾼 조판값. 그 축이 맡은 값만 바뀌고 나머지는 s 그대로다.
+   * 심상을 고르면 처음 장면의 바탕·바뀐 장면의 바탕·두 방향 넘김이 그 한 벌로 바뀌고, 빼면 바탕·넘김은 지금 것을 둔다.
+   * 물기·호흡은 빼면 그 값이 기본(이어 쓰기·보통 마름, 저절로 폭)으로 돌아간다.
    */
-  function fromMoods(words, keep) {
-    const s = defaults();
-    if (keep) ['scene', 'ground', 'font', 'size', 'align', 'theme', 'turnSpeed'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
-    oneEach(words).forEach((w) => {
-      const m = MOOD[w];
-      ['flow', 'speed', 'rest', 'dry', 'measure'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
-      if (m.image) {
-        const sc = normalize({ scene: s.scene }).scene;
-        s.ground = sc === '다크' ? m.image.night : m.image.day;
-        s.altGround = sc === '다크' ? m.image.day : m.image.night;
-        s.turn = m.image.toNight;
-        s.turnLight = m.image.toDay;
+  function setAxis(s, axis, word) {
+    const o = normalize(s);
+    const m = word ? MOOD[word] : null;
+    if (axis === '심상') {
+      if (m && m.image) {
+        o.ground = o.scene === '다크' ? m.image.night : m.image.day;
+        o.altGround = o.scene === '다크' ? m.image.day : m.image.night;
+        o.turn = m.image.toNight;
+        o.turnLight = m.image.toDay;
       }
-    });
-    return normalize(s);
+      return normalize(o);
+    }
+    const d = defaults();
+    (AXIS_KEYS[axis] || []).forEach((k) => { o[k] = m && m[k] != null ? m[k] : d[k]; });
+    return normalize(o);
+  }
+
+  /* 낱말 모음에서 조판값을 만든다(축마다 setAxis). keep이 없으면 기본값에서 */
+  function fromMoods(words, keep) {
+    const list = oneEach(words);
+    return AXES.reduce((s, ax) => setAxis(s, ax.name, list.find((w) => ax.words.includes(w)) || null), normalize(keep || defaults()));
+  }
+
+  /* 저장된 낱말에서 빠진 낱말을 걷고, 숨을 골랐던 글은 속도·쉼을 기본으로 */
+  function retire(words, s) {
+    const had = (words || []).some((w) => RETIRED_WORDS.includes(w));
+    return { moods: oneEach(words), settings: had ? normalize(Object.assign({}, s, { speed: 1, rest: 1 })) : normalize(s) };
   }
 
   /* 장면이 바뀔 때의 넘김(엔진 이름): 다크로 · 라이트로 */
@@ -339,7 +355,7 @@
   }
 
   global.GeulTune = {
-    AXES, WORDS, MOOD, IMAGES, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
+    AXES, AXIS_KEYS, WORDS, MOOD, setAxis, retire, IMAGES, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
     PACE, TURN_PACE, dryTime, turnPace, flowName,
     defaults, normalize, oneEach, fromMoods, turnsOf, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme, TINT, readerVars, useReaderTheme, lightTint

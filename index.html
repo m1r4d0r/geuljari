@@ -27,6 +27,7 @@
 <script src="look.js" defer></script>
 <script src="publish-crypto.js" defer></script>
 <script src="geul-file.js" defer></script>
+<script src="all-settings.js" defer></script>
 <script src="og-card.js" defer></script>
 <script src="publish.js" defer></script>
 <script src="ending-settings.js" defer></script>
@@ -148,6 +149,11 @@
     </footer>
   </section>
 </main>
+<dialog id="all-dialog" class="all-dialog" aria-labelledby="all-heading">
+  <div class="as-head"><h2 id="all-heading">전체 설정</h2><button type="button" class="link" id="all-close">닫기</button></div>
+  <p class="as-note">모든 쪽에 같이 걸려요. 하단바에서 쪽마다 따로 고른 값이 있으면 그 쪽은 그 값을 따라요.</p>
+  <div id="all-body"></div>
+</dialog>
 <dialog id="load-dialog" class="load-dialog" aria-labelledby="load-heading">
   <form id="load-form">
     <h2 id="load-heading">글을 다시 가져와요.</h2>
@@ -162,18 +168,18 @@
   </form>
 </dialog>
 
-<!-- 처음 들어왔을 때: 편집창을 흐리게 가리고, 기능 여섯 가지를 한 장씩 넘기며 움직이는 장면으로 보인다 -->
+<!-- 머리의 안내: 화면을 흐리게 가리고, 그 단계(글·미리보기)의 기능을 한 장씩 넘기며 움직이는 장면으로 보인다 -->
 <div class="guide" id="guide" role="dialog" aria-modal="true" aria-labelledby="g-title" hidden>
   <section class="g-sheet">
     <div class="g-stage" aria-hidden="true">
-      <div class="g-scene" data-n="0">
+      <div class="g-scene" data-set="write" data-n="0">
         <div class="g-moods">
           <span class="ax">물기</span><span class="g-chip g-on">젖은</span><span class="g-chip">마른</span>
           <span class="ax">호흡</span><span class="g-chip">긴</span><span class="g-chip">짧은</span>
         </div>
         <p class="g-paper"><span class="g-rise" style="--d:.7s">밤</span><span class="g-rise" style="--d:.82s">이</span> <span class="g-rise" style="--d:1s">깊</span><span class="g-rise" style="--d:1.12s">어</span><span class="g-rise" style="--d:1.24s">지</span><span class="g-rise" style="--d:1.36s">면</span><br><span class="g-rise" style="--d:1.7s">소</span><span class="g-rise" style="--d:1.82s">리</span><span class="g-rise" style="--d:1.94s">가</span> <span class="g-rise" style="--d:2.12s">지</span><span class="g-rise" style="--d:2.24s">워</span><span class="g-rise" style="--d:2.36s">진</span><span class="g-rise" style="--d:2.48s">다</span><span class="g-rise" style="--d:2.6s">.</span></p>
       </div>
-      <div class="g-scene" data-n="1">
+      <div class="g-scene" data-set="write" data-n="1">
         <div class="g-split">
           <div class="g-page one"><i class="g-pn">1</i><span>그날도 그랬다.</span><span class="g-leave">편지를 썼다.</span>
             <span class="g-hint"><b>여기서 나누기</b></span>
@@ -183,24 +189,40 @@
           <div class="g-page two"><i class="g-pn">2</i><span>편지를 썼다.</span></div>
         </div>
       </div>
-      <div class="g-scene" data-n="2">
+      <div class="g-scene" data-set="write" data-n="2">
         <div class="g-pair">
           <div class="g-mini">펜을 내려놓고<br>창문을 열었다.</div>
           <div class="g-mini"><span>그리고 잉크<br>한 방울이</span><span class="g-iris">그리고 잉크<br>한 방울이</span></div>
         </div>
         <span class="g-toggle"><i></i>반전 · 다크로</span>
       </div>
-      <div class="g-scene" data-n="3">
+      <div class="g-scene" data-set="write" data-n="3">
         <p class="g-paper g-line">손을 뻗었다가<span class="g-rest"></span>멈췄다.</p>
         <p class="g-typed"><span class="g-type" style="--d:.2s">손</span><span class="g-type" style="--d:.36s">을</span> <span class="g-type" style="--d:.52s">뻗</span><span class="g-type" style="--d:.68s">었</span><span class="g-type" style="--d:.84s">다</span><span class="g-type" style="--d:1s">가</span> <span class="g-type" style="--d:3.4s">멈</span><span class="g-type" style="--d:3.56s">췄</span><span class="g-type" style="--d:3.72s">다</span><span class="g-type" style="--d:3.88s">.</span></p>
         <div class="g-wait"><span><i></i></span><em>쉼</em></div>
       </div>
-      <div class="g-scene" data-n="4">
+      <div class="g-scene" data-set="write" data-n="4">
         <p class="g-paper g-mark"><span class="g-pick"><i class="g-sweep"></i><b class="g-pop">강조</b><span class="g-wavy">보고 싶다고</span></span> 쓰는 것은 너무 무거웠다.</p>
       </div>
-      <div class="g-scene" data-n="5">
+      <div class="g-scene" data-set="write" data-n="5">
         <p class="g-paper g-brk-ed">그리고 잉크 한 방울이 <i class="g-brk"></i>떨어졌다.</p>
         <div class="g-phone"><span>그리고 잉크 한 방울이</span><span class="g-brk-next">떨어졌다.</span></div>
+      </div>
+      <div class="g-scene" data-set="tune" data-n="0">
+        <div class="g-screen"><span class="g-tbox g-tbox-on">그리고 잉크<br>한 방울이</span><i class="g-tap g-tap-box"></i></div>
+        <div class="g-bar"><b>글</b><span class="g-chip">결 번짐</span><span class="g-chip">속도</span><span class="g-chip">크기</span></div>
+      </div>
+      <div class="g-scene" data-set="tune" data-n="1">
+        <div class="g-screen g-screen-dark"><span class="g-tbox">그리고 잉크<br>한 방울이</span><i class="g-tap g-tap-ground"></i></div>
+        <div class="g-bar"><b>바탕</b><span class="g-chip">장면</span><span class="g-chip">바탕</span><span class="g-chip">전환</span></div>
+      </div>
+      <div class="g-scene" data-set="tune" data-n="2">
+        <div class="g-screen"><span class="g-tbox g-tbox-edit">그리고 <span class="g-sel">잉크</span><br>한 방울이<i class="g-ok"></i></span></div>
+        <div class="g-bar"><b>고른 곳</b><span class="g-chip">등장</span><span class="g-chip">퇴장</span><span class="g-chip">꾸밈</span></div>
+      </div>
+      <div class="g-scene" data-set="tune" data-n="3">
+        <div class="g-drop"><span class="g-li g-li-set">전체 설정</span><span class="g-li">글</span><span class="g-li on">바탕</span></div>
+        <div class="g-bar"><b>바탕</b><span class="g-chip">장면</span><span class="g-chip">바탕</span></div>
       </div>
     </div>
     <div class="g-text">

@@ -1,9 +1,8 @@
 /*
  * 글결 분위기 살펴보기
- * 편집실 위에 뜨는 판. 심상 네 축(심상·물기·숨·호흡)을 한 장에 한 축씩 보이고, 축의 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
+ * 편집실 위에 뜨는 판. 심상 세 축(심상·물기·호흡)을 한 장에 한 축씩 보이고, 축의 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
  * - 심상: 다섯 벌(빛·바람·물·시간·종이)의 라이트 바탕에서 다크 바탕으로 그 심상의 넘김으로 넘어가는 모습. 바탕은 그 바탕의 빛깔을 닮은 면으로 줄여 그린다.
  * - 물기: 보통 글자가 나타나는 결(번짐·이어 쓰기)과, 강조 글자가 마르는 빠르기.
- * - 숨: 쓰는 빠르기와 두 번 띄어 쓴 쉼의 길이. 쓰는 자리에 커서가 깜박인다.
  * - 호흡: 같은 글을 글 상자 폭만 달리 둔 모습. 긴 폭을 카드 안 폭으로 보고 짧은 폭은 그 비율로 줄인다.
  * 카드 아래 시간 막대에는 글자가 나온 때와 낱말이 바꾸는 시간(나타나는 동안·쉼·마름·넘김)을 두 낱말이 같은 눈금으로 그린다.
  * 시간은 낱말의 조판값(GeulTune.fromMoods)을 엔진(Geulgyeol)에 걸어 짠 실제 시간표를 쓰고, 짠 뒤에는 엔진 값을 되돌린다.
@@ -39,12 +38,6 @@
       body: '보통 글자가 종이에 나타나는 결과, 강조한 글자가 마르는 빠르기가 달라져요.',
       tip: '강조한 곳은 따로 고른 효과 그대로 나와요.',
       text: '밤이 깊어지면\n소리가 지워진다.'
-    },
-    {
-      axis: '숨', kind: 'breath',
-      body: '쓰는 빠르기와, 두 번 띄어 쓴 곳에서 쉬는 길이가 달라져요.',
-      tip: '속도는 강조 효과의 움직임도 함께 늘이고 줄여요.',
-      text: '밤이 깊어지면\n소리가  지워진다.'
     },
     {
       axis: '호흡', kind: 'measure',
@@ -253,13 +246,6 @@
       o.glint = el('i', 'lk-glint');
       card.append(night, o.ring, o.glint);
     }
-    if (pg.kind === 'breath') {
-      o.caret = el('i', 'lk-caret');
-      day.append(o.caret);
-      o.marks.sum = { t: last.t, label: ((last.t - LEAD) / 1000).toFixed(1) + '초' };
-      o.until = last.t;
-    }
-
     o.render = (t, loop) => {
       anims.forEach((a) => { a.currentTime = t; });
       const k = t > loop - OUT ? clamp01((loop - t) / OUT) : 1;
@@ -268,7 +254,6 @@
         o.night.style.opacity = k < 1 ? k.toFixed(3) : '';
         turn(o, t);
       }
-      if (o.caret) caret(o, t);
       if (o.trackRender) o.trackRender(t);
     };
     return o;
@@ -336,23 +321,6 @@
     }
   }
 
-  /* 쓰는 자리 커서: 마지막으로 나온 글자 뒤에서 깜박이고, 다 쓰고 조금 뒤 사라진다 */
-  function caret(o, t) {
-    const { items, caret: c } = o;
-    const lastT = items[items.length - 1].t;
-    if (t > lastT + 700) { c.hidden = true; return; }
-    let i = -1;
-    while (i + 1 < items.length && items[i + 1].t <= t) i++;
-    if (c._at !== i) {
-      c._at = i;
-      const sp = items[Math.max(0, i)].el;
-      c.style.left = (i < 0 ? sp.offsetLeft : sp.offsetLeft + sp.offsetWidth + 1) + 'px';
-      c.style.top = (sp.offsetTop + sp.offsetHeight * 0.18) + 'px';
-      c.style.height = (sp.offsetHeight * 0.64) + 'px';
-    }
-    c.hidden = false;
-  }
-
   /* 시간 막대: 두 낱말이 같은 눈금(span ms)을 쓴다 */
   function track(o, span, pal) {
     const box = el('div', 'lk-track');
@@ -382,11 +350,6 @@
       box.append(n);
       return { n, t };
     });
-    if (mk.sum) {
-      const n = el('span', 'lk-sum', mk.sum.label);
-      n.style.left = x(mk.sum.t);
-      box.append(n);
-    }
     const now = el('i', 'lk-now');
     box.append(now);
     o.card.after(box);
@@ -513,7 +476,7 @@
       return o;
     });
     /* end: 두 장면이 다 끝나는 때, span: 시간 막대 눈금 길이,
-       still: 움직임 줄이기에서 멈춰 둘 순간(심상은 넘기는 한가운데, 물기는 마지막 글자들이 막 나타나는 때, 숨은 다 쓴 뒤) */
+       still: 움직임 줄이기에서 멈춰 둘 순간(심상은 넘기는 한가운데, 물기는 마지막 글자들이 막 나타나는 때, 호흡은 다 쓴 뒤) */
     let end = Math.max(...list.map((o) => o.end));
     let still = end;
     let span = end + 400;
@@ -525,7 +488,6 @@
       still = turnAt + list[0].tm.lead + list[0].tm.run * 0.5;
     }
     if (pg.kind === 'wet') still = Math.max(...list.map((o) => o.items[o.items.length - 1].t)) + 400;
-    if (pg.kind === 'breath') span = Math.max(...list.map((o) => o.marks.sum.t)) + 700;
     list.forEach((o) => track(o, span, pal));
     cur = { pg, list, loop: end + HOLD + OUT, still };
 

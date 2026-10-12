@@ -8,7 +8,8 @@
  *   크기·폭·정렬은 다시 쓰지 않고 바로 바뀐다. 글 자리는 글 상자를 끌어 옮기고, 글꼴은 편집 단계에서 고른다.
  * - 끝 장에 있으면 갈래가 끝 장(장면·바탕)과 카드(크기·폭·정렬·편집 제목으로)로 바뀐다.
  * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 등장(자동과 등장 효과)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
- * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint).
+ * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint). 갈래 판 맨 위(단추에서 가장 먼 자리)의 '전체 설정'은
+ *   글 전체 값을 고르는 창을 연다(ctx.openAll, all-settings.js).
  * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마. 전역 GeulPanels.
  */
 (function (global) {
@@ -216,7 +217,7 @@
    *      show(start) 다 쓴 모습으로 바로 보이기, wide() 넓은 틀(PC)을 보고 있는지, atEnd() 끝 장에 있는지,
    *      ending() 끝 장의 {scene, ground, text, size, width, align…}, setEnding(part) 끝 장의 장면·바탕 바꾸기(그 화면을 다시 보인다),
    *      setCard(part) 카드 문구·배치 바꾸기(다시 그리지 않음), setPageLook(k, {size, measure}) 그 쪽의 크기(%)·폭(자, 0은 저절로),
-   *      ip(cmd) 고치는 중인 글 상자에 고른 것을 보내기
+   *      ip(cmd) 고치는 중인 글 상자에 고른 것을 보내기, openAll() 전체 설정 창 열기
    */
   function mount(root, ctx) {
     let cat = 'ground';
@@ -416,8 +417,8 @@
         if (edit) return { still: '고른 곳' };
         return {
           key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat,
-          options: cats().map((v) => opt(v, CATS[v])),
-          pick: (v) => { cat = v; }
+          options: [...cats().map((v) => opt(v, CATS[v])), ...(ctx.openAll ? [opt('@all', '전체 설정', { group: '모든 쪽', cls: 'tb-li-all' })] : [])],
+          pick: (v) => { if (v === '@all') ctx.openAll(); else cat = v; }
         };
       },
       vals,

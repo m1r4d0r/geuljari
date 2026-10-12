@@ -6,8 +6,10 @@
  *   손가락으로 쓰는 화면에서는 문단 사이(빈 줄)에 '나누기'를 늘 둔다.
  * - 쪽 사이에는 쪽 번호와 [반전]·[잇기]. 반전은 그 쪽부터 라이트·다크를 바꾸는 쪽 표시 줄을 넣고 뺀다.
  *   반전된 자리에서는 넘어오는 결(넘김)도 바로 고른다.
- * - 글을 끌어 고르면 바로 위에 [강조]와 [끊을 자리]가, 강조 안을 누르면 [강조 빼기]가 뜬다.
- *   끊을 자리는 고른 곳의 첫 어절 앞(줄 첫 어절이면 고른 곳 안의 다음 어절 앞)에 ｜를 넣는다. 고른 곳에 ｜가 있으면 [끊을 자리 빼기].
+ * - 글을 끌어 고르면 바로 위에 [강조]가, 강조 안을 누르면 [강조 빼기]가 뜬다.
+ * - 어절 사이를 오른쪽 단추로 누르면 그 자리에 끊을 자리(｜)를 넣고, 끊을 자리 위를 누르면 뺀다. 어절 안을 누르면 늘 쓰던 메뉴가 뜬다.
+ *   손가락 화면에는 오른쪽 단추가 없으므로 고른 곳 위에 [끊을 자리]·[끊을 자리 빼기]를 함께 띄운다
+ *   (고른 곳 첫 어절 앞, 줄 첫 어절이면 고른 곳 안의 다음 어절 앞).
  * 자리는 표시층 글자의 화면 상자로 잰다. 전역 GeulCompose.
  */
 (function (global) {
@@ -323,7 +325,7 @@
         }]);
       }
       if (hit.length) acts.push(['강조 빼기', () => unwrapAll(hit, a)]);
-      if (a !== b) {
+      if (a !== b && coarse.matches) {
         const from = t.lastIndexOf('\n', a - 1) + 1;
         const inside = t.slice(Math.max(from, a - 1), b).includes(E.BREAK);
         if (inside) {
@@ -373,6 +375,70 @@
       const shift = list.filter((k) => k.os < caret).length * 2;
       ctx.set(t, [Math.max(0, caret - shift), Math.max(0, caret - shift)]);
     }
+
+    /* ---------- 오른쪽 단추로 끊을 자리 ---------- */
+
+    /* 화면 자리(x, y)의 본문 offset: 입력창을 잠깐 비켜 표시층 글자에서 잰다(표시층은 글자 수가 본문과 같다) */
+    function offsetAt(x, y) {
+      const pe = ta.style.pointerEvents;
+      const me = mirror.style.pointerEvents;
+      ta.style.pointerEvents = 'none';
+      mirror.style.pointerEvents = 'auto';
+      let node = null;
+      let off = 0;
+      if (document.caretPositionFromPoint) {
+        const p = document.caretPositionFromPoint(x, y);
+        if (p) { node = p.offsetNode; off = p.offset; }
+      } else if (document.caretRangeFromPoint) {
+        const r = document.caretRangeFromPoint(x, y);
+        if (r) { node = r.startContainer; off = r.startOffset; }
+      }
+      ta.style.pointerEvents = pe;
+      mirror.style.pointerEvents = me;
+      if (!node || !mirror.contains(node) || node.nodeType !== 3) return null;
+      const walker = document.createTreeWalker(mirror, NodeFilter.SHOW_TEXT);
+      let n = 0;
+      let cur;
+      while ((cur = walker.nextNode())) {
+        if (cur === node) return n + off;
+        n += cur.length;
+      }
+      return null;
+    }
+
+    /* 누른 자리가 어절 사이면 끊을 자리를 넣을 곳, 끊을 자리 곁이면 그 자리. 어절 안·줄 첫머리·쪽 표시 줄이면 null */
+    function gapAt(t, p) {
+      if (t[p] === E.BREAK) return { cut: p };
+      if (t[p - 1] === E.BREAK) return { cut: p - 1 };
+      const from = t.lastIndexOf('\n', p - 1) + 1;
+      const nl = t.indexOf('\n', p);
+      const line = t.slice(from, nl < 0 ? t.length : nl);
+      if (/^\s*\[\[/.test(line)) return null;
+      const sp = (c) => c === ' ' || c === '\t' || c === '　';
+      if (!sp(t[p]) && !sp(t[p - 1])) return null;
+      let q = p;
+      while (q < from + line.length && sp(t[q])) q++;
+      if (q >= from + line.length || !t.slice(from, q).trim()) return null;
+      if (t[q] === E.BREAK) return { cut: q };
+      return { put: q };
+    }
+
+    ta.addEventListener('contextmenu', (e) => {
+      if (coarse.matches) return;
+      const t = ctx.get();
+      const p = offsetAt(e.clientX, e.clientY);
+      const g = p == null ? null : gapAt(t, p);
+      if (!g) return;
+      e.preventDefault();
+      hidePop();
+      if (g.put != null) {
+        ctx.set(t.slice(0, g.put) + E.BREAK + t.slice(g.put), [g.put + 1, g.put + 1]);
+        if (ctx.notice) ctx.notice('끊을 자리를 넣었어요. 좁은 화면에서 줄이 넘치면 끝 어절 대신 여기서 먼저 줄을 바꿔요.');
+      } else {
+        ctx.set(t.slice(0, g.cut) + t.slice(g.cut + 1), [g.cut, g.cut]);
+        if (ctx.notice) ctx.notice('끊을 자리를 뺐어요.');
+      }
+    });
 
     ta.addEventListener('pointerup', () => setTimeout(() => syncPop(true), 0));
     ta.addEventListener('keyup', (e) => { if (e.shiftKey) syncPop(false); else hidePop(); });

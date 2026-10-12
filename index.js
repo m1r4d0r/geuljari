@@ -65,8 +65,7 @@
     page: 0,
     atEnd: false
   }, store.get(KEY) || {});
-  st.settings = T.normalize(st.settings);
-  st.moods = T.oneEach(st.moods);
+  ({ moods: st.moods, settings: st.settings } = T.retire(st.moods, st.settings));
   st.ending = normEnding(st.ending);
   st.atEnd = false;
   if (typeof st.title !== 'string') st.title = '';
@@ -108,7 +107,8 @@
     set(text, sel) { setSource(text, sel); },
     head,
     scene: () => st.settings.scene,
-    turn: () => st.settings.turn
+    turn: () => st.settings.turn,
+    notice: (msg) => toast(msg, 3400)
   });
 
   /* 글이 처음 생긴 날을 적어 둔다(새로 쓰기·예시 글이면 다시) */
@@ -170,9 +170,15 @@
     }, 800);
   }
 
+  /* 바뀐 축만 그 축이 맡은 값을 바꾼다(전체 설정에서 고른 나머지 값은 그대로) */
   function setMoods(list) {
-    st.moods = T.oneEach(list);
-    st.settings = T.fromMoods(st.moods, st.settings);
+    const next = T.oneEach(list);
+    T.AXES.forEach((ax) => {
+      const a = st.moods.find((w) => ax.words.includes(w)) || null;
+      const b = next.find((w) => ax.words.includes(w)) || null;
+      if (a !== b) st.settings = T.setAxis(st.settings, ax.name, b);
+    });
+    st.moods = next;
     save();
   }
 
@@ -243,23 +249,32 @@
   });
 
   /*
-   * 처음 들어오면 편집창을 흐리게 가리고 안내를 띄운다. 여섯 장을 한 장씩 넘기며, 장마다 그 기능이 움직이는 작은 장면을 보인다.
+   * 머리의 '안내'를 누르면 화면을 흐리게 가리고 그 단계의 안내를 띄운다(글 여섯 장, 미리보기 네 장). 장마다 그 기능이 움직이는 작은 장면을 보인다.
    * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
    */
-  const GUIDE = [
-    { title: '분위기를 고르면', body: '그 결에 맞는 바탕과 움직임이 글 전체에 입혀져요. 젖으면 천천히 마르고, 숨차면 빠르게, 호흡이 짧으면 줄을 짧게 써 내려가요.', tip: '하단바 분위기에서 축마다 하나씩 골라요. 살펴보기에서 두 낱말을 움직임으로 견줘 볼 수 있어요.' },
+  const GUIDE_WRITE = [
+    { title: '분위기를 고르면', body: '그 결에 맞는 바탕과 움직임이 글 전체에 입혀져요. 젖으면 번지며 천천히 마르고, 호흡이 짧으면 줄을 짧게 끊어 써요.', tip: '하단바 분위기에서 축마다 하나씩 골라요. 살펴보기에서 두 낱말을 움직임으로 견줘 볼 수 있어요.' },
     { title: '줄 사이를 누르면', body: '거기서부터 다음 쪽으로 넘어가요. 한 쪽에 한 호흡씩 담아 보세요.', tip: '줄 사이에 마우스를 올리면 점선이 보여요. 띠 어디를 눌러도 돼요.' },
     { title: '쪽 사이에서 반전', body: '이 쪽부터 바탕이 밝게, 어둡게 바뀌어요. 넘어오는 결도 그 자리에서 골라요.', tip: '미리보기에서는 쪽마다 바탕과 글을 따로 다듬어요. 빈 바탕을 누르면 바탕, 글 상자를 누르면 글이에요.' },
     { title: '두 번 띄어 쓰면 쉼', body: '띄어쓰기를 두 번 한 곳은 잠깐 쉬었다가 이어서 써요. 화면에는 한 칸으로 보여요.', tip: '편집창에는 쉬는 자리가 호박색으로 표시돼요.' },
     { title: '끌어 고르면 강조', body: '남기고 싶은 곳을 끌어 고르고 강조를 눌러요. 그곳만 따로 떠올라 글의 자리를 찾아요.', tip: '미리보기에서 글 상자를 두 번 누르면 등장·퇴장·속도·꾸밈·색을 고를 수 있어요.' },
-    { title: '폰에서 끊을 자리', body: '어절을 고르고 끊을 자리를 누르면 그 앞에 연필 선이 생겨요. 줄이 화면보다 길 때만 거기서 먼저 줄을 바꿔요.', tip: '한 줄에 다 들어가면 그대로 이어져요. 고른 곳에 선이 있으면 끊을 자리 빼기로 지워요.' }
+    { title: '좁은 화면에서 끊을 자리', body: '어절 사이를 오른쪽 단추로 누르면 연필 선이 생겨요. 폰처럼 좁은 화면에서 줄이 넘치면 끝 어절 대신 거기서 먼저 줄을 바꿔요.', tip: '선을 다시 오른쪽 단추로 누르면 빠져요. 손가락 화면에서는 어절을 고르면 끊을 자리 단추가 떠요.' }
   ];
+
+  const GUIDE_TUNE = [
+    { title: '글 상자를 누르면 글', body: '하단바가 글 갈래로 바뀌어요. 나타나는 결·속도·크기·정렬·폭을 고르고, 글 상자를 끌어 자리를 옮겨요.', tip: '결과 속도는 머리의 다시 보기를 눌러야 보여요. 크기·폭·정렬은 바로 바뀌어요.' },
+    { title: '빈 바탕을 누르면 바탕', body: '하단바가 바탕 갈래로 바뀌어요. 장면과 바탕, 이 쪽으로 넘어오는 전환과 그 속도를 골라요.', tip: '전환 속도를 바꾸면 그 쪽으로 한 번 넘겨 보여요.' },
+    { title: '두 번 누르면 고치기', body: '글 상자를 두 번 누르면 그 자리에서 글을 고쳐요. 글을 고르면 등장·퇴장·꾸밈·색을 걸 수 있어요.', tip: '상자 아래 오른쪽의 체크로 남기고, X로 되돌려요.' },
+    { title: '이 쪽만, 또는 전체', body: '하단바에서 고른 값은 지금 쪽에만 걸려요. 모든 쪽에 같은 값을 걸 때는 갈래 판 맨 위의 전체 설정을 열어요.', tip: '오른쪽에서 PC·폰·병렬로 바꿔 보고, 손가락 벌리기나 Ctrl+휠로 확대해요.' }
+  ];
+  let GUIDE = GUIDE_WRITE;
+  let guideSet = 'write';
 
   let guideAt = 0;
   function guideTo(k) {
     guideAt = Math.max(0, Math.min(GUIDE.length - 1, k));
     const g = GUIDE[guideAt];
-    document.querySelectorAll('.g-scene').forEach((sc) => { sc.hidden = Number(sc.dataset.n) !== guideAt; });
+    document.querySelectorAll('.g-scene').forEach((sc) => { sc.hidden = sc.dataset.set !== guideSet || Number(sc.dataset.n) !== guideAt; });
     $('g-count').textContent = String(guideAt + 1).padStart(2, '0') + ' / ' + String(GUIDE.length).padStart(2, '0');
     $('g-title').textContent = g.title;
     $('g-body').textContent = g.body;
@@ -278,10 +293,14 @@
     }));
   }
   function showGuide(on) {
+    if (on) {
+      guideSet = st.step === 'tune' ? 'tune' : 'write';
+      GUIDE = guideSet === 'tune' ? GUIDE_TUNE : GUIDE_WRITE;
+    }
     $('guide').hidden = !on;
     document.body.classList.toggle('guided', on);
     if (on) { guideTo(0); $('g-next').focus(); }
-    else { store.set('geul.guide', true); ta.focus({ preventScroll: true }); }
+    else { store.set('geul.guide', true); if (st.step === 'write') ta.focus({ preventScroll: true }); }
   }
   $('g-next').addEventListener('click', () => { if (guideAt === GUIDE.length - 1) showGuide(false); else guideTo(guideAt + 1); });
   $('g-prev').addEventListener('click', () => guideTo(guideAt - 1));
@@ -695,7 +714,8 @@
     st.settings = T.normalize(Object.assign({}, st.settings, part));
     if (st.settings.scene !== before) {
       // 심상을 고른 글이면 새 처음 장면에 맞춰 그 한 벌의 바탕을 다시 건다
-      st.settings = T.fromMoods(st.moods, st.settings);
+      const image = st.moods.find((w) => T.AXES[0].words.includes(w));
+      if (image) st.settings = T.setAxis(st.settings, '심상', image);
       setSource(flipMarks(st.source));
     }
     T.useFont(document, st.settings);
@@ -770,8 +790,19 @@
     setEnding,
     setCard,
     setPageLook,
-    ip: (cmd) => post(main, Object.assign({ type: 'geulgyeol:ip' }, cmd))
+    ip: (cmd) => post(main, Object.assign({ type: 'geulgyeol:ip' }, cmd)),
+    openAll: () => allSet.open()
   });
+
+  /* 전체 설정: 갈래 판 맨 위에서 여는 창. 고르면 글 전체 조판값에 바로 건다 */
+  const allSet = window.GeulAllSettings.mount($('all-dialog'), $('all-body'), {
+    settings: () => st.settings,
+    set: (part) => { setSettings(part); panels.refresh(); },
+    get: () => st.source,
+    setText(text) { setSource(text); handOff(); show(here()); panels.refresh(); },
+    pages: () => allPages().length
+  });
+  $('all-close').addEventListener('click', () => allSet.close());
   panels.onState = () => {
     const s2 = panels.state();
     document.body.dataset.tuneCat = s2.cat;
@@ -827,8 +858,7 @@
       clearTimeout(guessTimer);
       st.title = d.title; $('title').value = d.title;
       st.made = /^\d{4}-\d{2}-\d{2}$/.test(d.made) ? d.made : today();
-      st.settings = T.normalize(d.settings);
-      st.moods = T.oneEach(Array.isArray(d.moods) ? d.moods : []);
+      ({ moods: st.moods, settings: st.settings } = T.retire(Array.isArray(d.moods) ? d.moods : [], d.settings));
       st.moodsTouched = !!d.moodsTouched;
       st.ending = normEnding(d.ending); st.page = 0;
       setStep('write'); setSource(d.source, [0,0]);

@@ -57,7 +57,14 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 1);
       // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
-      assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글']);
+      assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글', '전체 설정']);
+      // 갈래 판 맨 위의 전체 설정: 글 전체 값 창이 뜨고 닫힌다
+      await pg.click('#s-tune .tb-cat-item .tb-li:has-text("전체 설정")');
+      assert.equal(await pg.isVisible('#all-dialog'), true);
+      assert.ok(await pg.locator('#all-body .as-opt').count() > 10);
+      await pg.click('#all-close');
+      assert.equal(await pg.isVisible('#all-dialog'), false);
+      await pg.click('#s-tune .tb-cat');
       await pg.click('#s-tune .tb-cat-item .tb-li:has-text("글")');
       assert.equal(await pg.locator('#s-tune .tb-val[data-key=place], #s-tune .tb-val[data-key=font], #s-tune .tb-val[data-key=rest], #s-tune .tb-val[data-key=dry]').count(), 0);
       await pg.click('#s-tune .tb-val[data-key=flow]'); await pg.click('#tb-drop-flow .tb-li:has-text("바로")');

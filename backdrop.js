@@ -82,6 +82,8 @@
     uniform vec3 uPaper;
     uniform vec3 uTint;
     uniform float uTintK;
+    uniform vec3 uCurtA;
+    uniform vec3 uCurtB;
     vec3 tinted(vec3 c) { return mix(c, uTint, uTintK); }
     varying vec2 vUv;
     float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -168,7 +170,7 @@
           float rays = 0.4 + 0.6 * fbm(vec2(xx * 22.0, t * 2.0 + fk * 3.0));
           float patchy = 0.25 + 0.75 * smoothstep(0.22, 0.6, fbm(vec2(xx * 0.8 - t * 0.5, fk * 7.0)));
           float I = body * rays * patchy * (1.0 - fk * 0.35);
-          vec3 col = tinted(mix(vec3(0.42, 0.80, 0.66), vec3(0.55, 0.46, 0.82), smoothstep(0.02, 0.24, above)));
+          vec3 col = tinted(mix(uCurtA, uCurtB, smoothstep(0.02, 0.24, above)));
           acc += col * I;
           A += I;
         }
@@ -308,7 +310,7 @@
     gl.linkProgram(pr);
     if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
     const u = {};
-    ['uRes', 'uTime', 'uPtr', 'uInk', 'uPaper', 'uTint', 'uTintK'].forEach((n) => { u[n] = gl.getUniformLocation(pr, n); });
+    ['uRes', 'uTime', 'uPtr', 'uInk', 'uPaper', 'uTint', 'uTintK', 'uCurtA', 'uCurtB'].forEach((n) => { u[n] = gl.getUniformLocation(pr, n); });
     e.programs[e.kind] = { pr, u };
     return e.programs[e.kind];
   }
@@ -373,6 +375,7 @@
     e.ink = rgb(cs.getPropertyValue('--ink'));
     e.paper = rgb(cs.getPropertyValue('--paper'));
     e.tint = tintOf();
+    e.theme = themeInk();
     /* 칸 선 색이 바뀌면(주색·스밈 세기) 원고지 밑그림을 다시 그린다 */
     const key = e.ink.join() + '|' + e.tint.line;
     if (e.colorKey !== key) { e.colorKey = key; e.off = null; }
@@ -414,25 +417,36 @@
   /* ---------- 오로라 ---------- */
 
   /*
-   * 빛 덩이 셋의 색(0~1 rgb)과 세기. 1·3은 주색의 색상, 2는 주색에서 색상을 비튼 장식색.
-   * 무채색에 가까운 주색도 빛으로 보이게 채도에 바닥을 둔다. 라이트는 옅게, 다크는 밝고 세게.
+   * 빛 덩이 셋의 색(0~1 rgb)과 세기. 1·3은 주색의 색상, 2는 주색에서 색상을 80°(채도가 거의 없는 주색이면 120°) 비튼 장식색.
+   * 두 색이 한 색으로 뭉치지 않게 장식색은 더 밝게 둔다.
+   * 무채색에 가까운 주색도 빛으로 보이게 채도에 바닥을 둔다. 라이트는 옅게, 다크는 채도를 눌러 어둠에 스미는 빛으로.
    */
   function auroraTones(theme, night) {
     const [h, s0] = toHsl(theme);
-    const s = Math.min(0.8, Math.max(night ? 0.5 : 0.34, s0 * 1.3));
-    const deco = (h + 322) % 360;
+    const s = night ? Math.min(0.42, Math.max(0.24, s0 * 0.9)) : Math.min(0.8, Math.max(0.34, s0 * 1.3));
+    const deco = (h + (s0 < 0.15 ? 240 : 280)) % 360;
     if (night) {
       return [
-        { c: fromHsl(h, s, 0.62), a: 0.62 },
-        { c: fromHsl(deco, s, 0.62), a: 0.5 },
-        { c: fromHsl(h, s * 0.85, 0.72), a: 0.34 }
+        { c: fromHsl(h, s, 0.56), a: 0.46 },
+        { c: fromHsl(deco, s, 0.68), a: 0.36 },
+        { c: fromHsl(h, s * 0.8, 0.7), a: 0.26 }
       ];
     }
     return [
-      { c: fromHsl(h, s, 0.48), a: 0.36 },
-      { c: fromHsl(deco, s, 0.6), a: 0.34 },
+      { c: fromHsl(h, s, 0.46), a: 0.36 },
+      { c: fromHsl(deco, s, 0.66), a: 0.34 },
       { c: fromHsl(h, s * 0.85, 0.58), a: 0.22 }
     ];
+  }
+
+  /*
+   * 빛커튼의 두 빛: 아랫단은 주색의 색상, 위로 바래는 쪽은 오로라 장식색처럼 비튼 색상. 어둠에 스미게 채도는 누르고 밝게.
+   */
+  function curtainTones(theme) {
+    const [h, s0] = toHsl(theme);
+    const s = Math.min(0.5, Math.max(0.3, s0 * 0.9));
+    const deco = (h + (s0 < 0.15 ? 240 : 280)) % 360;
+    return [fromHsl(h, s, 0.62), fromHsl(deco, s, 0.66)];
   }
 
   /* 빛 덩이 자리(정사각형 빛 판에 대한 비율, backdrop.css의 .au-1~3과 같음). still에서 씀 */
@@ -643,6 +657,11 @@
     const tn = e.tint || NO_TINT;
     gl.uniform3fv(P.u.uTint, tn.light);
     gl.uniform1f(P.u.uTintK, tn.k);
+    if (P.u.uCurtA) {
+      const [a, b] = curtainTones(e.theme || themeInk());
+      gl.uniform3fv(P.u.uCurtA, a);
+      gl.uniform3fv(P.u.uCurtB, b);
+    }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 

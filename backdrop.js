@@ -3,12 +3,12 @@
  * 이미지 없이 코드로 그리는 장면 바탕. 장(.sheet)마다 바탕 층을 하나 깔고, 지금 보이는 장만 움직인다.
  * 그리는 방식은 셋이다.
  *   gl·2d: 캔버스 한 장(WebGL1 셰이더, 원고지만 Canvas2D)을 프레임마다 다시 그린다.
- *   dom: 흐린 빛 덩이 몇 개를 CSS 애니메이션으로 밀고 간다. 색은 여기서 정해 변수로 얹고, 모양은 backdrop.css.
+ *   dom: 흐린 빛 덩이나 잎 그림자를 CSS 애니메이션으로 밀고 흔든다. 색은 여기서 정해 변수로 얹고, 모양은 backdrop.css.
  *   css: 층을 만들지 않는다. 장의 data-ground를 보고 CSS(backdrop.css, reader.css 끝의 편지지 부분)가 그린다.
  * 라이트
  *   - window(창빛, 기본): 비스듬히 떨어지는 창문 모양의 볕. 구름이 지나가듯 밝기가 숨 쉬듯 바뀌고, 2분에 한 번 해 길을 따라 볕이 조금 기울었다 돌아오며 희었다 노을빛이 된다.
  *   - wongoji(원고지): 칸이 줄지어 놓인 원고지. 바깥 테두리는 겹줄, 비스듬한 빛 줄기가 손(포인터)을 따라 좌우로 옮겨 가고 손이 없으면 가운데 언저리에서 천천히 흔들린다.
- *   - leaf(잎그늘): 나무 그늘 위에 잎 틈으로 든 둥글고 조금 길쭉한 볕 조각이 몰리거나 성기게 앉는다. 그늘 안쪽일수록 조각이 작고 드물고, 바람에 조각이 흔들리며 밝기가 일렁인다.
+ *   - leaf(잎그늘, dom): 노란빛 도는 볕 웅덩이 위에 흐리게 번진 잎 그림자 세 장이 윗변에 매달린 듯 서로 다른 주기로 흔들린다.
  *   - dawn(새벽): 아래에서 번져 오르는 옅은 새벽빛이 44초에 한 번 숨 쉬듯 차올랐다 가라앉고, 그 위를 엷은 안개 결이 천천히 흐른다.
  * 다크
  *   - projector(영사광, 기본): 바닥 가운데(반전의 축)에서 위로 퍼지는 영사기 빛과 그 안에 떠도는 먼지.
@@ -50,7 +50,7 @@
   const KINDS = {
     window: { engine: 'gl', scale: () => 0.5 },
     wongoji: { engine: '2d', scale: () => Math.min(2, window.devicePixelRatio || 1) },
-    leaf: { engine: 'gl', scale: () => 0.5 },
+    leaf: { engine: 'dom' },
     dawn: { engine: 'gl', scale: () => 0.4 },
     letter: { engine: 'css' },
     plain: { engine: 'css' },
@@ -124,52 +124,6 @@
         float edge = smoothstep(0.25, 1.15, length(vUv - 0.5) * 1.6);
         float shadeA = 0.045 * (1.0 - light) + 0.035 * edge;
         gl_FragColor = over(warm, vec4(uInk * shadeA, shadeA));
-      }
-    `,
-    leaf: `
-      /*
-       * 나무 그늘에 든 볕 조각: 잎 틈으로 비친 해가 둥글고 조금 길쭉한 무른 조각으로 땅에 앉는다.
-       * 조각은 몰리는 곳과 성긴 곳이 있고(덩이 잡음), 그늘이 짙은 안쪽일수록 작고 드물며 그늘 밖은 통째로 볕이다.
-       * 바람에 조각이 저마다 조금씩 흔들리고 밝기가 천천히 일렁인다.
-       */
-      float flecks(vec2 p, float t, float sc, float seed, float deep) {
-        vec2 g = p * sc;
-        vec2 id = floor(g);
-        float acc = 0.0;
-        float an = 0.55;
-        mat2 tilt = mat2(cos(an), -sin(an), sin(an), cos(an));
-        for (int j = -1; j <= 1; j++) {
-          for (int i = -1; i <= 1; i++) {
-            vec2 c = id + vec2(float(i), float(j));
-            float h = hash(c + seed);
-            vec2 cp = (c + 0.5) / sc;
-            float cluster = noise(cp * 2.2 + vec2(t * 0.012, -t * 0.009) + seed);
-            float dens = mix(0.95, 0.45, deep) * smoothstep(0.3, 0.62, cluster);
-            float on = step(1.0 - dens, hash(c + seed + 5.3));
-            vec2 o = vec2(hash(c + seed + 3.1), hash(c + seed + 7.7)) * 0.8 + 0.1;
-            o += vec2(sin(t * 0.7 + h * 6.28), cos(t * 0.55 + h * 4.0)) * 0.045;
-            vec2 q = tilt * (g - c - o);
-            q.y *= 1.55;
-            float r = (0.26 + 0.34 * hash(c + seed + 1.3)) * mix(1.1, 0.75, deep);
-            float flick = 0.8 + 0.2 * sin(t * 0.9 + h * 20.0);
-            acc = max(acc, on * flick * (1.0 - smoothstep(r * 0.5, r, length(q))));
-          }
-        }
-        return acc;
-      }
-      void main() {
-        float asp = uRes.x / uRes.y;
-        vec2 p = vec2(vUv.x * asp, vUv.y) + uPtr * vec2(0.03, -0.02);
-        float t = uTime;
-        // 그늘의 짙기: 1이면 우듬지 한가운데, 0이면 그늘 밖. 아주 천천히 옮겨 간다
-        float deep = smoothstep(0.2, 0.46, fbm(p * 0.55 + vec2(t * 0.004, -t * 0.003)));
-        float f = max(flecks(p, t, 6.5, 0.0, deep), flecks(p + vec2(0.31, 0.17), t * 0.85, 10.5, 9.0, deep) * 0.85);
-        float open = 1.0 - smoothstep(0.0, 0.35, deep);
-        float sun = clamp(f * (0.65 + 0.35 * (1.0 - deep)) + open * 0.8, 0.0, 1.0);
-        vec4 lit = vec4(tinted(vec3(1.0, 0.97, 0.86)) * sun * 0.42, sun * 0.42);
-        float edge = 0.025 * smoothstep(0.3, 1.2, length(vUv - 0.5) * 1.6);
-        float shadeA = mix(0.04, 0.24, deep) * (1.0 - f) + edge;
-        gl_FragColor = over(lit, vec4(uInk * shadeA, shadeA));
       }
     `,
     dawn: `
@@ -527,6 +481,112 @@
     auroraTones(themeInk(), night).forEach((t, i) => e.node.style.setProperty('--au-' + (i + 1), css(t.c, t.a)));
   }
 
+  /* ---------- 잎그늘 ---------- */
+
+  /*
+   * 잎 그림자 세 장(400×400 판의 잎 실루엣). 장마다 윗변 한 점에 매달린 듯 흔들린다(backdrop.css의 .lf-s1~3).
+   * 자리·크기는 긴 변에 대한 비율: [왼쪽, 위, 크기, 매단 곳 x, 매단 곳 y]. still에서도 같은 자리에 그린다.
+   */
+  const LEAVES = [
+    { at: [-0.06, -0.06, 0.56, 0.3, 0], paths: [
+      'M60 120 C 90 60, 160 40, 220 70 C 180 130, 110 160, 60 120 Z',
+      'M150 220 C 200 170, 280 170, 330 210 C 280 260, 200 270, 150 220 Z',
+      'M40 300 C 60 240, 130 220, 180 250 C 150 310, 90 340, 40 300 Z',
+      'M230 320 C 280 280, 350 290, 390 340 C 340 380, 270 370, 230 320 Z',
+      'M260 90 C 300 40, 370 50, 400 110 C 350 150, 290 140, 260 90 Z'] },
+    { at: [0.58, 0.16, 0.5, 0.8, 0], paths: [
+      'M20 60 C 60 10, 140 10, 190 50 C 140 100, 60 110, 20 60 Z',
+      'M120 160 C 170 120, 250 130, 290 180 C 240 220, 160 220, 120 160 Z',
+      'M210 290 C 260 250, 340 260, 380 310 C 330 350, 250 340, 210 290 Z',
+      'M30 330 C 70 290, 140 300, 170 350 C 120 390, 60 380, 30 330 Z'] },
+    { at: [0.06, 0.42, 0.44, 0.5, 0], paths: [
+      'M30 80 C 80 30, 160 40, 200 90 C 150 140, 70 140, 30 80 Z',
+      'M200 180 C 250 130, 330 140, 380 190 C 330 240, 250 240, 200 180 Z',
+      'M60 260 C 100 210, 180 220, 220 270 C 170 320, 100 320, 60 260 Z',
+      'M250 330 C 290 290, 350 300, 390 350 C 340 390, 280 380, 250 330 Z'] }
+  ];
+  /* 볕 웅덩이: [가로 반지름, 세로 반지름, x, y, 세기](장에 대한 비율). backdrop.css의 .lf-sun과 같음 */
+  const POOLS = [
+    [0.38, 0.26, 0.18, 0.12, 0.85], [0.3, 0.22, 0.72, 0.08, 0.8], [0.24, 0.16, 0.48, 0.34, 0.55],
+    [0.34, 0.2, 0.84, 0.46, 0.6], [0.28, 0.18, 0.22, 0.66, 0.5], [0.4, 0.24, 0.6, 0.88, 0.55]
+  ];
+
+  /* 잎 색: 주색에 초록을 섞어 어느 주색이든 잎으로 보이게 */
+  function leafTone(theme) {
+    return mixC([0x3f / 255, 0x6b / 255, 0x33 / 255], theme, 0.4);
+  }
+
+  function buildLeaf(e) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const layer = document.createElement('div');
+    layer.className = 'ground ground-leaf';
+    layer.setAttribute('aria-hidden', 'true');
+    const sun = document.createElement('i');
+    sun.className = 'lf-sun';
+    const field = document.createElement('i');
+    field.className = 'lf-field';
+    LEAVES.forEach((set, k) => {
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 400 400');
+      svg.setAttribute('class', 'lf-shade lf-s' + (k + 1));
+      set.paths.forEach((d) => {
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', d);
+        svg.append(path);
+      });
+      field.append(svg);
+    });
+    layer.append(sun, field);
+    const t = (performance.now() + entries.indexOf(e) * 17000) / 1000;
+    layer.style.setProperty('--au-t', (-t).toFixed(2) + 's');
+    e.sheet.prepend(layer);
+    e.node = layer;
+    e.field = field;
+    paintLeaf(e);
+    rate(e);
+  }
+
+  function paintLeaf(e) {
+    if (!e.node) return;
+    e.node.style.setProperty('--lf-size', Math.max(e.sheet.clientWidth, e.sheet.clientHeight) + 'px');
+    e.node.style.setProperty('--lf-leaf', css(leafTone(themeInk())));
+  }
+
+  function stillLeaf(out) {
+    const c = out.getContext('2d');
+    const { width: w, height: h } = out;
+    const top = c.createLinearGradient(0, 0, 0, Math.min(h, 420 * h / 630));
+    top.addColorStop(0, 'rgba(210,226,190,.55)');
+    top.addColorStop(1, 'rgba(210,226,190,0)');
+    c.fillStyle = top;
+    c.fillRect(0, 0, w, h);
+    POOLS.forEach(([rx, ry, x, y, a]) => {
+      c.save();
+      c.translate(x * w, y * h);
+      c.scale(rx * w, ry * h);
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+      g.addColorStop(0, `rgba(255,247,204,${a})`);
+      g.addColorStop(0.7, 'rgba(255,247,204,0)');
+      c.fillStyle = g;
+      c.fillRect(-1, -1, 2, 2);
+      c.restore();
+    });
+    const side = Math.max(w, h);
+    const leaf = leafTone(themeInk());
+    c.save();
+    c.filter = `blur(${Math.max(2, side * 0.0065).toFixed(1)}px)`;
+    c.fillStyle = css(leaf, 0.26 * 0.9);
+    LEAVES.forEach((set) => {
+      const [x, y, k] = set.at;
+      c.save();
+      c.translate(x * side, y * side);
+      c.scale(k * side / 400, k * side / 400);
+      set.paths.forEach((d) => c.fill(new Path2D(d)));
+      c.restore();
+    });
+    c.restore();
+  }
+
   function rate(e) {
     if (!e.node || !e.node.getAnimations) return;
     e.node.getAnimations({ subtree: true }).forEach((a) => a.updatePlaybackRate(speedTarget));
@@ -657,7 +717,7 @@
     e.engine = KINDS[e.kind].engine;
     if (e.kind === 'wongoji' && e.sheet.querySelector('.ln')) { e.engine = 'css'; return; }
     if (e.engine === 'css') return;
-    if (e.engine === 'dom') { buildAurora(e); return; }
+    if (e.engine === 'dom') { if (e.kind === 'leaf') buildLeaf(e); else buildAurora(e); return; }
     const canvas = document.createElement('canvas');
     canvas.className = 'ground';
     canvas.setAttribute('aria-hidden', 'true');
@@ -670,7 +730,7 @@
 
   function size(e) {
     if (!e.node) return;
-    if (e.engine === 'dom') { paintAurora(e); return; }
+    if (e.engine === 'dom') { if (e.kind === 'leaf') paintLeaf(e); else paintAurora(e); return; }
     const r = e.sheet.getBoundingClientRect();
     e.scale = KINDS[e.kind].scale();
     const w = Math.max(1, Math.round(r.width * e.scale));
@@ -757,7 +817,7 @@
     kick();
   }
 
-  /* 오로라는 지금 그리는 장만 흐르게 한다 */
+  /* 오로라·잎그늘은 지금 그리는 장만 흐르게 한다 */
   function setLive(e) {
     if (e.engine === 'dom' && e.node) e.node.classList.toggle('is-live', e.active);
   }
@@ -958,6 +1018,7 @@
       if (engine === 'gl') stillGl(kind, out, colors);
       else if (engine === '2d') stillWongoji(out, colors);
       else if (kind === 'aurora') stillAurora(out, colors, night);
+      else if (kind === 'leaf') stillLeaf(out);
       else if (kind === 'letter') stillLetter(out, colors, night, opts && Array.isArray(opts.clear) ? opts.clear : null);
       return out;
     } catch (err) {

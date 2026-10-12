@@ -137,7 +137,7 @@
       node.replaceWith(img);
     });
     const scrolls = [...sheet.querySelectorAll('.scroll')].map((n) => n.scrollTop);
-    const auroraTimes = [...sheet.querySelectorAll('.au')].map((n) => n.getAnimations()[0]?.currentTime || 0);
+    const auroraTimes = [...sheet.querySelectorAll('.au, .lf-shade')].map((n) => n.getAnimations()[0]?.currentTime || 0);
     const shards = glassCells(w,h).map((cell,i) => {
       const node = document.createElement('div');
       node.className = 'glass-shard';
@@ -157,7 +157,7 @@
     stage.append(layer);
     shards.forEach(({copy}) => {
       copy.querySelectorAll('.scroll').forEach((n,i) => { n.scrollTop = scrolls[i]; });
-      copy.querySelectorAll('.au').forEach((n,i) => n.getAnimations().forEach((a) => { a.pause(); a.currentTime = auroraTimes[i]; }));
+      copy.querySelectorAll('.au, .lf-shade').forEach((n,i) => n.getAnimations().forEach((a) => { a.pause(); a.currentTime = auroraTimes[i]; }));
     });
     return { layer, shards };
   }

@@ -49,9 +49,12 @@ const fs = require('node:fs/promises');
       // 전환 속도도 이 쪽에만(쪽 표시)
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).source.includes('전환속도130'));
       // 손을 멈추면 그 쪽으로 한 번 넘겨 보인다: 다시 둘째 쪽에 닿을 때까지 기다림
+      // 넘겨 보이는 동안 첫 쪽을 잠깐 거치므로, 둘째 쪽에 닿아 넘김이 끝난 뒤까지 기다림
       await pg.waitForTimeout(700);
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 1);
-      await pg.waitForTimeout(400);
+      await pg.waitForFunction(() => { const d = document.querySelector('#screen-main .frame.on')?.contentDocument; const sh = d && d.querySelector('.sheet.is-current'); return sh && sh.dataset.i === '1' && !d.querySelector('.sheet.is-moving'); }, null, { timeout: 8000 });
+      await pg.waitForTimeout(600);
+      await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 1);
       // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
       assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글']);
@@ -66,7 +69,8 @@ const fs = require('node:fs/promises');
       assert.ok(await pg.locator('#replay-top.due').count() === 1);
       await pg.click('#replay-top');
       assert.ok(await pg.locator('#replay-top.due').count() === 0);
-      await pg.waitForTimeout(1500);
+      // 바로: 새 틀이 첫 쪽에 닿아 바꿔 끼워진 뒤 그 쪽 글이 다 놓임(바탕 그리기가 무거우면 조금 늦음)
+      await pg.waitForFunction(() => { const f = document.querySelector('#screen-main .frame.on'); const d = f && f.contentDocument; const sh = d && d.querySelector('.sheet.is-current'); return !!sh && sh.querySelectorAll('.ch').length > 0 && sh.querySelectorAll('.ch.pending').length === 0; }, null, { timeout: 8000 });
       frame = pg.frameLocator('#screen-main .frame.on');
       assert.equal(await frame.locator('.sheet.is-current .ch.pending').count(), 0, '바로: 다 놓임');
 

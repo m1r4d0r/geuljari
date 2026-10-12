@@ -61,7 +61,12 @@ const fs = require('node:fs/promises');
       // 갈래 판 맨 위의 전체 설정: 글 전체 값 창이 뜨고 닫힌다
       await pg.click('#s-tune .tb-cat-item .tb-li:has-text("전체 설정")');
       assert.equal(await pg.isVisible('#all-dialog'), true);
-      assert.ok(await pg.locator('#all-body .as-opt').count() > 10);
+      assert.equal(await pg.locator('#all-body .as-btn').count(), 10);
+      await pg.click('#all-body .as-btn[data-key=flow]');
+      assert.equal(await pg.locator('#all-body .as-drop .as-li').count(), 6);
+      await pg.keyboard.press('Escape');
+      assert.equal(await pg.isVisible('#all-dialog'), true);
+      assert.equal(await pg.locator('#all-body .as-drop').count(), 0);
       await pg.click('#all-close');
       assert.equal(await pg.isVisible('#all-dialog'), false);
       await pg.click('#s-tune .tb-cat');

@@ -7,9 +7,8 @@
  * - 쪽 사이에는 쪽 번호와 [반전]·[잇기]. 반전은 그 쪽부터 라이트·다크를 바꾸는 쪽 표시 줄을 넣고 뺀다.
  *   반전된 자리에서는 넘어오는 결(넘김)도 바로 고른다.
  * - 글을 끌어 고르면 바로 위에 [강조]가, 강조 안을 누르면 [강조 빼기]가 뜬다.
- * - 어절 사이를 오른쪽 단추로 누르면 그 자리에 끊을 자리(｜)를 넣고, 끊을 자리 위를 누르면 뺀다. 어절 안을 누르면 늘 쓰던 메뉴가 뜬다.
- *   손가락 화면에는 오른쪽 단추가 없으므로 고른 곳 위에 [끊을 자리]·[끊을 자리 빼기]를 함께 띄운다
- *   (고른 곳 첫 어절 앞, 줄 첫 어절이면 고른 곳 안의 다음 어절 앞).
+ * - 어절 사이를 길게 누르면(마우스·손가락 같은 동작) 그 자리에 끊을 자리(｜)를 넣고, 끊을 자리를 길게 누르면 뺀다.
+ *   누르는 동안 그 자리에 연필 선이 차오르고, 다 차면 넣거나 뺀다. 움직이거나 일찍 떼면 그만둔다.
  * 자리는 표시층 글자의 화면 상자로 잰다. 전역 GeulCompose.
  */
 (function (global) {
@@ -325,45 +324,8 @@
         }]);
       }
       if (hit.length) acts.push(['강조 빼기', () => unwrapAll(hit, a)]);
-      if (a !== b && coarse.matches) {
-        const from = t.lastIndexOf('\n', a - 1) + 1;
-        const inside = t.slice(Math.max(from, a - 1), b).includes(E.BREAK);
-        if (inside) {
-          acts.push(['끊을 자리 빼기', () => {
-            const cur = ctx.get();
-            const lo = Math.max(from, a - 1);
-            const cut = cur.slice(lo, b).split(E.BREAK).length - 1;
-            const before = cur.slice(lo, a).split(E.BREAK).length - 1;
-            ctx.set(cur.slice(0, lo) + cur.slice(lo, b).split(E.BREAK).join('') + cur.slice(b), [a - before, b - cut]);
-          }]);
-        } else {
-          const at = breakAt(t, a, b);
-          if (at != null) acts.push(['끊을 자리', () => {
-            const cur = ctx.get();
-            ctx.set(cur.slice(0, at) + E.BREAK + cur.slice(at), [at + 1, at + 1]);
-          }]);
-        }
-      }
       if (!acts.length) { hidePop(); return; }
       showPop(a, acts);
-    }
-
-    /* 끊을 자리를 넣을 곳: 고른 곳 첫 어절의 앞. 줄의 첫 어절이면 고른 곳 안의 다음 어절 앞. 쪽 표시 줄·이미 있는 자리면 null */
-    function breakAt(t, a, b) {
-      const from = t.lastIndexOf('\n', a - 1) + 1;
-      const nl = t.indexOf('\n', a);
-      const to = Math.min(b, nl < 0 ? t.length : nl);
-      if (/^\s*\[\[/.test(t.slice(from, nl < 0 ? t.length : nl))) return null;
-      const lead = (p) => !t.slice(from, p).trim();
-      let p = a;
-      while (p > from && !/\s/.test(t[p - 1])) p--;
-      if (lead(p)) {
-        const gap = t.slice(p, to).search(/\s\S/);
-        if (gap < 0) return null;
-        p += gap + 1;
-      }
-      if (p >= to || t[p - 1] === E.BREAK || t[p] === E.BREAK) return null;
-      return p;
     }
 
     function unwrapAll(list, caret) {
@@ -376,7 +338,7 @@
       ctx.set(t, [Math.max(0, caret - shift), Math.max(0, caret - shift)]);
     }
 
-    /* ---------- 오른쪽 단추로 끊을 자리 ---------- */
+    /* ---------- 길게 눌러 끊을 자리 ---------- */
 
     /* 화면 자리(x, y)의 본문 offset: 입력창을 잠깐 비켜 표시층 글자에서 잰다(표시층은 글자 수가 본문과 같다) */
     function offsetAt(x, y) {
@@ -423,24 +385,63 @@
       return { put: q };
     }
 
-    ta.addEventListener('contextmenu', (e) => {
-      if (coarse.matches) return;
+    const HOLD = 520;
+    const SLOP = 8;
+    const ghost = el('i', 'cp-brk');
+    ghost.hidden = true;
+    box.append(ghost);
+    let press = null;
+    let ate = 0;
+
+    function endPress() {
+      if (!press) return;
+      clearTimeout(press.timer);
+      press = null;
+      ghost.hidden = true;
+      ghost.classList.remove('on');
+    }
+
+    ta.addEventListener('pointerdown', (e) => {
+      endPress();
+      if (e.button !== 0 || e.shiftKey || e.ctrlKey || e.metaKey) return;
       const t = ctx.get();
       const p = offsetAt(e.clientX, e.clientY);
       const g = p == null ? null : gapAt(t, p);
       if (!g) return;
-      e.preventDefault();
-      hidePop();
-      if (g.put != null) {
-        ctx.set(t.slice(0, g.put) + E.BREAK + t.slice(g.put), [g.put + 1, g.put + 1]);
-        if (ctx.notice) ctx.notice('끊을 자리를 넣었어요. 좁은 화면에서 줄이 넘치면 끝 어절 대신 여기서 먼저 줄을 바꿔요.');
-      } else {
-        ctx.set(t.slice(0, g.cut) + t.slice(g.cut + 1), [g.cut, g.cut]);
-        if (ctx.notice) ctx.notice('끊을 자리를 뺐어요.');
-      }
+      const at = g.put != null ? g.put : g.cut;
+      const r = ed.rectAt(at);
+      if (!r) return;
+      const host = box.getBoundingClientRect();
+      ghost.style.left = (r.left - host.left + (g.put != null ? -3 : r.width / 2)) + 'px';
+      ghost.style.top = (r.top - host.top) + 'px';
+      ghost.style.height = r.height + 'px';
+      ghost.classList.toggle('cut', g.cut != null);
+      press = { x: e.clientX, y: e.clientY, g, text: t };
+      ghost.hidden = false;
+      requestAnimationFrame(() => { if (press) ghost.classList.add('on'); });
+      press.timer = setTimeout(() => {
+        const cur = press;
+        endPress();
+        if (!cur || ctx.get() !== cur.text) return;
+        ate = Date.now();
+        hidePop();
+        if (cur.g.put != null) {
+          ctx.set(t.slice(0, cur.g.put) + E.BREAK + t.slice(cur.g.put), [cur.g.put + 1, cur.g.put + 1]);
+          if (ctx.notice) ctx.notice('끊을 자리를 넣었어요. 좁은 화면에서 줄이 넘치면 끝 어절 대신 여기서 먼저 줄을 바꿔요.');
+        } else {
+          ctx.set(t.slice(0, cur.g.cut) + t.slice(cur.g.cut + 1), [cur.g.cut, cur.g.cut]);
+          if (ctx.notice) ctx.notice('끊을 자리를 뺐어요.');
+        }
+      }, HOLD);
     });
+    ta.addEventListener('pointermove', (e) => {
+      if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > SLOP) endPress();
+    });
+    ['pointerup', 'pointercancel', 'scroll', 'input', 'blur'].forEach((n) => ta.addEventListener(n, endPress));
+    /* 길게 눌러 넣고 뺀 직후에는 손가락 화면의 메뉴·고름을 띄우지 않는다 */
+    ta.addEventListener('contextmenu', (e) => { if (Date.now() - ate < 900) e.preventDefault(); });
 
-    ta.addEventListener('pointerup', () => setTimeout(() => syncPop(true), 0));
+    ta.addEventListener('pointerup', () => setTimeout(() => { if (Date.now() - ate > 900) syncPop(true); }, 0));
     ta.addEventListener('keyup', (e) => { if (e.shiftKey) syncPop(false); else hidePop(); });
     ta.addEventListener('input', hidePop);
     ta.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ta) hidePop(); }, 150));
@@ -448,7 +449,7 @@
     document.addEventListener('selectionchange', () => {
       if (document.activeElement !== ta || !coarse.matches) return;
       clearTimeout(selTimer);
-      selTimer = setTimeout(() => syncPop(false), 350);
+      selTimer = setTimeout(() => { if (Date.now() - ate > 900) syncPop(false); }, 350);
     });
 
     return { draw, scroll, nights, pages, hidePop };

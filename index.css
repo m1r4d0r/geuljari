@@ -316,6 +316,12 @@ body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; 
 .cp-hint:hover::before { border-top: 3px double var(--ink); margin-top: -1px; }
 .cp-hint span { position: absolute; left: var(--hx, auto); top: 50%; transform: translateY(-50%); padding: 0 8px; font: 11px/20px var(--f-ui); background: var(--ink); color: var(--sheet); pointer-events: none; white-space: nowrap; }
 .cp-hint.para { height: 24px; margin-top: -12px; }
+/* 길게 눌러 끊을 자리: 누르는 동안 연필 선이 아래에서 차오르고(넣기), 있는 선은 옅어진다(빼기). 다 차면 넣거나 뺀다 */
+.cp-brk { position: absolute; z-index: 3; width: 2px; margin-left: -1px; background: #A63C33; pointer-events: none; transform: scaleY(0); transform-origin: 50% 100%; transition: transform .52s linear, opacity .52s linear; }
+.cp-brk.on { transform: scaleY(1); }
+.cp-brk.cut { transform: scaleY(1); opacity: 1; }
+.cp-brk.cut.on { opacity: .15; }
+@media (prefers-reduced-motion: reduce) { .cp-brk { transition: none; } }
 .cp-turn { height: 30px; padding: 0 6px; border: 1px solid var(--dark); background: var(--sheet); color: var(--ink); font: 12px var(--f-ui); border-radius: 0; }
 .cp-pop { position: absolute; z-index: 6; display: flex; background: var(--ink); }
 .cp-pop button { height: 34px; padding: 0 14px; background: none; border: 0; border-left: 1px solid rgba(246, 246, 244, .3); color: var(--sheet); font-size: 13px; }

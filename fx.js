@@ -43,7 +43,9 @@
     el._dry = setTimeout(() => {
       el.classList.add('drying');
       el.classList.remove('wet', 'soak');
-      el._dry = setTimeout(() => el.classList.remove('drying'), 2000);
+      /* 마르는 시간(--dry)이 다 지난 뒤에 거둔다. 일찍 거두면 마르던 색이 한 번에 바뀐다 */
+      const d = parseFloat(getComputedStyle(el).transitionDuration) || 1.8;
+      el._dry = setTimeout(() => el.classList.remove('drying'), d * 1000 + 100);
     }, (hold || 1400) / (pace * ((el.dataset && Number(el.dataset.pace)) || 1)));
   }
 

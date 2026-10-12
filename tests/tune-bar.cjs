@@ -58,6 +58,7 @@ const fs = require('node:fs/promises');
       // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
       assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글', '전체 설정']);
+      assert.equal(await pg.locator('#s-tune .tb-cat-item .tb-ttl, #s-tune .tb-cat-item .tb-gname').count(), 0, '갈래 판에는 이름 없음');
       // 갈래 판 맨 위의 전체 설정: 글 전체 값 창. 칸 넷과 두 칸 폭의 속도 막대, 탭은 머리 줄 아래 선의 오른쪽 끝
       // 편집실은 조금 뒤에 저장하므로 저장된 값이 맞을 때까지 기다림(s: 저장된 편집실 상태)
       const until = (cond) => pg.waitForFunction(`(() => { const s = JSON.parse(localStorage.getItem('geul.studio')); return ${cond}; })()`, null, { timeout: 4000 });
@@ -71,7 +72,7 @@ const fs = require('node:fs/promises');
       assert.deepEqual(edge, { right: 0, bottom: 0 }, '탭은 선 오른쪽 끝에 붙음');
       // 둘째 쪽은 하단바에서 전환·전환 속도를 골라 '따로'가 켜져 있음. 끄면 걷히고 다시 켜면 돌아옴
       assert.equal(await pg.getAttribute('.as-switch', 'aria-checked'), 'true');
-      assert.equal(await pg.textContent('.as-page .as-note'), '2쪽은 전환·전환 속도를 따로 정했어요.');
+      assert.equal(await pg.textContent('.as-page .as-note'), '전환·전환 속도');
       await pg.click('.as-switch');
       assert.equal(await pg.getAttribute('.as-switch', 'aria-checked'), 'false');
       await until(`!s.source.includes('섬광') && !s.source.includes('전환속도') && s.source.includes('[[원고지]]')`); // 따로 끄면 쪽 값만 걷힘

@@ -8,7 +8,7 @@
  *   크기·폭·정렬은 다시 쓰지 않고 바로 바뀐다. 글 자리는 글 상자를 끌어 옮기고, 글꼴은 편집 단계에서 고른다.
  * - 끝 장에 있으면 갈래가 끝 장(장면·바탕)과 카드(크기·폭·정렬·편집 제목으로)로 바뀐다.
  * - 글 상자를 두 번 눌러 고치는 동안에는 '고른 곳' 갈래: 등장(자동과 등장 효과)·퇴장·꾸밈·색·빼기. 고르기 전에는 흐리게 쉰다.
- * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint). 갈래 판 맨 위(단추에서 가장 먼 자리)의 '전체 설정'은
+ * 빈 바탕을 누르면 '바탕', 글 상자를 누르면 '글' 갈래가 먼저 열린다(hint). 갈래 판 맨 위(단추에서 가장 먼 자리, 선으로 나뉜 묶음)의 '전체 설정'은
  *   글 전체 값을 고르는 창을 연다(ctx.openAll, all-settings.js).
  * 편집 단계의 하단바(mountWrite)도 같은 한 줄 모양(bar)을 쓴다: 분위기·테마. 전역 GeulPanels.
  */
@@ -37,6 +37,7 @@
    * model: head() 갈래 단추 {key, title, label, current, options, pick} 또는 {still: 이름}, vals() 값 단추 목록,
    *        name() 지금 갈래 이름, before() 그리기 전에 갈래 고치기, changed() 그린 뒤, drop 판 id 머리(기본 tb-drop-)
    * 값 단추: {key, title, label, current, options, pick} 판, {range} 막대, {act} 바로 하는 단추, {node} 늘 같은 단추
+ *   판에 bare가 있으면 판 이름과 묶음 이름을 적지 않는다(묶음 사이 선만 남음)
    */
   function bar(root, model) {
     let openKey = null;
@@ -75,10 +76,10 @@
           });
           g.append(b);
         });
-        if (l.g) { g.setAttribute('aria-label', l.g); g.append(el('span', 'tb-gname', l.g)); }
+        if (l.g) { g.setAttribute('aria-label', l.g); if (!spec.bare) g.append(el('span', 'tb-gname', l.g)); }
         d.append(g);
       });
-      d.append(el('span', 'tb-ttl', spec.title));
+      if (!spec.bare) d.append(el('span', 'tb-ttl', spec.title));
       return d;
     }
 
@@ -416,7 +417,7 @@
       head() {
         if (edit) return { still: '고른 곳' };
         return {
-          key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat,
+          key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat, bare: true,
           options: [...cats().map((v) => opt(v, CATS[v])), ...(ctx.openAll ? [opt('@all', '전체 설정', { group: '모든 쪽', cls: 'tb-li-all' })] : [])],
           pick: (v) => { if (v === '@all') ctx.openAll(cat); else cat = v; }
         };

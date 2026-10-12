@@ -7,7 +7,7 @@
  * 칸마다 이름 아래 지금 값을 단 단추가 있고, 누르면 하단바처럼 단추에 붙은 판이 다른 칸 위로 잠깐 덮인다
  * (한 번에 하나, 고르거나 밖을 누르거나 Esc면 접힘, 아래 자리가 모자라면 위로 펼침). 속도 막대는 두 칸 폭으로 늘 펼쳐 둔다.
  * 선 아래 줄에는 지금 쪽의 '따로' 스위치: 하단바에서 그 쪽에 값을 고르면 켜지고, 끄면 그 쪽도 전체 설정을 따른다.
- * 켜져 있으면 그 쪽이 따로 정한 것을 한 줄로 적는다.
+ * 스위치 왼쪽에는 켜져 있으면 그 쪽이 따로 정한 항목 이름만, 꺼져 있으면 '전체 설정 따름'.
  * 고르면 미리보기에 바로 걸어 보이고, 저장하면 남기고, 취소(Esc)하면 창을 열 때로 되돌린다.
  * 전체 초기화는 전체 값을 분위기에서 정해진 값으로 돌리고 모든 쪽에 따로 고른 값을 걷는다. 전역 GeulAllSettings.
  */
@@ -26,8 +26,6 @@
     if (text != null) n.textContent = text;
     return n;
   }
-  /* 받침이 있으면 '을', 없으면 '를' */
-  const eul = (w) => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '을' : '를'; };
   const times = (v) => (Math.round(v * 100) / 100).toFixed(2).replace(/0$/, '') + '×';
 
   /*
@@ -170,11 +168,10 @@
     function drawPage() {
       const k = ctx.page();
       pageRow.replaceChildren();
-      if (k == null) { pageRow.append(el('span', 'as-note', '모든 쪽에 같이 걸려요.')); return; }
+      if (k == null) { pageRow.append(el('span', 'as-note', '모든 쪽에 걸림')); return; }
       const keys = Object.keys(own(ctx.get(), k));
       const on = keys.length > 0;
-      const list = keys.map((key) => PAGE_NAMES[key]).join('·');
-      const note = on ? `${k + 1}쪽은 ${list}${eul(list)} 따로 정했어요.` : `${k + 1}쪽도 이 값을 따라요.`;
+      const note = on ? keys.map((key) => PAGE_NAMES[key]).join('·') : '전체 설정 따름';
       const sw = el('button', 'as-switch');
       sw.type = 'button';
       sw.setAttribute('role', 'switch');

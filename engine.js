@@ -122,6 +122,8 @@
   const AFTER_GAP = 120;
 
   const MASK = '■';
+  /* 끊을 자리: 어절 앞에 적는 전각 세로줄. 줄이 화면 폭을 넘칠 때만 그 자리에서 먼저 끊는다(읽기 틀). 글자로는 세지 않는다 */
+  const BREAK = '｜';
   const EM_OPEN = '{{';
   const EM_CLOSE = '}}';
   /*
@@ -197,7 +199,8 @@
     return normalize(text)
       .replace(SCENE_LINES_RE, '')
       .replace(new RegExp(`\\{\\{(?:${HEAD_SRC}):`, 'g'), '')
-      .split(EM_OPEN).join('').split(EM_CLOSE).join('');
+      .split(EM_OPEN).join('').split(EM_CLOSE).join('')
+      .split(BREAK).join('');
   }
 
   /*
@@ -278,8 +281,14 @@
     let cur = null;
     let gap = 0;
     let gapText = '';
+    let brk = false;
     for (; i < end; i++) {
       const c = cells[i];
+      if (c.ch === BREAK) {
+        if (cur) { tokens.push(cur); cur = null; }
+        brk = tokens.length > 0;
+        continue;
+      }
       if (isSpace(c.ch)) {
         if (cur) { tokens.push(cur); cur = null; }
         gap += 1;
@@ -288,6 +297,8 @@
       }
       if (!cur) {
         cur = { cells: [], gap: tokens.length ? gap : 0, gapText: tokens.length ? gapText : '' };
+        if (brk) cur.brk = true;
+        brk = false;
         gap = 0;
         gapText = '';
       }
@@ -624,13 +635,13 @@
       .split(MARKS_RE)
       .map((part, i) => (i % 2 === 1)
         ? part
-        : graphemes(part).map((c) => (c === '\n' || /^\s$/u.test(c) || (keep && isPunct(c)) ? c : glyph)).join(''))
+        : graphemes(part).map((c) => (c === '\n' || c === BREAK || /^\s$/u.test(c) || (keep && isPunct(c)) ? c : glyph)).join(''))
       .join('');
   }
 
   global.Geulgyeol = {
     setFlowHook, setSceneGrounds,
-    RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, DEFAULT_CYCLE, MASK, EM_OPEN, EM_CLOSE, PREFIX_RE,
+    RULES, TIME, SETTLE, ENTER, BLOCKS, BLOCK_GROUPS, BLOCK_NAMES, BLOCK_DEFAULT, DEFAULT_CYCLE, MASK, BREAK, EM_OPEN, EM_CLOSE, PREFIX_RE,
     KEEP, STYLES, COLORS, HEAD_SRC, parseHead, headText,
     SCENES, GROUNDS, TURNS, PLACES, DEFAULT_GROUND, SCENE_LINE_RE, readMark,
     graphemes, isPunct, trimSource, stripMarks, parse, pages, stats, mask

@@ -74,7 +74,7 @@
       <div class="tb-side">
         <span class="publication-strip" hidden><span class="publication-label"></span><button type="button" class="link publication-manage">발행 관리</button></span>
         <div class="tb-acts" role="group" aria-label="글">
-          <button type="button" class="tb-val tb-act" id="clear">새로 쓰기</button><button type="button" class="tb-val tb-act" id="load-open">불러오기</button><button type="button" class="tb-val tb-act" id="file-save">초안 저장</button>
+          <button type="button" class="tb-val tb-act" id="clear">새로 쓰기</button><button type="button" class="tb-val tb-act" id="load-open">불러오기</button><button type="button" class="tb-val tb-act" id="file-save">초안 저장</button><button type="button" class="tb-val tb-act" id="copy-plain">글만 복사</button>
         </div>
       </div>
     </footer>
@@ -162,14 +162,14 @@
   </form>
 </dialog>
 
-<!-- 처음 들어왔을 때: 편집창을 흐리게 가리고, 기능 다섯 가지를 한 장씩 넘기며 움직이는 장면으로 보인다 -->
+<!-- 처음 들어왔을 때: 편집창을 흐리게 가리고, 기능 여섯 가지를 한 장씩 넘기며 움직이는 장면으로 보인다 -->
 <div class="guide" id="guide" role="dialog" aria-modal="true" aria-labelledby="g-title" hidden>
   <section class="g-sheet">
     <div class="g-stage" aria-hidden="true">
       <div class="g-scene" data-n="0">
         <div class="g-moods">
-          <span class="ax">온도</span><span class="g-chip g-on">따뜻한</span><span class="g-chip">차가운</span>
-          <span class="ax">물기</span><span class="g-chip">젖은</span><span class="g-chip">마른</span>
+          <span class="ax">물기</span><span class="g-chip g-on">젖은</span><span class="g-chip">마른</span>
+          <span class="ax">호흡</span><span class="g-chip">긴</span><span class="g-chip">짧은</span>
         </div>
         <p class="g-paper"><span class="g-rise" style="--d:.7s">밤</span><span class="g-rise" style="--d:.82s">이</span> <span class="g-rise" style="--d:1s">깊</span><span class="g-rise" style="--d:1.12s">어</span><span class="g-rise" style="--d:1.24s">지</span><span class="g-rise" style="--d:1.36s">면</span><br><span class="g-rise" style="--d:1.7s">소</span><span class="g-rise" style="--d:1.82s">리</span><span class="g-rise" style="--d:1.94s">가</span> <span class="g-rise" style="--d:2.12s">지</span><span class="g-rise" style="--d:2.24s">워</span><span class="g-rise" style="--d:2.36s">진</span><span class="g-rise" style="--d:2.48s">다</span><span class="g-rise" style="--d:2.6s">.</span></p>
       </div>
@@ -197,6 +197,10 @@
       </div>
       <div class="g-scene" data-n="4">
         <p class="g-paper g-mark"><span class="g-pick"><i class="g-sweep"></i><b class="g-pop">강조</b><span class="g-wavy">보고 싶다고</span></span> 쓰는 것은 너무 무거웠다.</p>
+      </div>
+      <div class="g-scene" data-n="5">
+        <p class="g-paper g-brk-ed">그리고 잉크 한 방울이 <i class="g-brk"></i>떨어졌다.</p>
+        <div class="g-phone"><span>그리고 잉크 한 방울이</span><span class="g-brk-next">떨어졌다.</span></div>
       </div>
     </div>
     <div class="g-text">

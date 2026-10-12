@@ -162,8 +162,15 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .g-wavy { position: relative; text-decoration: underline wavy; text-underline-offset: 5px; text-decoration-thickness: 1px; animation: g-wavy 5.2s ease infinite; }
 @keyframes g-wavy { 0%, 50% { text-decoration-color: transparent; background: transparent; } 58%, 90% { text-decoration-color: var(--ink); background: var(--pick); } 98%, 100% { text-decoration-color: transparent; background: transparent; } }
 
+.g-brk-ed { font-size: 15px; white-space: nowrap; }
+.g-brk { display: inline-block; width: 1px; height: 1.1em; margin: 0 .3em 0 0; vertical-align: -.18em; background: #A63C33; animation: g-brk 5.2s ease infinite; }
+.g-phone { align-self: center; width: 178px; padding: 14px 16px; background: var(--sheet); border: 1px solid var(--line); font-size: 15px; line-height: 1.8; display: flex; flex-direction: column; }
+.g-phone span { white-space: nowrap; }
+.g-brk-next { animation: g-brk-next 5.2s ease infinite; }
+@keyframes g-brk { 0%, 18% { opacity: 0; transform: scaleY(.2); } 30%, 100% { opacity: 1; transform: none; } }
+@keyframes g-brk-next { 0%, 36% { opacity: 0; transform: translateY(-.4em); } 50%, 100% { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .g-sheet, .g-scene, .g-on, .g-rise, .g-page.two, .g-leave, .g-hint, .g-rule, .g-cursor, .g-iris, .g-toggle, .g-type, .g-wait i, .g-sweep, .g-pop, .g-wavy { animation: none; opacity: 1; }
+  .g-sheet, .g-scene, .g-on, .g-brk, .g-brk-next, .g-rise, .g-page.two, .g-leave, .g-hint, .g-rule, .g-cursor, .g-iris, .g-toggle, .g-type, .g-wait i, .g-sweep, .g-pop, .g-wavy { animation: none; opacity: 1; }
   .g-leave, .g-hint, .g-cursor, .g-pop { display: none; }
 }
 
@@ -207,6 +214,8 @@ body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; 
 .write-bar .tb-side { margin-left: auto; min-width: 0; display: flex; align-items: center; gap: 16px; pointer-events: auto; }
 .write-bar .tb-acts { display: flex; gap: 8px; }
 .write-bar .tb-acts .tb-act { min-width: 0; padding: 0 14px; }
+/* 분위기 네 축과 살펴보기가 한 줄에 들도록 편집 하단바의 값 단추는 조금 좁게 */
+@media (min-width: 1001px) { .write-bar .tb-val:not(.tb-act) { min-width: 100px; } }
 .write-bar .tb-side > * { max-width: 100%; }
 /* 발행 단계 하단바: 오른쪽에 발행 상태 */
 .publish-bar { flex: none; display: flex; align-items: center; min-height: 64px; padding: 0 var(--gut) calc(10px + env(safe-area-inset-bottom, 0px)); min-width: 0; }
@@ -397,6 +406,19 @@ body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; 
   .write-bar .publication-strip { flex-direction: column; align-items: flex-start; gap: 0; padding: 10px 14px; border-bottom: 1px solid var(--pick); }
   .write-bar .publication-strip .link { height: 28px; }
   .wide-only { display: none; }
+}
+/* 1001~1240px 편집 하단바: 분위기 네 축과 살펴보기가 한 줄을 채우므로 오른쪽 글 단추·발행 상태를 ⋯ 안에 접는다(1000px 이하와 같은 판) */
+@media (min-width: 1001px) and (max-width: 1240px) {
+  .write-bar .tb-more { position: relative; display: flex; flex: none; width: 36px; height: 36px; margin-left: auto; align-items: center; justify-content: center; gap: 3px; padding: 0; background: var(--sheet); border: 1px solid var(--line); pointer-events: auto; }
+  .write-bar .tb-more i { width: 3px; height: 3px; background: var(--ink); }
+  .write-bar .tb-more[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); }
+  .write-bar .tb-more[aria-expanded="true"] i { background: var(--sheet); }
+  .write-bar .tb-side { display: none; position: absolute; right: 24px; bottom: 58px; z-index: 8; width: 168px; max-width: none; margin: 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--sheet); border: 1px solid var(--ink); box-shadow: 0 -10px 26px color-mix(in srgb, var(--dark) 14%, transparent); }
+  .write-bar.more-open .tb-side { display: flex; }
+  .write-bar .tb-acts { flex-direction: column; gap: 0; }
+  .write-bar .tb-acts .tb-act { width: 100%; min-width: 0; height: 40px; padding: 0 14px; justify-content: flex-start; border: 0; border-top: 1px solid var(--paper); background: none; text-align: left; }
+  .write-bar .tb-acts .tb-act:first-child { border-top: 0; }
+  .write-bar .publication-strip { flex-direction: column; align-items: flex-start; gap: 0; padding: 10px 14px; border-bottom: 1px solid var(--pick); }
 }
 /* 움직임을 바꾸고 아직 다시 보지 않았으면 작은 점 */
 

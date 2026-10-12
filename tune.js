@@ -4,8 +4,8 @@
  * 조판값: 흐름, 속도, 쉼, 처음 장면(라이트·다크), 바탕, 바뀐 장면의 바탕(altGround), 마름,
  *   넘김(장면이 바뀌는 쪽에 넘김을 적지 않았을 때: turn은 다크로, turnLight는 라이트로, 비면 turn과 같음), 글꼴,
  *   글자 크기(배율), 글 상자 폭(PC, 0이면 저절로), 정렬(저절로·왼쪽·가운데·오른쪽·양쪽), 주색(테마).
- * 심상은 세 축이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
- *   심상(빛·바람·물·시간·종이) → 두 장면의 바탕과 장면이 바뀔 때의 넘김 / 물기 → 흐름·마름 / 숨 → 속도·쉼
+ * 심상은 네 축이고 축마다 하나만 고른다. 축은 저마다 맡은 값만 바꾸므로 서로 덮지 않는다.
+ *   심상(빛·바람·물·시간·종이) → 두 장면의 바탕과 장면이 바뀔 때의 넘김 / 물기 → 흐름·마름 / 숨 → 속도·쉼 / 호흡 → 글 상자 폭
  * 속도는 흐름·블록·효과 움직임의 시간과 띄어 쓴 쉼·마르는 시간을 함께 늘이고 줄인다(docs/효과-규칙.md).
  * 넘김은 따로 전환 속도(turnSpeed)를 따른다. 둘 다 화면의 1.0×가 엔진 기본보다 조금 빠르다(PACE·TURN_PACE).
  * 전역 GeulTune.
@@ -16,7 +16,8 @@
   const AXES = [
     { name: '심상', words: ['빛', '바람', '물', '시간', '종이'] },
     { name: '물기', words: ['젖은', '마른'] },
-    { name: '숨', words: ['고요한', '숨찬'] }
+    { name: '숨', words: ['고요한', '숨찬'] },
+    { name: '호흡', words: ['긴', '짧은'] }
   ];
   const WORDS = AXES.flatMap((a) => a.words);
 
@@ -38,7 +39,9 @@
     '젖은': { flow: '번짐', dry: '느리게', note: '글자가 번지며 나타나고 천천히 말라요' },
     '마른': { flow: '이어 쓰기', dry: '빨리', note: '번짐 없이 또박또박 나타나고 빨리 말라요' },
     '고요한': { speed: 0.85, rest: 2, note: '느리게 쓰고 오래 쉬어요' },
-    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 짧게 쉬어요' }
+    '숨찬': { speed: 1.2, rest: 0, note: '빠르게 쓰고 짧게 쉬어요' },
+    '긴': { measure: 34, note: '한 줄에 많이 담아 길게 읽혀요' },
+    '짧은': { measure: 18, note: '줄을 짧게 끊어 한 줄씩 읽혀요' }
   };
 
   /* 흐름 이름 → 보통 글자에 거는 효과(fx.js의 FX 이름). 이어 쓰기는 엔진 기본(fade·soft) 그대로, 바로는 효과 없이 한 번에 놓는다 */
@@ -141,10 +144,10 @@
    */
   function fromMoods(words, keep) {
     const s = defaults();
-    if (keep) ['scene', 'ground', 'font', 'size', 'measure', 'align', 'theme', 'turnSpeed'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
+    if (keep) ['scene', 'ground', 'font', 'size', 'align', 'theme', 'turnSpeed'].forEach((k) => { if (keep[k] != null) s[k] = keep[k]; });
     oneEach(words).forEach((w) => {
       const m = MOOD[w];
-      ['flow', 'speed', 'rest', 'dry'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
+      ['flow', 'speed', 'rest', 'dry', 'measure'].forEach((k) => { if (m[k] != null) s[k] = m[k]; });
       if (m.image) {
         const sc = normalize({ scene: s.scene }).scene;
         s.ground = sc === '다크' ? m.image.night : m.image.day;

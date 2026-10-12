@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/publish.test.mjs tests/blobs.test.mjs tests/og.test.mjs",
+    "test": "node --test tests/publish.test.mjs tests/blobs.test.mjs tests/og.test.mjs tests/text.test.mjs",
     "test:publish-ui": "node tests/publish-browser.cjs"
   },
   "engines": {

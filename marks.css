@@ -1,7 +1,7 @@
 /* 글결 편집창 표시층(editor.js의 markup)
    편집실 글 화면과 미리보기 안 고치기(inplace.js)가 함께 쓴다. 글자 폭을 바꾸지 않는 모양만 쓴다:
    표시 글자는 옅게, 강조는 물결 밑줄과 번진 면(이름 없는 강조는 더 진한 면), 쉼은 호박색 면,
-   꾸밈은 굵게(겹친 그림자)·기울임·밑줄·취소선·색. */
+   꾸밈은 굵게(겹친 그림자)·기울임·밑줄·취소선·색, 끊을 자리(｜)는 글자를 지우고 가운데 가는 연필색 세로선. */
 
 .m-mark { color: var(--faint); text-shadow: none; }
 .m-em { background: var(--smudge); text-decoration: underline wavy currentColor; text-underline-offset: 6px; text-decoration-thickness: 1px; }
@@ -14,6 +14,9 @@
 /* 쉼: 띄어쓰기 두 번째 칸부터 호박색 면 */
 .m-sp { background: rgba(148, 107, 15, .26); }
 .m-night .m-sp { background: rgba(212, 170, 78, .3); }
+/* 끊을 자리: 세로줄 글자는 감추고 칸 가운데 1px 연필색 선 */
+.m-brk { color: transparent; text-shadow: none; background: linear-gradient(90deg, transparent calc(50% - .5px), #A63C33 calc(50% - .5px), #A63C33 calc(50% + .5px), transparent calc(50% + .5px)) 0 15% / 100% 70% no-repeat; }
+.m-night .m-brk { background-image: linear-gradient(90deg, transparent calc(50% - .5px), #E08A80 calc(50% - .5px), #E08A80 calc(50% + .5px), transparent calc(50% + .5px)); }
 .m-sb { text-shadow: .45px 0 0 currentColor, -.2px 0 0 currentColor; }
 .m-si { font-style: italic; }
 .m-su { text-decoration: underline; text-underline-offset: 5px; }

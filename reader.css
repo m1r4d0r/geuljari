@@ -264,3 +264,7 @@ body {
     --lp-b: 2.3em;
   }
 }
+
+/* 끊을 자리: 평소에는 자리만 있고, 글줄이 넘칠 때(.on) 그 자리에서 줄을 바꾼다(reader.js breaks) */
+.brk { display: none; }
+.brk.on { display: block; height: 0; }

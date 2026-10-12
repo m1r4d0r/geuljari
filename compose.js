@@ -6,7 +6,8 @@
  *   손가락으로 쓰는 화면에서는 문단 사이(빈 줄)에 '나누기'를 늘 둔다.
  * - 쪽 사이에는 쪽 번호와 [반전]·[잇기]. 반전은 그 쪽부터 라이트·다크를 바꾸는 쪽 표시 줄을 넣고 뺀다.
  *   반전된 자리에서는 넘어오는 결(넘김)도 바로 고른다.
- * - 글을 끌어 고르면 바로 위에 [강조]가, 강조 안을 누르면 [강조 빼기]가 뜬다.
+ * - 글을 끌어 고르면 바로 위에 [강조]와 [끊을 자리]가, 강조 안을 누르면 [강조 빼기]가 뜬다.
+ *   끊을 자리는 고른 곳의 첫 어절 앞(줄 첫 어절이면 고른 곳 안의 다음 어절 앞)에 ｜를 넣는다. 고른 곳에 ｜가 있으면 [끊을 자리 빼기].
  * 자리는 표시층 글자의 화면 상자로 잰다. 전역 GeulCompose.
  */
 (function (global) {
@@ -322,8 +323,45 @@
         }]);
       }
       if (hit.length) acts.push(['강조 빼기', () => unwrapAll(hit, a)]);
+      if (a !== b) {
+        const from = t.lastIndexOf('\n', a - 1) + 1;
+        const inside = t.slice(Math.max(from, a - 1), b).includes(E.BREAK);
+        if (inside) {
+          acts.push(['끊을 자리 빼기', () => {
+            const cur = ctx.get();
+            const lo = Math.max(from, a - 1);
+            const cut = cur.slice(lo, b).split(E.BREAK).length - 1;
+            const before = cur.slice(lo, a).split(E.BREAK).length - 1;
+            ctx.set(cur.slice(0, lo) + cur.slice(lo, b).split(E.BREAK).join('') + cur.slice(b), [a - before, b - cut]);
+          }]);
+        } else {
+          const at = breakAt(t, a, b);
+          if (at != null) acts.push(['끊을 자리', () => {
+            const cur = ctx.get();
+            ctx.set(cur.slice(0, at) + E.BREAK + cur.slice(at), [at + 1, at + 1]);
+          }]);
+        }
+      }
       if (!acts.length) { hidePop(); return; }
       showPop(a, acts);
+    }
+
+    /* 끊을 자리를 넣을 곳: 고른 곳 첫 어절의 앞. 줄의 첫 어절이면 고른 곳 안의 다음 어절 앞. 쪽 표시 줄·이미 있는 자리면 null */
+    function breakAt(t, a, b) {
+      const from = t.lastIndexOf('\n', a - 1) + 1;
+      const nl = t.indexOf('\n', a);
+      const to = Math.min(b, nl < 0 ? t.length : nl);
+      if (/^\s*\[\[/.test(t.slice(from, nl < 0 ? t.length : nl))) return null;
+      const lead = (p) => !t.slice(from, p).trim();
+      let p = a;
+      while (p > from && !/\s/.test(t[p - 1])) p--;
+      if (lead(p)) {
+        const gap = t.slice(p, to).search(/\s\S/);
+        if (gap < 0) return null;
+        p += gap + 1;
+      }
+      if (p >= to || t[p - 1] === E.BREAK || t[p] === E.BREAK) return null;
+      return p;
     }
 
     function unwrapAll(list, caret) {

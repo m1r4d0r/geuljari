@@ -164,6 +164,7 @@
 
       const P = { el: sheet, scroll, column, items, lines: [], scene: pg.scene, turn: pg.turn, turnSpeed: pg.turnSpeed || 1, state: 'idle', tl: null, start: 0, fits: true, held: false };
       P.lines = [...column.querySelectorAll('.ln')];
+      if (column.querySelector('.brk') && window.ResizeObserver) new ResizeObserver(() => breaks(sheet)).observe(column);
       scroll.addEventListener('scroll', () => { if (P === pages[S.cur]) band(); }, { passive: true });
       return P;
     });
@@ -199,9 +200,33 @@
     onRest: (x) => land(Math.round(x))
   });
 
+  /*
+   * 끊을 자리(.brk): 글줄이 한 줄에 들면 그대로, 넘쳐 접히면 그 줄의 끊을 자리마다 줄을 바꾼다(.on). 그래도 넘치면 어절 사이에서 접힌다.
+   * 원고지 쪽은 칸에 맞춰 접으므로 쓰지 않는다. 글 기둥의 폭·글자 크기가 바뀔 때만 다시 잰다.
+   */
+  function breaks(sheet, force) {
+    const column = sheet.querySelector('.column');
+    if (!column || !column.querySelector('.brk')) return;
+    const key = sheet.dataset.ground === 'wongoji' ? 'wg' : column.clientWidth + ':' + getComputedStyle(column).fontSize;
+    if (!force && column.dataset.brk === key) return;
+    column.dataset.brk = key;
+    column.querySelectorAll('.ln').forEach((ln) => {
+      const list = ln.querySelectorAll('.brk');
+      if (!list.length) return;
+      list.forEach((b) => b.classList.remove('on'));
+      if (key === 'wg') return;
+      const chs = ln.querySelectorAll('.ch');
+      if (chs.length < 2) return;
+      const a = chs[0].getBoundingClientRect();
+      const z = chs[chs.length - 1].getBoundingClientRect();
+      if (z.top - a.top > a.height * 0.5) list.forEach((b) => b.classList.add('on'));
+    });
+  }
+
   function measureFits() {
     pages.forEach((P) => {
       if (window.GeulManuscript) window.GeulManuscript.layout(P.el);
+      breaks(P.el);
       /* 넘치는 장의 아래 여백(has-band)은 빼고 잰다 */
       P.el.classList.remove('has-band');
       P.fits = P.scroll.scrollHeight <= P.scroll.clientHeight + 4;

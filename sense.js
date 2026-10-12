@@ -3,7 +3,7 @@
  * 가리지 않은 원문을 이 브라우저 안에서만 읽어 1차 안의 재료를 만든다. 글은 어디로도 보내지 않는다.
  * 본문 하나가 모든 것을 담는다: 쪽 표시 줄 [[…]](장면·바탕·넘김·자리), 강조는 이름 없는 {{…}}, 효과·꾸밈은 {{떨림+굵게:…}}.
  * 반전은 장면이 적힌 첫 쪽 표시 줄이다. 장면 이름은 라이트·다크로 쓴다.
- * - 짐작: 심상 낱말, 반전 자리, 남기고 싶은 곳 후보, 문장별 효과 제안.
+ * - 짐작: 심상 낱말(호흡은 문장 길이로), 반전 자리, 남기고 싶은 곳 후보, 문장별 효과 제안.
  * - 고치기: 반전 줄 옮기기, 쪽마다 넘김·자리 정하기, 강조 바꾸기, 효과·꾸밈 감싸기·벗기기·바꾸기, 긴 쪽 나누기.
  * 전역 GeulSense.
  */
@@ -117,10 +117,22 @@
     return out.filter((b) => !/\n[^\S\n]*\n/.test(text.slice(b.os, b.ce)));
   }
 
+  /* 호흡은 문장 길이로 짐작한다: 문장이 대개 길면 긴, 대개 짧으면 짧은(공백 뺀 글자 수의 가운데 값) */
+  const LONG_SENT = 36;
+  const SHORT_SENT = 13;
+  function guessBreath(text) {
+    const ns = sentences(text).map((x) => letters(plain(x.text))).filter((n) => n > 0).sort((a, b) => a - b);
+    if (ns.length < 3) return null;
+    const mid = ns[Math.floor(ns.length / 2)];
+    return mid >= LONG_SENT ? '긴' : mid <= SHORT_SENT ? '짧은' : null;
+  }
+
   function guessMoods(text) {
     const t = plain(text);
     const counts = Object.keys(LEX).map((w, k) => ({ w, k, n: (t.match(LEX[w]) || []).length }));
-    return counts.filter((c) => c.n > 0).sort((a, b) => b.n - a.n || a.k - b.k).slice(0, 3).map((c) => c.w);
+    const out = counts.filter((c) => c.n > 0).sort((a, b) => b.n - a.n || a.k - b.k).slice(0, 3).map((c) => c.w);
+    const breath = guessBreath(text);
+    return breath ? out.concat(breath) : out;
   }
 
   /*

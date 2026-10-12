@@ -346,6 +346,13 @@
           ['u', 's'].forEach((k) => { if (a.st && b.st && a.st.includes(k) && b.st.includes(k)) sp.classList.add('s-' + k); });
           row.append(sp);
         }
+        /* 끊을 자리: 줄이 넘칠 때만 읽기 틀이 .on을 달아 여기서 줄을 바꾼다 */
+        if (tk.brk) {
+          const br = document.createElement('i');
+          br.className = 'brk';
+          br.setAttribute('aria-hidden', 'true');
+          row.append(br);
+        }
         const w = document.createElement('span');
         w.className = 'tk';
         w.dataset.role = tk.role;

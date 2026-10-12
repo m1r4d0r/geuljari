@@ -1,9 +1,10 @@
 /*
  * 글결 분위기 살펴보기
- * 편집실 위에 뜨는 판. 심상 세 축(심상·물기·숨)을 한 장에 한 축씩 보이고, 축의 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
+ * 편집실 위에 뜨는 판. 심상 네 축(심상·물기·숨·호흡)을 한 장에 한 축씩 보이고, 축의 낱말을 나란히 놓아 그 차이가 움직이는 작은 장면으로 견준다.
  * - 심상: 다섯 벌(빛·바람·물·시간·종이)의 라이트 바탕에서 다크 바탕으로 그 심상의 넘김으로 넘어가는 모습. 바탕은 그 바탕의 빛깔을 닮은 면으로 줄여 그린다.
  * - 물기: 보통 글자가 나타나는 결(번짐·이어 쓰기)과, 강조 글자가 마르는 빠르기.
  * - 숨: 쓰는 빠르기와 두 번 띄어 쓴 쉼의 길이. 쓰는 자리에 커서가 깜박인다.
+ * - 호흡: 같은 글을 글 상자 폭만 달리 둔 모습. 긴 폭을 카드 안 폭으로 보고 짧은 폭은 그 비율로 줄인다.
  * 카드 아래 시간 막대에는 글자가 나온 때와 낱말이 바꾸는 시간(나타나는 동안·쉼·마름·넘김)을 두 낱말이 같은 눈금으로 그린다.
  * 시간은 낱말의 조판값(GeulTune.fromMoods)을 엔진(Geulgyeol)에 걸어 짠 실제 시간표를 쓰고, 짠 뒤에는 엔진 값을 되돌린다.
  * 글자 효과의 생김새와 길이는 fx.js와 같고, 넘김 시간은 GeulFlip.timing이 있으면 그것을, 없으면 읽기 틀과 같은 값을 쓴다.
@@ -44,6 +45,12 @@
       body: '쓰는 빠르기와, 두 번 띄어 쓴 곳에서 쉬는 길이가 달라져요.',
       tip: '속도는 강조 효과의 움직임도 함께 늘이고 줄여요.',
       text: '밤이 깊어지면\n소리가  지워진다.'
+    },
+    {
+      axis: '호흡', kind: 'measure',
+      body: 'PC에서 글 상자의 폭, 한 줄에 담기는 글자 수가 달라져요.',
+      tip: '폰에서는 화면 폭을 따라요. 쪽마다 따로 정한 폭이 먼저예요.',
+      text: '잉크가 마르기 전의 글자는 아직 젖어 있어서, 손바닥 옆면으로 스치기만 해도 번진다. 그래서 천천히 써야 한다.'
     }
   ];
 
@@ -159,9 +166,11 @@
       const ln = el('div', 'lk-ln');
       l.tokens.forEach((tk, ti) => {
         if (ti > 0) ln.append(' ');
+        const word = el('span', 'lk-tk');
+        ln.append(word);
         tk.cells.forEach((c, j) => {
           const sp = el('span', 'lk-ch', c.ch);
-          ln.append(sp);
+          word.append(sp);
           const prev = items[items.length - 1];
           items.push({ el: sp, t: c.t + LEAD, fx: c.anim, rest: tk.afterRest && j === 0 && prev ? prev.t : null });
         });
@@ -212,6 +221,7 @@
     cap.append(head, el('p', 'lk-val', values(word)), el('p', 'lk-note', /요$/.test(m.note) ? m.note + '.' : m.note));
     art.append(cap);
 
+    if (pg.kind === 'measure') day.style.setProperty('--lk-m', String(m.measure));
     const { para, enter, speed } = written(pg.text, s);
     const items = draw(day, para);
     const anims = [];
@@ -277,6 +287,7 @@
     if (m.flow) out.push('흐름 ' + m.flow);
     if (m.speed != null) out.push('속도 ' + m.speed.toFixed(2) + '×');
     if (m.rest != null) out.push('쉼 ' + T.REST_NAMES[m.rest]);
+    if (m.measure) out.push('글 상자 폭 ' + m.measure + '자');
     return out.join(' · ');
   }
 

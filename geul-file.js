@@ -138,5 +138,13 @@
     return true;
   }
 
-  window.GeulFile = { writeDoc, fileName, shareText, read, download, share };
+  // 글만: 쪽 표시 줄·강조와 꾸밈 표시·끊을 자리를 빼고, 쉼으로 띄운 칸은 한 칸으로, 쪽 나눔은 문단 사이처럼 빈 줄 하나로 둬요.
+  // 줄 앞 들여쓰기는 남겨요.
+  function plainText(source) {
+    return window.Geulgyeol.stripMarks(source)
+      .split('\n').map((l) => l.replace(/(\S)[^\S\n]{2,}(?=\S)/g, '$1 ').replace(/\s+$/, '')).join('\n')
+      .replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '').replace(/\s+$/, '');
+  }
+
+  window.GeulFile = { writeDoc, fileName, shareText, plainText, read, download, share };
 })();

@@ -4,7 +4,7 @@
  * 표시층은 글자를 한 자도 더하거나 빼지 않고 감싸기만 한다.
  *   블록 표시 글자는 옅게, 강조 안 글은 물결 밑줄과 번진 면(이름 없는 강조는 더 진한 면),
  *   꾸밈은 글자 폭이 바뀌지 않는 모양으로(굵게는 겹친 그림자, 기울임·밑줄·취소선·색은 그대로),
- *   쪽 표시 줄은 면, 어절 사이 두 번째 칸부터는 빈 네모, 쪽이 바뀌는 자리에는 겹줄과 쪽 번호, 다크 쪽 글줄은 밝은 글자.
+ *   쪽 표시 줄은 면, 어절 사이 두 번째 칸부터는 빈 네모, 끊을 자리(｜)는 가는 연필색 세로선, 쪽이 바뀌는 자리에는 겹줄과 쪽 번호, 다크 쪽 글줄은 밝은 글자.
  * 글 화면과 미리보기의 '강조' 판이 함께 쓴다. 전역 GeulEditor.
  */
 (function (global) {
@@ -61,7 +61,8 @@
         return `<span class="${cls.join(' ')}" data-b="${open.b}"${style}>`;
       };
       let html = open ? emOpen() : '';
-      const textPart = (a, b) => esc(line.slice(a, b)).replace(/(\S) ( +)/g, (all, c, more) => c + ' ' + more.split('').map(() => '<span class="m-sp"> </span>').join(''));
+      const textPart = (a, b) => esc(line.slice(a, b)).replace(/(\S) ( +)/g, (all, c, more) => c + ' ' + more.split('').map(() => '<span class="m-sp"> </span>').join(''))
+        .split(E.BREAK).join(`<span class="m-brk">${E.BREAK}</span>`);
       const lead = line.match(/^[^\S\n]*/)[0].length;
       html += esc(line.slice(0, lead));
       let i = lead;

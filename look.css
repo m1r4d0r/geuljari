@@ -147,3 +147,9 @@
   .lk-image .lk-card { height: 58px; font-size: 13px; }
   .lk-image .lk-note { display: none; }
 }
+
+/* 호흡 장: 긴(가장 넓은 폭)을 카드 안 폭으로 보고, 다른 폭은 그 비율의 기둥에 글을 흘린다. 글자는 카드 폭에 맞춘다 */
+.lk-measure .lk-card { container-type: inline-size; }
+.lk-measure .lk-face { white-space: normal; font-size: calc(100cqw / 22); line-height: 1.75; }
+.lk-measure .lk-ln { width: calc(var(--lk-m, 26) / 34 * 100%); }
+.lk-tk { white-space: nowrap; }

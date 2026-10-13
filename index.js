@@ -892,4 +892,6 @@
   setStep(st.step);
   publication.resume();
   if (!st.moodsTouched && st.source.trim() && !st.moods.length) guessLater();
+  /* 관리 현황의 하루 방문 수: 빈 신호만 보낸다(서버는 IP를 남기지 않고 그날 중복만 거름). 로컬 확인에서는 보내지 않는다 */
+  if (navigator.sendBeacon && !/^(localhost|127\.|\[::1\])/.test(location.hostname)) { try { navigator.sendBeacon('/api/visit'); } catch (e) { /* 세지 못해도 편집실은 그대로 */ } }
 })();

@@ -1,7 +1,9 @@
 import { ID } from './articles.mjs';
+import { clientOf } from './stats.mjs';
 const escape = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function createReaderHandler(getStore, template) {
-  return async req => {
+// getStats가 있으면 공개 글을 연 것을 하루 방문으로 세요(관리 현황). 응답을 기다리게 하지 않아요.
+export function createReaderHandler(getStore, template, getStats) {
+  return async (req, context) => {
     const headers = { 'Content-Type':'text/html; charset=utf-8', 'Cache-Control':'no-store', 'Referrer-Policy':'no-referrer', 'X-Content-Type-Options':'nosniff', 'X-Robots-Tag':'noindex' };
     let title = '글자리', status = 200, image = '', page = '', type = 'png';
     try {
@@ -12,6 +14,10 @@ export function createReaderHandler(getStore, template) {
         if (!record?.live) status = 404;
         else {
           title = record.title || '제목 없는 글';
+          if (getStats && req.method === 'GET') {
+            const counted = getStats().visit('read', { ...clientOf(req, context), id }).catch(() => {});
+            if (context?.waitUntil) context.waitUntil(counted); else await counted;
+          }
           page = new URL(`/t/${id}`, req.url).href;
           if (record.ogImage && /^[a-f0-9]{64}$/.test(record.ogHash || '')) {
             type = record.ogType === 'jpg' ? 'jpg' : 'png';

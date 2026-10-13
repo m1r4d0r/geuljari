@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>관리 · 글자리</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="admin.css">
+<script src="admin.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/">글자리</a>
+  <span class="where">관리</span>
+  <span class="when" id="when"></span>
+  <button type="button" class="link" id="refresh" hidden>새로 고침</button>
+  <button type="button" class="link" id="lock" hidden>잠그기</button>
+</header>
+
+<main>
+  <form class="gate" id="gate">
+    <h1>관리 현황</h1>
+    <label class="field">관리자 비밀번호<input id="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn" type="submit">보기</button>
+    <p class="msg" id="msg" role="status" aria-live="polite"></p>
+  </form>
+
+  <div class="board" id="board" hidden>
+    <section aria-labelledby="h-sum">
+      <h2 id="h-sum">한눈에</h2>
+      <dl class="sum" id="sum"></dl>
+    </section>
+    <section aria-labelledby="h-list">
+      <h2 id="h-list">발행한 글 <span class="n" id="list-n"></span></h2>
+      <div class="scroll"><table class="list">
+        <thead><tr><th>공개 제목</th><th>상태</th><th>발행</th><th>고친 날</th><th class="num">고친 횟수</th><th class="num" id="reads-head">읽기</th></tr></thead>
+        <tbody id="list"></tbody>
+      </table></div>
+      <p class="fine" id="list-fine"></p>
+    </section>
+    <section aria-labelledby="h-days">
+      <h2 id="h-days">날짜별</h2>
+      <div class="scroll"><table class="days">
+        <thead><tr><th>날짜</th><th class="num">새 글</th><th class="num">편집실 방문</th><th class="num">글 읽기</th><th class="bar-h" aria-hidden="true"><i class="key"></i>편집실<i class="key r"></i>읽기</th></tr></thead>
+        <tbody id="days"></tbody>
+      </table></div>
+      <p class="fine">방문은 하루에 한 사람을 한 번으로 셉니다. IP는 저장하지 않고, 그날만 쓰는 무작위 값으로 묶은 해시로 같은 날 중복만 거릅니다. 검색 로봇과 링크 미리보기는 세지 않습니다.</p>
+    </section>
+  </div>
+</main>
+</body>
+</html>

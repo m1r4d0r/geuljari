@@ -10,7 +10,8 @@ const fileBtn = (pg, id) => pg.click(id);
   let browser;
   const errors = [];
   try {
-    browser = await chromium.launch({executablePath:process.env.CHROMIUM || undefined,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+    // 로캘이 비어 있으면 크로뮴이 한글 파일 이름을 'download'로 바꾸므로 UTF-8 로캘로 띄워요.
+    browser = await chromium.launch({executablePath:process.env.CHROMIUM || undefined,env:{...process.env,LANG:'C.UTF-8',LC_ALL:'C.UTF-8'},args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
     const context = await browser.newContext({ viewport:{width:1280,height:800} });
     await context.route('**/fonts.g*/**',r=>r.abort());
     const pg = await context.newPage(); pg.on('pageerror',e=>errors.push(e.message)); pg.on('dialog',d=>d.accept());
@@ -127,6 +128,8 @@ const fileBtn = (pg, id) => pg.click(id);
     assert.ok(docText.startsWith('글자리 글 파일')); assert.ok(!docText.includes('\n비밀번호: ')); assert.ok(docText.includes(before.source)); assert.ok(docText.includes('\n글꼴: '+before.settings.font+'\n'));
     await fileBtn(pg,'#clear'); assert.equal(await pg.inputValue('#src'),'');
     await fileBtn(pg,'#load-open'); await pg.setInputFiles('#load-file',docFile); await pg.waitForSelector('#load-dialog',{state:'hidden'});
+    // 편집실은 0.25초 뒤에 저장하므로, 불러온 글이 저장될 때까지 기다렸다 읽어요.
+    await pg.waitForFunction((src)=>JSON.parse(localStorage.getItem('geul.studio')).source===src,before.source);
     const after = await pg.evaluate(()=>JSON.parse(localStorage.getItem('geul.studio')));
     for (const k of ['title','source','made','settings','moods','moodsTouched','ending']) assert.deepEqual(after[k],before[k],k);
     assert.equal(await pg.isVisible('.write-bar .publication-strip'),false);

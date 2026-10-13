@@ -191,6 +191,7 @@
     if (!window.GeulLook) return;
     window.GeulLook.open({
       moods: st.moods.slice(),
+      settings: st.settings,
       pick(list) {
         st.moodsTouched = true;
         setMoods(list);

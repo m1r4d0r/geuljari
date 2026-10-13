@@ -1,5 +1,5 @@
 /* 글결 분위기 살펴보기(look.js)
-   편집실 위에 뜨는 판. 뒤를 흐리게 가리고, 왼쪽 무대에 한 축의 두 낱말을 나란히 움직이는 장면으로, 오른쪽에 축 이름·설명·넘기기.
+   편집실 위에 뜨는 판. 뒤를 흐리게 가리고, 왼쪽 무대에 한 축의 낱말을 움직이는 장면으로(심상은 실제 읽기 틀), 오른쪽에 축 이름·설명·축 단추.
    색은 편집실 토큰(--paper·--sheet·--ink·--lead·--line·--faint·--pick·--smudge·--dark·--dark-ink)을 그대로 쓰고, 모서리는 각지다.
    폰 폭에서는 아래에서 올라오는 판: 무대가 위, 설명과 단추가 엄지 닿는 아래. */
 
@@ -34,13 +34,9 @@
 .lk-card { position: relative; height: 176px; overflow: hidden; background: var(--sheet); font-family: var(--f-read, var(--f-body)); font-size: 21px; line-height: 1.85; color: var(--ink); }
 .lk-opt.can:hover .lk-card { box-shadow: 0 0 0 1px var(--line); }
 .lk-face { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 28px; white-space: nowrap; }
-.lk-face.night { background: var(--dark); color: var(--dark-ink); visibility: hidden; transform-origin: 50% 50%; }
 .lk-ch { display: inline-block; white-space: pre; }
-/* 넘김의 빛: 조리개 가장자리 고리, 셔터 살 끝 빛줄(flip.css와 같은 빛을 작게) */
-.lk-ring { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 248, 232, .9), 0 0 12px 2px rgba(255, 236, 200, .45); opacity: 0; pointer-events: none; }
-.lk-glint { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
 
-/* 시간 막대: 지나간 자리는 먹, 글자가 나온 때는 눈금, 나타나는 동안은 옅은 면, 쉼은 호박색, 마름은 젖은 먹에서 먹으로, 넘김은 다크 면.
+/* 시간 막대: 지나간 자리는 먹, 글자가 나온 때는 눈금, 나타나는 동안은 옅은 면, 쉼은 호박색, 마름은 젖은 먹에서 먹으로.
    다 쓴 시간(숨)은 끝 눈금 위에 오른쪽을 맞춰 적는다 */
 .lk-track { position: relative; height: 26px; }
 .lk-track::before { content: ""; position: absolute; left: 0; right: 0; top: 17px; border-top: 1px solid var(--line); }
@@ -50,7 +46,6 @@
 .lk-seg { position: absolute; top: 14px; height: 7px; }
 .lk-seg.show { background: var(--pick); }
 .lk-seg.rest { background: rgba(148, 107, 15, .3); }
-.lk-seg.turn { background: var(--dark); }
 .lk-now { position: absolute; top: 9px; bottom: 0; width: 1px; margin-left: -.5px; background: var(--ink); }
 
 .lk-cap { display: flex; flex-direction: column; gap: 5px; }
@@ -72,17 +67,12 @@
 .lk-text h2 { margin-top: 6px; font: 400 30px/1.35 var(--f-body); }
 .lk-body { font-size: 14px; line-height: 1.8; color: var(--lead); }
 .lk-tip { font-size: 12px; line-height: 1.7; color: var(--faint); }
-/* 넘기기: 축 이름 줄(어느 장으로든 바로) 아래에 이전·다음 */
-.lk-nav { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px 10px; }
-.lk-dots { flex: 1 0 100%; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid var(--ink); }
-.lk-dots button { height: 30px; padding: 0 6px; border: 0; background: transparent; font-size: 12px; white-space: nowrap; }
+/* 장 고르기: 맨 아래 축 단추 한 줄(심상·물기·호흡)뿐 */
+.lk-dots { margin-top: auto; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid var(--ink); }
+.lk-dots button { height: 52px; padding: 0 8px; border: 0; background: transparent; font: 400 17px/1 var(--f-body); letter-spacing: .04em; white-space: nowrap; }
 .lk-dots button + button { border-left: 1px solid var(--ink); }
 .lk-dots button:hover { background: var(--smudge); }
 .lk-dots button[aria-current] { background: var(--ink); color: var(--sheet); }
-.lk-btn { height: 44px; padding: 0 16px; background: transparent; border: 1px solid var(--ink); white-space: nowrap; }
-.lk-btn:hover { background: var(--smudge); }
-.lk-btn.fill { padding: 0 22px; background: var(--ink); color: var(--sheet); letter-spacing: .08em; font-size: 14px; }
-.lk-btn.fill:hover { background: color-mix(in srgb, var(--ink) 86%, #fff); }
 
 /* 좁은 PC 폭: 설명 칸을 줄이고 카드 글자를 낮춘다 */
 @media (max-width: 1000px) {
@@ -116,32 +106,25 @@
   .lk-text h2 { margin-top: 0; font-size: 24px; }
   .lk-body { min-height: 3.4em; font-size: 13px; line-height: 1.7; }
   .lk-tip { display: none; }
-  .lk-nav { flex-wrap: nowrap; gap: 8px; }
-  .lk-dots { flex: 1 1 auto; }
-  .lk-btn { height: 46px; }
+  .lk-dots button { height: 48px; font-size: 16px; }
 }
 
-/* 심상 장: 다섯 벌을 세 칸씩. 카드는 낮게, 바탕은 그 바탕의 빛깔을 닮은 면으로 */
-.lk-pair.lk-image { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
-.lk-image .lk-card { height: 92px; font-size: 15px; }
-.lk-image .lk-face { padding: 0 12px; }
-.lk-image .lk-note { font-size: 11px; }
-.lk-g-window { background: linear-gradient(155deg, #F6F1E6 0%, #EEEDEA 55%, #E4E7EE 100%); }
-.lk-g-leaf { background: radial-gradient(60% 50% at 25% 30%, rgba(92, 118, 84, .16), transparent 70%), radial-gradient(50% 45% at 78% 72%, rgba(92, 118, 84, .12), transparent 70%), #EEF0EA; }
-.lk-g-aurora:not(.night) { background: radial-gradient(70% 60% at 20% 20%, rgba(160, 200, 214, .35), transparent 70%), radial-gradient(60% 60% at 85% 80%, rgba(204, 186, 226, .35), transparent 70%), #EEF0F3; }
-.lk-g-dawn { background: linear-gradient(180deg, #E9E3EE 0%, #F2E6E2 60%, #F6EEE4 100%); }
-.lk-g-wongoji { background: repeating-linear-gradient(90deg, transparent 0 21px, rgba(176, 82, 66, .16) 21px 22px), repeating-linear-gradient(0deg, transparent 0 21px, rgba(176, 82, 66, .16) 21px 22px), #F3F1EA; }
-.lk-face.night.lk-g-projector { background: radial-gradient(90% 70% at 50% 0%, rgba(232, 226, 204, .14), transparent 70%), var(--dark); }
-.lk-face.night.lk-g-drape { background: repeating-linear-gradient(90deg, rgba(220, 214, 240, .05) 0 6px, transparent 6px 15px), var(--dark); }
-.lk-face.night.lk-g-caustic { background: radial-gradient(45% 35% at 30% 65%, rgba(110, 168, 196, .2), transparent 70%), radial-gradient(40% 30% at 72% 30%, rgba(110, 168, 196, .14), transparent 70%), #141B24; }
-.lk-face.night.lk-g-aurora { background: radial-gradient(60% 50% at 25% 25%, rgba(96, 196, 160, .22), transparent 70%), radial-gradient(55% 50% at 80% 75%, rgba(150, 120, 210, .22), transparent 70%), var(--dark); }
-.lk-face.night.lk-g-typing { background: repeating-linear-gradient(0deg, transparent 0 17px, rgba(230, 226, 214, .05) 17px 18px), #1C1B19; }
-/* 심상 장의 시간 막대는 넘김 차례만 보여 줄어든 카드에서는 뺀다 */
-.lk-image .lk-track { display: none; }
+/* 심상 장: 위에 실제 읽기 틀(4/3배로 세워 3/4로 줄임), 아래에 다섯 낱말 단추와 띄운 낱말의 풀이.
+   단추는 띄운 낱말이 아래 먹선, 고른 낱말이 먹으로 채움 */
+.lk-pair.lk-image { display: flex; flex-direction: column; gap: 12px; }
+.lk-view { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--sheet); box-shadow: 0 0 0 1px var(--line); }
+.lk-frame { position: absolute; left: 0; top: 0; width: calc(100% / .75); height: calc(100% / .75); border: 0; transform: scale(.75); transform-origin: 0 0; pointer-events: none; }
+.lk-words { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); }
+.lk-chip { height: 40px; padding: 0 4px; border: 0; background: transparent; font: 400 17px/1 var(--f-body); }
+.lk-chip + .lk-chip { border-left: 1px solid var(--line); }
+.lk-chip:hover { background: var(--smudge); }
+.lk-chip[aria-current] { box-shadow: inset 0 -2px 0 var(--ink); }
+.lk-chip.on { background: var(--ink); color: var(--sheet); }
+.lk-image .lk-cap { min-height: 5.4em; }
+.lk-image.on .lk-word { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
 @media (max-width: 760px) {
-  .lk-pair.lk-image { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; }
-  .lk-image .lk-card { height: 58px; font-size: 13px; }
-  .lk-image .lk-note { display: none; }
+  .lk-chip { height: 38px; font-size: 15px; }
+  .lk-image .lk-cap { min-height: 0; }
 }
 
 /* 호흡 장: 긴(가장 넓은 폭)을 카드 안 폭으로 보고, 다른 폭은 그 비율의 기둥에 글을 흘린다. 글자는 카드 폭에 맞춘다 */

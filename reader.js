@@ -295,15 +295,15 @@
     if (P.state !== 'idle') return;
     if (P.ending || !S.on) { finish(P); return; }
     P.state = 'waiting';
-    const total = P.items.filter((it) => !it.keep).length || 1;
-    let shown = from ? P.items.filter((it) => !it.keep && it.t < from).length : 0;
-    progress(P, shown / total);
+    /* 게이지는 글자 수가 아니라 시간표의 때로 찬다(쉼·긴 효과 동안 한꺼번에 뛰지 않게) */
+    const last = P.items.reduce((m, it) => (it.keep ? m : Math.max(m, it.t)), 0) || 1;
+    progress(P, Math.min(from || 0, last) / last);
     P.start = setTimeout(() => {
       P.state = 'playing';
       P.tl = G.timeline(P.items, {
         from: from || 0,
         gate: gateFor(P),
-        onReveal(it) { if (!it.keep) progress(P, ++shown / total); },
+        onReveal(it) { if (!it.keep) progress(P, it.t / last); },
         onDone() {
           P.tl = null;
           P.state = 'done';

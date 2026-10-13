@@ -19,7 +19,7 @@
   const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : undefined; };
   const LINES = [
     ['분위기', (d) => d.moods.join(', '), (d, v) => { d.moods = v.split(',').map((w) => w.trim()).filter(Boolean); }],
-    ['분위기를 직접 고름', (d) => (d.moodsTouched ? '예' : '아니요'), (d, v) => { d.moodsTouched = v === '예'; }],
+    ['분위기를 직접 고름', (d) => (d.moodsTouched ? '예' : '아니오'), (d, v) => { d.moodsTouched = v === '예'; }],
     ['나타나는 결', (d) => d.settings.flow, (d, v) => { d.settings.flow = v; }],
     ['쓰는 빠르기', (d) => d.settings.speed, (d, v) => { d.settings.speed = num(v); }],
     ['띄어 쓴 쉼', (d) => d.settings.rest, (d, v) => { d.settings.rest = num(v); }],

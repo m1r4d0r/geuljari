@@ -20,6 +20,8 @@
     { name: '호흡', words: ['긴', '짧은'] }
   ];
   const WORDS = AXES.flatMap((a) => a.words);
+  /* 늘 낱말이 하나 있는 축과 그 기본 낱말(물기·호흡에는 '없음'이 없다). 심상은 고르지 않을 수 있다 */
+  const FIXED = { '물기': '마른', '호흡': '짧은' };
 
   /* 낱말마다 조판값에 주는 영향과 고를 때 보이는 짧은 풀이 */
   /* 심상 한 벌: 라이트·다크 바탕과, 다크로·라이트로 바뀔 때의 넘김 */
@@ -93,8 +95,8 @@
 
   function defaults() {
     return {
-      flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', altGround: '', dry: '보통', turn: '쓸기', turnLight: '', font: '송명',
-      size: 1, measure: 0, align: '저절로', theme: '남보라', turnSpeed: 1
+      flow: '이어 쓰기', speed: 1, rest: 1, scene: '라이트', ground: '창빛', altGround: '', dry: '빨리', turn: '쓸기', turnLight: '', font: '송명',
+      size: 1, measure: 18, align: '저절로', theme: '남보라', turnSpeed: 1
     };
   }
 
@@ -124,7 +126,7 @@
     return o;
   }
 
-  /* 축마다 하나만 남긴다(나중에 고른 것이 이긴다) */
+  /* 축마다 하나만 남긴다(나중에 고른 것이 이긴다). 물기·호흡이 비면 기본 낱말(마른·짧은)을 둔다 */
   function oneEach(words) {
     const out = [];
     (words || []).forEach((w) => {
@@ -134,6 +136,7 @@
       if (k >= 0) out.splice(k, 1);
       out.push(w);
     });
+    AXES.forEach((a) => { if (FIXED[a.name] && !out.some((w) => a.words.includes(w))) out.push(FIXED[a.name]); });
     return AXES.flatMap((a) => out.filter((w) => a.words.includes(w)));
   }
 
@@ -145,11 +148,11 @@
   /*
    * 축 하나의 낱말을 바꾼 조판값. 그 축이 맡은 값만 바뀌고 나머지는 s 그대로다.
    * 심상을 고르면 처음 장면의 바탕·바뀐 장면의 바탕·두 방향 넘김이 그 한 벌로 바뀌고, 빼면 바탕·넘김은 지금 것을 둔다.
-   * 물기·호흡은 빼면 그 값이 기본(이어 쓰기·보통 마름, 저절로 폭)으로 돌아간다.
+   * 물기·호흡은 늘 낱말이 있어서 빼면 기본 낱말(마른·짧은)의 값이 된다.
    */
   function setAxis(s, axis, word) {
     const o = normalize(s);
-    const m = word ? MOOD[word] : null;
+    const m = MOOD[word || FIXED[axis]] || null;
     if (axis === '심상') {
       if (m && m.image) {
         o.ground = o.scene === '다크' ? m.image.night : m.image.day;
@@ -170,10 +173,15 @@
     return AXES.reduce((s, ax) => setAxis(s, ax.name, list.find((w) => ax.words.includes(w)) || null), normalize(keep || defaults()));
   }
 
-  /* 저장된 낱말에서 빠진 낱말을 걷고, 숨을 골랐던 글은 속도·쉼을 기본으로 */
+  /* 저장된 낱말에서 빠진 낱말을 걷고, 숨을 골랐던 글은 속도·쉼을 기본으로. 물기·호흡이 비어 있던 글은 기본 낱말의 값을 건다 */
   function retire(words, s) {
     const had = (words || []).some((w) => RETIRED_WORDS.includes(w));
-    return { moods: oneEach(words), settings: had ? normalize(Object.assign({}, s, { speed: 1, rest: 1 })) : normalize(s) };
+    let o = had ? normalize(Object.assign({}, s, { speed: 1, rest: 1 })) : normalize(s);
+    Object.keys(FIXED).forEach((name) => {
+      const ax = AXES.find((a) => a.name === name);
+      if (!(words || []).some((w) => ax.words.includes(w))) o = setAxis(o, name, FIXED[name]);
+    });
+    return { moods: oneEach(words), settings: o };
   }
 
   /* 장면이 바뀔 때의 넘김(엔진 이름): 다크로 · 라이트로 */
@@ -356,7 +364,7 @@
   }
 
   global.GeulTune = {
-    AXES, AXIS_KEYS, WORDS, MOOD, setAxis, retire, IMAGES, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
+    AXES, AXIS_KEYS, WORDS, FIXED, MOOD, setAxis, retire, IMAGES, FLOWS, FLOW_NAMES, REST_NAMES, DRY, DRY_NAMES, GROUNDS, TURNS, TURN_NAMES, SCENE_TURNS, FONTS, FONT_NAMES,
     ALIGNS, ALIGN_NAMES, THEMES, THEME_NAMES, HEX_RE,
     PACE, TURN_PACE, dryTime, turnPace, flowName,
     defaults, normalize, oneEach, fromMoods, turnsOf, describe, sceneLine, apply, flowCells, patchFlow, useFont, themeInk, themeVars, useTheme, TINT, readerVars, useReaderTheme, lightTint

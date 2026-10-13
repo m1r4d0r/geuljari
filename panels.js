@@ -37,7 +37,7 @@
    * model: head() 갈래 단추 {key, title, label, current, options, pick} 또는 {still: 이름}, vals() 값 단추 목록,
    *        name() 지금 갈래 이름, before() 그리기 전에 갈래 고치기, changed() 그린 뒤, drop 판 id 머리(기본 tb-drop-)
    * 값 단추: {key, title, label, current, options, pick} 판, {range} 막대, {act} 바로 하는 단추, {node} 늘 같은 단추
- *   판에 bare가 있으면 판 이름과 묶음 이름을 적지 않는다(묶음 사이 선만 남음)
+ *   판에는 이름 줄이 없다(title은 읽어 주는 이름으로만 쓰고, 묶음 사이는 선으로만 나눔)
    */
   function bar(root, model) {
     let openKey = null;
@@ -76,10 +76,9 @@
           });
           g.append(b);
         });
-        if (l.g) { g.setAttribute('aria-label', l.g); if (!spec.bare) g.append(el('span', 'tb-gname', l.g)); }
+        if (l.g) g.setAttribute('aria-label', l.g);
         d.append(g);
       });
-      if (!spec.bare) d.append(el('span', 'tb-ttl', spec.title));
       return d;
     }
 
@@ -119,7 +118,7 @@
         btn.querySelector('.tb-label').textContent = r.label(v);
         r.input(v);
       });
-      d.append(el('span', 'k', r.shown(r.min)), input, el('span', 'k', r.shown(r.max)), el('span', 'tb-ttl', spec.title));
+      d.append(el('span', 'k', r.shown(r.min)), input, el('span', 'k', r.shown(r.max)));
       return d;
     }
 
@@ -417,7 +416,7 @@
       head() {
         if (edit) return { still: '고른 곳' };
         return {
-          key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat, bare: true,
+          key: 'cat', title: '다듬을 갈래', label: CATS[cat], current: cat,
           options: [...cats().map((v) => opt(v, CATS[v])), ...(ctx.openAll ? [opt('@all', '전체 설정', { group: '모든 쪽', cls: 'tb-li-all' })] : [])],
           pick: (v) => { if (v === '@all') ctx.openAll(cat); else cat = v; }
         };
@@ -484,7 +483,7 @@
           const now = moods.find((w) => ax.words.includes(w)) || null;
           return {
             key: 'ax-' + ax.name, title: ax.name, label: `${ax.name} ${now || '없음'}`, current: now,
-            options: [...ax.words.map((w) => opt(w)), opt(null, '없음')],
+            options: [...ax.words.map((w) => opt(w)), ...(T.FIXED[ax.name] ? [] : [opt(null, '없음')])],
             pick(v) {
               const list = moods.filter((w) => !ax.words.includes(w));
               if (v) list.push(v);

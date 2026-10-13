@@ -10,7 +10,7 @@
  * 두 장면은 한 시계로 함께 돌고, 다 쓴 뒤 머물렀다가 흐려지며 처음부터 되풀이한다. 장을 넘기거나 다시 열면 처음부터.
  * 움직임 줄이기 설정이면 장면마다 차이가 가장 잘 보이는 한 순간에 멈춰 둔다.
  * open({ moods, pick, axis }): moods는 지금 고른 낱말, pick(list)가 있으면 낱말 쪽을 눌러 축마다 하나씩 고르고
- *   고른 것을 다시 누르면 뺀다. axis(축 이름)를 주면 그 장부터 연다. close()로 닫는다.
+ *   고른 것을 다시 누르면 뺀다(물기·호흡은 늘 하나라 빼지 않는다). axis(축 이름)를 주면 그 장부터 연다. close()로 닫는다.
  * Esc·닫기·바깥 누르기로 닫고, 좌우 방향키로 장을 넘긴다. 닫으면 #mood-look(보이지 않으면 열기 전 자리)으로 초점을 돌려준다.
  * 폰 폭에서는 아래에서 올라오는 판. 전역 GeulLook.
  */
@@ -420,11 +420,12 @@
     });
   }
 
-  /* 축마다 하나: 같은 축의 다른 낱말은 빼고, 이미 고른 낱말을 다시 누르면 뺀다 */
+  /* 축마다 하나: 같은 축의 다른 낱말은 빼고, 이미 고른 낱말을 다시 누르면 뺀다(물기·호흡은 늘 하나라 빼지 않음) */
   function toggle(word) {
     const T = global.GeulTune;
     if (typeof opts.pick !== 'function') return;
     const ax = T.AXES.find((a) => a.words.includes(word));
+    if (moods.includes(word) && T.FIXED[ax.name]) return;
     const list = moods.filter((w) => !ax.words.includes(w));
     if (!moods.includes(word)) list.push(word);
     moods = T.oneEach(list);

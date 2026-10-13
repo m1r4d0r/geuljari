@@ -22,11 +22,14 @@ test('글만 복사: 표시를 빼고 쉼은 한 칸, 쪽 나눔은 빈 줄 하�
   assert.equal(globalThis.GeulFile.plainText(src), '가나 다라 마바\n\n  들여 쓴 줄\n\n끝');
 });
 
-test('호흡: 긴·짧은은 글 상자 폭만, 빼면 저절로', () => {
+test('호흡: 긴·짧은은 글 상자 폭만, 빼면 기본 낱말 짧은', () => {
   const T = globalThis.GeulTune;
   assert.equal(T.fromMoods(['긴']).measure, 34);
   assert.equal(T.fromMoods(['짧은', '젖은']).measure, 18);
-  assert.equal(T.setAxis(T.fromMoods(['긴']), '호흡', null).measure, 0);
+  assert.equal(T.setAxis(T.fromMoods(['긴']), '호흡', null).measure, 18);
+  assert.deepEqual(T.oneEach([]), ['마른', '짧은']);
+  assert.equal(T.fromMoods([]).dry, '빨리');
+  assert.equal(T.retire([], { measure: 0, dry: '보통' }).settings.measure, 18);
 });
 
 test('축을 바꾸면 그 축이 맡은 값만 바뀜', () => {
@@ -38,5 +41,5 @@ test('축을 바꾸면 그 축이 맡은 값만 바뀜', () => {
   assert.equal(T.setAxis(s, '호흡', '긴').flow, '떠오름');
   assert.equal(T.AXES.some((a) => a.name === '숨'), false);
   const r = T.retire(['고요한', '빛'], { speed: 0.85, rest: 2 });
-  assert.deepEqual(r.moods, ['빛']); assert.equal(r.settings.speed, 1); assert.equal(r.settings.rest, 1);
+  assert.deepEqual(r.moods, ['빛', '마른', '짧은']); assert.equal(r.settings.speed, 1); assert.equal(r.settings.rest, 1);
 });

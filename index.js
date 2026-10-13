@@ -237,7 +237,7 @@
     st.title = '';
     $('title').value = '';
     st.made = '';
-    st.moods = [];
+    st.moods = T.oneEach([]);
     st.moodsTouched = false;
     st.settings = T.defaults();
     st.ending = normEnding();

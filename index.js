@@ -249,7 +249,7 @@
   });
 
   /*
-   * 머리의 '안내'를 누르면 화면을 흐리게 가리고 그 단계의 안내를 띄운다(글 여섯 장, 미리보기 네 장). 장마다 그 기능이 움직이는 작은 장면을 보인다.
+   * 머리의 '안내'를 누르면 화면을 흐리게 가리고 그 단계의 안내를 띄운다(글 여섯 장, 미리보기 다섯 장). 장마다 그 기능이 움직이는 작은 장면을 보인다.
    * 장면은 숨겼다 보이면 처음부터 다시 움직인다.
    */
   const GUIDE_WRITE = [
@@ -262,10 +262,11 @@
   ];
 
   const GUIDE_TUNE = [
-    { title: '글 상자를 누르면 글', body: '하단바가 글 갈래로 바뀌어요. 나타나는 결·속도·크기·정렬·폭을 고르고, 글 상자를 끌어 자리를 옮겨요.', tip: '결과 속도는 머리의 다시 보기를 눌러야 보여요. 크기·폭·정렬은 바로 바뀌어요.' },
+    { title: '글 상자를 누르면 글', body: '하단바가 글 갈래로 바뀌어요. 나타나는 결·속도·크기·정렬·폭을 고르고, 글 상자를 끌어 자리를 옮겨요.', tip: '크기·폭·정렬은 바로 바뀌어요. 결과 속도는 눈금을 눌러 다시 쓰면 보여요.' },
     { title: '빈 바탕을 누르면 바탕', body: '하단바가 바탕 갈래로 바뀌어요. 장면과 바탕, 이 쪽으로 넘어오는 전환과 그 속도를 골라요.', tip: '전환 속도를 바꾸면 그 쪽으로 한 번 넘겨 보여요.' },
     { title: '두 번 누르면 고치기', body: '글 상자를 두 번 누르면 그 자리에서 글을 고쳐요. 글을 고르면 등장·퇴장·꾸밈·색을 걸 수 있어요.', tip: '상자 아래 오른쪽의 체크로 남기고, X로 되돌려요.' },
-    { title: '이 쪽만, 또는 전체', body: '하단바에서 고른 값은 지금 쪽에만 걸려요. 모든 쪽에 같은 값을 걸 때는 갈래 판 맨 위의 전체 설정을 열어요.', tip: '오른쪽에서 PC·폰·병렬로 바꿔 보고, 손가락 벌리기나 Ctrl+휠로 확대해요.' }
+    { title: '이 쪽만, 또는 전체', body: '하단바에서 고른 값은 지금 쪽에만 걸려요. 모든 쪽에 같은 값을 걸 때는 갈래 판 맨 위의 전체 설정을 열어요.', tip: '오른쪽에서 PC·폰·병렬로 바꿔 보고, 손가락 벌리기나 Ctrl+휠로 확대해요.' },
+    { title: '눈금이 차오르면', body: '지금 쪽 눈금은 글이 써지는 만큼 먹이 차올라요. 꽉 찬 네모가 되면 그 쪽을 다 쓴 거예요. 꽉 찬 눈금을 누르면 그 쪽을 처음부터 다시 써요.', tip: '결이나 속도를 바꾸면 눈금이 장미색이 돼요. 눌러서 바뀐 움직임을 확인해요. 마우스를 가까이 대면 눈금이 커져요.' }
   ];
   let GUIDE = GUIDE_WRITE;
   let guideSet = 'write';
@@ -431,7 +432,8 @@
    * ending이면 마지막 화면에 바로 놓는다.
    */
   /* 바꾼 움직임을 아직 다시 보지 않았는지: 다시 보기 단추(하단바·머리)에 작은 점 */
-  function markDue(on) { $('replay-top').classList.toggle('due', on); }
+  /* 바꾼 움직임을 아직 다시 보지 않았는지: 미리보기 지금 눈금을 장미색으로(눈금을 누르면 다시 씀) */
+  function markDue(on) { st.due = on; postAll({ type: 'geulgyeol:due', on }); }
 
   function play(start) {
     if (st.step !== 'tune' || !st.source.trim()) return;
@@ -612,6 +614,7 @@
     if (d.type === 'geulgyeol:page') {
       if (i === sc.pending) { sc.swap(); if (sc === main) { tellZoom(); tellInset(); } }
       if (i !== sc.active) return;
+      post(sc, { type: 'geulgyeol:due', on: !!st.due });
       /* 마지막 화면이면 page는 글 쪽 수다. 쪽은 마지막 글 쪽에 두고 마지막 화면에 있다고 적는다 */
       const end = d.ending === true;
       const k = end ? Math.max(0, allPages().length - 1) : d.page;
@@ -626,6 +629,7 @@
     }
     if (i !== sc.active) return;
     if (d.type === 'geulgyeol:publish') { setStep('publish'); return; }
+    if (d.type === 'geulgyeol:again-req') { replay(); return; }
     if (d.type === 'geulgyeol:ending') {
       st.ending = normEnding({ ...st.ending, ...window.GeulCardSettings.normalize(d.ending) });
       save(); handOff();
@@ -824,7 +828,6 @@
     document.body.dataset.tuneCat = s2.cat;
     document.body.classList.toggle('tune-cat-open', s2.open === 'cat');
   };
-  $('replay-top').addEventListener('click', () => replay());
 
   /* 1000px 이하의 ⋯: 하단바 오른쪽 묶음을 작은 판으로 접는다. 고르면, 밖을 누르면, Esc면 닫는다 */
   document.querySelectorAll('.tune-bar .tb-more').forEach((b) => {

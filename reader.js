@@ -645,7 +645,7 @@
       b.className = P.ending ? 'dot fin' : 'dot';
       b.setAttribute('aria-label', P.ending ? '끝' : `${i + 1}쪽`);
       b.addEventListener('click', () => {
-        if (i === S.cur && !P.ending && P.state === 'done' && Math.abs(S.pos - i) < 0.001) again();
+        if (i === S.cur && !P.ending && P.state === 'done' && Math.abs(S.pos - i) < 0.001) againAsked();
         else goTo(i);
       });
       dotsBox.append(b);
@@ -723,6 +723,12 @@
     play(P, LAND_WAIT);
   }
 
+  /* 다 찬 눈금을 눌렀을 때: 편집실 미리보기에서는 바뀐 조판값으로 새로 띄우도록 편집실에 맡기고, 그 밖에서는 이 쪽을 다시 쓴다 */
+  function againAsked() {
+    if (studio) window.parent.postMessage({ type: 'geulgyeol:again-req', page: S.cur }, location.origin);
+    else again();
+  }
+
   /* 기기의 '동작 줄이기'를 바꾸면 바로 따른다 */
   reduce.addEventListener('change', () => {
     S.on = !reduce.matches;
@@ -733,6 +739,7 @@
   /* ---------- 편집실과 주고받기 ---------- */
 
   const embedded = window.parent !== window;
+  const studio = embedded && document.documentElement.classList.contains('in-studio');
   function tellPage() {
     if (embedded) window.parent.postMessage({ type: 'geulgyeol:page', page: S.cur, pages: count, ending: !!pages[S.cur].ending }, location.origin);
   }
@@ -742,6 +749,8 @@
       const k = clamp(Number(e.data.page) || 0, 0, pages.length - 1);
       if (k !== S.cur) goTo(k);
     } else if (e.data.type === 'geulgyeol:again') again();
+    /* 편집실에서 움직임 값을 바꾸고 아직 다시 보지 않았으면 지금 눈금을 장미색으로 */
+    else if (e.data.type === 'geulgyeol:due') dotsBox.classList.toggle('is-due', !!e.data.on);
     else if (e.data.type === 'geulgyeol:finish') { const P = pages[S.cur]; if (writing(P) || P.state === 'idle') finish(P); }
   });
 

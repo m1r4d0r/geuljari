@@ -201,6 +201,8 @@ body {
   transition: transform .16s ease-out;
 }
 .dots.is-open { transform: scale(2); }
+/* 편집실 미리보기: 바꾼 결·속도를 아직 다시 보지 않았으면 지금 눈금이 장미색(누르면 다시 씀) */
+.dots.is-due .dot[aria-current="true"] { color: #A8344F; }
 @media (prefers-reduced-motion: reduce) {
   .dot:not(.fin)[aria-current="true"]::after { transition: none; }
 }

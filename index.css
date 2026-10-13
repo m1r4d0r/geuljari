@@ -187,6 +187,15 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .g-li { height: 30px; padding: 0 12px; display: flex; align-items: center; border-top: 1px solid var(--paper); }
 .g-li.on { box-shadow: inset 3px 0 var(--ink); }
 .g-li-set { border-top: 0; border-bottom: 1px solid var(--line); animation: g-set 5.2s ease infinite; }
+/* 눈금 안내: 지금 눈금에 먹이 아래에서 차오르고, 꽉 차면 누름 자국과 함께 비었다가 다시 찬다 */
+.g-gauge { position: absolute; left: 50%; bottom: 14px; display: flex; gap: 6px; transform: translateX(-50%) scale(1.6); }
+.g-gauge i { position: relative; width: 7px; height: 7px; background: var(--ink); opacity: .28; }
+.g-gauge .g-gauge-now { opacity: 1; background: none; border: 1px solid var(--ink); }
+.g-gauge .g-gauge-now::after { content: ""; position: absolute; left: -1px; right: -1px; bottom: -1px; height: 7px; background: var(--ink); transform-origin: bottom; animation: g-gauge 5.2s linear infinite; }
+.g-gauge .g-gauge-fin { background: none; border: 1px solid var(--ink); opacity: .45; }
+.g-tap-gauge { left: calc(50% - 42px); bottom: 9px; animation-name: g-tap-late; }
+@keyframes g-gauge { 0% { transform: scaleY(.14); } 50%, 66% { transform: scaleY(1); } 72% { transform: scaleY(.14); } 100% { transform: scaleY(.6); } }
+@keyframes g-tap-late { 0%, 52% { opacity: 0; transform: scale(1.6); } 60% { opacity: 1; transform: scale(1); } 74%, 100% { opacity: 0; transform: scale(1); } }
 @keyframes g-tap { 0%, 14% { opacity: 0; transform: scale(1.6); } 24% { opacity: 1; transform: scale(1); } 40%, 100% { opacity: 0; transform: scale(1); } }
 @keyframes g-tbox { 0%, 22% { border-color: transparent; } 30%, 100% { border-color: var(--ink); } }
 @keyframes g-chips { 0%, 30% { opacity: 0; transform: translateY(4px); } 42%, 100% { opacity: 1; transform: none; } }
@@ -194,7 +203,7 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 @keyframes g-sel { 0%, 20% { background: transparent; } 30%, 100% { background: var(--pick); } }
 @keyframes g-set { 0%, 30% { background: var(--sheet); } 40%, 70% { background: var(--pick); } 80%, 100% { background: var(--sheet); } }
 @media (prefers-reduced-motion: reduce) {
-  .g-sheet, .g-scene, .g-on, .g-brk, .g-brk-next, .g-screen-dark, .g-tbox-on, .g-sel, .g-tap, .g-bar .g-chip, .g-li-set, .g-rise, .g-page.two, .g-leave, .g-hint, .g-rule, .g-cursor, .g-iris, .g-toggle, .g-type, .g-wait i, .g-sweep, .g-pop, .g-wavy { animation: none; opacity: 1; }
+  .g-sheet, .g-scene, .g-on, .g-brk, .g-brk-next, .g-screen-dark, .g-tbox-on, .g-sel, .g-tap, .g-bar .g-chip, .g-li-set, .g-gauge-now::after, .g-rise, .g-page.two, .g-leave, .g-hint, .g-rule, .g-cursor, .g-iris, .g-toggle, .g-type, .g-wait i, .g-sweep, .g-pop, .g-wavy { animation: none; opacity: 1; }
   .g-leave, .g-hint, .g-cursor, .g-pop { display: none; }
 }
 
@@ -228,9 +237,6 @@ body.guided .steps-body, body.guided .top { filter: blur(5px); pointer-events: n
 .top-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .top-info .link { height: 36px; font-size: 12px; color: var(--ink); }
 body[data-step="publish"] #guide-open { display: none; }
-.top-replay { display: none; position: relative; }
-.top-replay.due::after { content: ""; position: absolute; right: -8px; top: 9px; width: 5px; height: 5px; background: var(--danger); }
-body[data-step="tune"] .top-replay { display: inline-flex; align-items: center; }
 /* 폰 폭: 머리에는 쪽 수만 */
 @media (max-width: 420px) { .top .steps button { padding-inline: 5px; } .top { gap: 8px; } }
 

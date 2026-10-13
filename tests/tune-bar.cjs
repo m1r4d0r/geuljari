@@ -55,7 +55,7 @@ const fs = require('node:fs/promises');
       await pg.waitForFunction(() => { const d = document.querySelector('#screen-main .frame.on')?.contentDocument; const sh = d && d.querySelector('.sheet.is-current'); return sh && sh.dataset.i === '1' && !d.querySelector('.sheet.is-moving'); }, null, { timeout: 8000 });
       await pg.waitForTimeout(600);
       await pg.waitForFunction(() => JSON.parse(localStorage.getItem('geul.studio')).page === 1);
-      // 글: 갈래는 바탕·글 둘. 바꾸면 다시 보기에 표시, 누르면 지움. 바로 흐름을 고를 수 있음
+      // 글: 갈래는 바탕·글 둘. 바꾸면 지금 눈금이 장미색, 누르면 다시 씀. 바로 흐름을 고를 수 있음
       await pg.click('#s-tune .tb-cat');
       assert.deepEqual(await pg.locator('#s-tune .tb-cat-item .tb-li').allTextContents(), ['바탕', '글', '전체 설정']);
       assert.equal(await pg.locator('#s-tune .tb-cat-item .tb-ttl, #s-tune .tb-cat-item .tb-gname').count(), 0, '갈래 판에는 이름 없음');
@@ -124,10 +124,14 @@ const fs = require('node:fs/promises');
       // 결도 이 쪽에만
       await pg.waitForFunction(() => /\[\[[^\]]*결바로/.test(JSON.parse(localStorage.getItem('geul.studio')).source));
       assert.equal(await pg.evaluate(() => JSON.parse(localStorage.getItem('geul.studio')).settings.flow), '이어 쓰기');
-      // 다시 보기는 화면 폭과 상관없이 머리의 로고 오른쪽 글자 단추
-      assert.ok(await pg.locator('#replay-top.due').count() === 1);
-      await pg.click('#replay-top');
-      assert.ok(await pg.locator('#replay-top.due').count() === 0);
+      // 다시 보기는 지금 쪽 눈금: 바꾼 움직임을 아직 안 봤으면 장미색, 꽉 찬 눈금을 누르면 바뀐 값으로 다시 씀
+      assert.equal(await pg.locator('#replay-top').count(), 0);
+      frame = pg.frameLocator('#screen-main .frame.on');
+      await frame.locator('#dots.is-due .dot.is-full[aria-current="true"]').waitFor();
+      const oldSrc = await pg.getAttribute('#screen-main .frame.on', 'src');
+      await frame.locator('#dots .dot[aria-current="true"]').click();
+      // 새 틀이 바꿔 끼워질 때까지 기다린 뒤 그 틀을 본다
+      await pg.waitForFunction((src) => { const f = document.querySelector('#screen-main .frame.on'); const b = f && f.getAttribute('src') !== src && f.contentDocument?.getElementById('dots'); return b && b.children.length && !b.classList.contains('is-due'); }, oldSrc, { timeout: 8000 });
       // 바로: 새 틀이 첫 쪽에 닿아 바꿔 끼워진 뒤 그 쪽 글이 다 놓임(바탕 그리기가 무거우면 조금 늦음)
       await pg.waitForFunction(() => { const f = document.querySelector('#screen-main .frame.on'); const d = f && f.contentDocument; const sh = d && d.querySelector('.sheet.is-current'); return !!sh && sh.querySelectorAll('.ch').length > 0 && sh.querySelectorAll('.ch.pending').length === 0; }, null, { timeout: 8000 });
       frame = pg.frameLocator('#screen-main .frame.on');

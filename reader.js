@@ -8,7 +8,8 @@
  * 두 장의 장면(라이트·다크)이 다르면 반전 넘김으로, 같으면 스며들듯 겹쳐 넘긴다.
  *   쪽 표시 줄에 넘김이 적힌 쪽은 그 넘김으로 들어온다. 적지 않은 쪽은 장면이 바뀌면 window.GeulReaderOpts.turn(다크로, 기본 쓸기)·turnLight(라이트로, 없으면 turn).
  * 장에 도착하면 그 장의 글을 엔진 시간표대로 써 내려간다. 쓰는 중에 넘기려 하면 처음 한 번은 그 장을 다 쓰고, 그다음에 넘긴다.
- * 화면에는 아래 가운데의 쪽 눈금 말고 글자를 띄우지 않는다. 지금 장의 눈금은 써 나간 만큼 차고, 끝 장은 네모 하나로 따로 보인다.
+ * 화면에는 아래 가운데의 쪽 눈금 말고 글자를 띄우지 않는다. 지금 장의 눈금은 테두리 네모에 써 나간 만큼 먹이 아래에서 차오르고,
+ * 다 찬 지금 눈금을 누르면 그 장을 다시 쓴다. 끝 장은 테두리 네모 하나로 따로 보인다.
  * 글이 화면보다 긴 장은 안에서 위아래로 스크롤되고, 그때만 화면 가운데 줄이 또렷한 초점 띠가 켜진다.
  * 쓰는 자리가 화면 아래에 닿으면 저절로 내리지 않고 거기서 기다리며, 눈금 위에 짧은 선이 흘러내린다. 읽는 사람이 내리면 이어 쓴다.
  * 휠은 조금 굴리면 넘김이 걸리고, 걸린 뒤로는 손을 멈출 때까지 더 굴러도 한 장만 휙 넘긴다.
@@ -243,6 +244,7 @@
     else G.show(P.items);
     P.tl = null;
     P.state = 'done';
+    progress(P, 1);
   }
 
   function reset(P) {
@@ -250,6 +252,7 @@
     if (P.tl) P.tl.cancel();
     P.tl = null;
     P.state = 'idle';
+    progress(P, 0);
     P.scroll.scrollTop = 0;
     if (S.on) G.hide(P.items);
     else G.show(P.items);
@@ -292,14 +295,19 @@
     if (P.state !== 'idle') return;
     if (P.ending || !S.on) { finish(P); return; }
     P.state = 'waiting';
+    const total = P.items.filter((it) => !it.keep).length || 1;
+    let shown = from ? P.items.filter((it) => !it.keep && it.t < from).length : 0;
+    progress(P, shown / total);
     P.start = setTimeout(() => {
       P.state = 'playing';
       P.tl = G.timeline(P.items, {
         from: from || 0,
         gate: gateFor(P),
+        onReveal(it) { if (!it.keep) progress(P, ++shown / total); },
         onDone() {
           P.tl = null;
           P.state = 'done';
+          progress(P, 1);
           P.held = false;
           cue.classList.remove('is-on');
           if (P.after) { const f = P.after; P.after = null; setTimeout(f, AUTO_NEXT); }
@@ -614,6 +622,21 @@
 
   /* ---------- 아래 눈금 ---------- */
 
+  /* 지금 장의 눈금은 써 나간 만큼(--p) 먹이 아래에서 차오르고, 다 차면 누를 때 그 장을 다시 쓴다 */
+  function progress(P, n) {
+    const dot = dotsBox.children[pages.indexOf(P)];
+    if (!dot || P.ending) return;
+    dot.style.setProperty('--p', String(Math.min(1, n)));
+    dot.classList.toggle('is-full', n >= 1);
+    syncLabel(dot, pages.indexOf(P));
+  }
+
+  function syncLabel(b, i) {
+    if (pages[i].ending) return;
+    const again = i === S.cur && b.classList.contains('is-full');
+    b.setAttribute('aria-label', again ? `${i + 1}쪽 다시 보기` : `${i + 1}쪽`);
+  }
+
   function drawDots() {
     dotsBox.textContent = '';
     pages.forEach((P, i) => {
@@ -621,7 +644,10 @@
       b.type = 'button';
       b.className = P.ending ? 'dot fin' : 'dot';
       b.setAttribute('aria-label', P.ending ? '끝' : `${i + 1}쪽`);
-      b.addEventListener('click', () => goTo(i));
+      b.addEventListener('click', () => {
+        if (i === S.cur && !P.ending && P.state === 'done' && Math.abs(S.pos - i) < 0.001) again();
+        else goTo(i);
+      });
       dotsBox.append(b);
     });
   }
@@ -629,7 +655,7 @@
   /* 지금 장 표시, 눈금과 기다림 표시는 지금 장의 장면 먹색으로 */
   const uiParts = [dotsBox.closest('.ui'), cue].filter(Boolean);
   function syncPager() {
-    [...dotsBox.children].forEach((b, i) => b.setAttribute('aria-current', String(i === S.cur)));
+    [...dotsBox.children].forEach((b, i) => { b.setAttribute('aria-current', String(i === S.cur)); syncLabel(b, i); });
     const P = pages[S.cur];
     if (P) uiParts.forEach((n) => { n.dataset.scene = P.scene; });
   }

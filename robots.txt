@@ -1,0 +1,5 @@
+# 편집실 첫 화면만 검색에 올려요. 발행 글(/t/)·공유 그림(/og/)은 응답의 noindex로 빼되, 공유 미리보기가 읽을 수 있게 막지 않아요.
+User-agent: *
+Disallow: /api/
+
+Sitemap: https://geuljari.netlify.app/sitemap.xml

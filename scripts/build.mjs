@@ -5,6 +5,6 @@ await writeFile('server/deploy-config.json', JSON.stringify(deployConfig(process
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
 for (const name of await readdir('.')) {
-  if (/\.(html|css|js|svg|png|ico|webmanifest)$/.test(name)) await cp(name, `dist/${name}`);
+  if (/\.(html|css|js|svg|png|jpg|ico|webmanifest)$|^(robots\.txt|sitemap\.xml)$/.test(name)) await cp(name, `dist/${name}`);
 }
 for (const name of ['design', 'meokji', 'codex-proposals']) await cp(name, `dist/${name}`, { recursive: true });

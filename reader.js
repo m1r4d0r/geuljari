@@ -652,6 +652,49 @@
     });
   }
 
+  /*
+   * 눈금 가까이: 마우스는 눈금 줄에 다가갈수록 줄이 커진다(--near 0~1). 손가락은 눈금 자리를 처음 누르면 줄이 커져
+   * 잠깐 머물고(그 누름은 넘기지 않음), 커진 동안 누른 눈금이 넘기거나 다시 쓴다. 다른 곳을 누르거나 손을 떼고 조금 지나면 접힌다.
+   */
+  const NEAR_REACH = 110;
+  const NEAR_HOLD = 2800;
+  let nearTimer = 0;
+  let swallow = false;
+  function setNear(v) { dotsBox.style.setProperty('--near', v.toFixed(3)); }
+  function touchOpen(on) {
+    clearTimeout(nearTimer);
+    dotsBox.classList.toggle('is-open', on);
+    setNear(on ? 1 : 0);
+    if (on) nearTimer = setTimeout(() => touchOpen(false), NEAR_HOLD);
+  }
+  document.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    /* 커진 크기가 아니라 눈금 줄이 놓인 자리(바닥 막대)를 기준으로 잰다 */
+    const r = dotsBox.parentElement.getBoundingClientRect();
+    const box = dotsBox.getBoundingClientRect();
+    const k = 1 + (parseFloat(dotsBox.style.getPropertyValue('--near')) || 0) * 0.7;
+    const w = box.width / k / 2;
+    const cx = (box.left + box.right) / 2;
+    const dx = Math.max(0, Math.abs(e.clientX - cx) - w);
+    const dy = Math.max(0, r.top - e.clientY, e.clientY - r.bottom);
+    setNear(clamp(1 - Math.hypot(dx, dy) / NEAR_REACH, 0, 1));
+  }, { passive: true });
+  document.addEventListener('mouseout', (e) => { if (!e.relatedTarget) setNear(0); });
+  dotsBox.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    if (!dotsBox.classList.contains('is-open')) swallow = true;
+    touchOpen(true);
+  });
+  dotsBox.addEventListener('click', (e) => {
+    if (!swallow) return;
+    swallow = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+  document.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' && !dotsBox.contains(e.target) && dotsBox.classList.contains('is-open')) touchOpen(false);
+  });
+
   /* 지금 장 표시, 눈금과 기다림 표시는 지금 장의 장면 먹색으로 */
   const uiParts = [dotsBox.closest('.ui'), cue].filter(Boolean);
   function syncPager() {

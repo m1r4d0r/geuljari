@@ -196,6 +196,18 @@ body {
   gap: 0;
   max-width: 100%;
   pointer-events: auto;
+  /* 가까이 가면 커짐(--near는 reader.js가 0~1로): 마우스는 다가간 만큼, 손가락은 처음 누르면 한껏 */
+  transform: scale(calc(1 + var(--near, 0) * .7));
+  transition: transform .16s ease-out;
+}
+.dots.is-open { transform: scale(2); }
+.dots:has(.dot:focus-visible) { transform: scale(1.7); }
+/* 손가락 화면: 눈금 둘레를 넉넉히 눌리게 */
+@media (pointer: coarse) {
+  .dots { padding: .4rem .9rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dots { transition: none; }
 }
 /* 눈금 하나는 7px 네모. 지난·남은 쪽은 흐리게, 지금 쪽은 먹으로 채운다. 누르는 자리는 네모보다 넓다 */
 .dot {
@@ -251,6 +263,7 @@ body {
 /* 폰: 눈금은 위 가운데. 기다림 표시는 그대로 아래에서 흘러내린다 */
 @media (max-width: 599px) {
   .ops { top: 0; bottom: auto; padding: calc(env(safe-area-inset-top, 0px) + .5rem) 1rem .5rem; }
+  .dots { transform-origin: center top; }
   .cue { bottom: calc(env(safe-area-inset-bottom, 0px) + 1.4rem); }
 }
 

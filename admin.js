@@ -1,6 +1,6 @@
 /*
  * 글자리 관리 현황. 관리자 비밀번호를 넣으면 /api/admin에서 글 요약 목록과 날짜별 방문 수를 받아 보여 준다.
- * 비밀번호는 이 화면이 열려 있는 동안 메모리에만 두고(새로 고침에 다시 씀), 잠그기·창 닫기로 잊는다.
+ * 맞은 비밀번호는 이 브라우저의 localStorage에 남겨 다음에 열면 바로 보인다. 잠그기를 누르거나 비밀번호가 틀리면 지운다.
  */
 (function () {
   'use strict';
@@ -9,6 +9,11 @@
     wrong_password: '비밀번호가 맞지 않습니다.',
     admin_unset: '관리자 비밀번호가 아직 설정되지 않았습니다. Netlify 환경 변수 GEULJARI_ADMIN_PASSWORD를 넣고 다시 배포해 주세요.',
     storage_unavailable: '저장소에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.'
+  };
+  const KEY = 'geuljari.admin';
+  const keep = {
+    get() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } },
+    set(v) { try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) { /* 남길 수 없으면 매번 넣는다 */ } }
   };
   let password = '';
   let busy = false;
@@ -39,11 +44,14 @@
       } catch (e) { throw new Error('연결이 끊겼습니다. 다시 시도해 주세요.'); }
       const data = await res.json().catch(() => ({}));
       if (res.status === 429) throw new Error('시도가 많았습니다. 1분 뒤 다시 시도해 주세요.');
-      if (!res.ok) throw new Error(MSG[data.error] || '현황을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+      if (!res.ok) throw Object.assign(new Error(MSG[data.error] || '현황을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.'), { status: res.status });
+      keep.set(password);
       render(data);
     } catch (e) {
-      if (!$('board').hidden) lock();
-      $('msg').textContent = e.message;
+      /* 틀린 비밀번호만 잊는다. 연결·저장소 문제면 보던 현황과 기억한 비밀번호를 그대로 둔다 */
+      if (e.status === 401) lock();
+      if ($('board').hidden) $('msg').textContent = e.message;
+      else $('when').textContent = e.message;
     } finally {
       busy = false;
       document.querySelectorAll('.gate .btn, #refresh').forEach((b) => { b.disabled = false; });
@@ -84,14 +92,14 @@
       const st = document.createElement('span');
       st.className = 'state' + (a.live ? '' : ' off');
       st.textContent = a.live ? '공개' : '비공개';
-      tr.append(cell(a.title || '제목 없는 글'), cell(st), cell(fmt(a.createdAt), 'date'), cell(fmt(a.updatedAt), 'date'), cell(String(Math.max(0, (a.revision || 1) - 1)), 'num'), cell(String(a.reads), 'num'));
+      tr.append(cell(a.title || '제목 없는 글'), cell(st), cell(fmt(a.createdAt), 'date'), cell(String(Math.max(0, (a.revision || 1) - 1)), 'num'), cell(String(a.reads), 'num'));
       return tr;
     });
     if (!rows.length) {
       const tr = document.createElement('tr');
       tr.className = 'empty';
       const td = cell('아직 발행한 글이 없습니다.');
-      td.colSpan = 6;
+      td.colSpan = 5;
       tr.append(td);
       rows.push(tr);
     }
@@ -116,6 +124,7 @@
 
   function lock() {
     password = '';
+    keep.set('');
     $('password').value = '';
     $('board').hidden = true;
     $('gate').hidden = false;
@@ -131,4 +140,6 @@
   });
   $('refresh').addEventListener('click', load);
   $('lock').addEventListener('click', lock);
+  password = keep.get();
+  if (password) { $('password').value = password; load(); }
 })();

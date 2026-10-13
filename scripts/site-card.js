@@ -2,12 +2,12 @@
 (function () {
   'use strict';
   const W = 1200, H = 630;
-  const LINE = '글이 써지는 속도와 숨을 그대로 보여 주는 글 틀';
+  const LINE = '당신의 글을 당신의 호흡대로 담는 자리';
   const HOST = 'geuljari.netlify.app';
   window.drawSiteCard = async function () {
     const T = window.GeulTune;
     T.useReaderTheme(document, T.normalize({}).theme);
-    await document.fonts.load('400 40px "Song Myung"', LINE);
+    await document.fonts.load('400 44px "Song Myung"', LINE);
     await document.fonts.load('400 22px "Nanum Gothic Coding"', HOST);
     const c = document.createElement('canvas');
     c.width = W; c.height = H;
@@ -33,7 +33,7 @@
     ctx.fillStyle = ink;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '400 40px "Song Myung"';
+    ctx.font = '400 44px "Song Myung"';
     ctx.fillText(LINE, W / 2, 364);
     ctx.globalAlpha = 0.62;
     ctx.font = '400 22px "Nanum Gothic Coding"';
